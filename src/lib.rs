@@ -9,8 +9,8 @@ pub mod writer;
 pub use document::{Document, DocumentMetadata};
 pub use error::{PdfError, Result};
 pub use graphics::{Color, GraphicsContext};
-pub use page::Page;
-pub use text::{Font, FontFamily, TextContext};
+pub use page::{Page, Margins};
+pub use text::{Font, FontFamily, TextContext, TextAlign, TextFlowContext, measure_text, split_into_words};
 
 #[cfg(test)]
 mod tests {

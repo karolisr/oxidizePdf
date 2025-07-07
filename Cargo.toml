@@ -12,6 +12,7 @@ categories = ["graphics", "text-processing", "encoding"]
 [dependencies]
 thiserror = "1.0"
 chrono = "0.4"
+lazy_static = "1.4"
 
 [dev-dependencies]
 

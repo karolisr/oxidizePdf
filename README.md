@@ -9,10 +9,13 @@ A native Rust library for PDF generation and editing. This library provides a si
 - **Simple API**: Easy-to-use builder pattern for creating documents
 - **Graphics Support**: Draw shapes, lines, and curves with various colors
 - **Text Rendering**: Support for standard PDF fonts with formatting options
+- **Automatic Text Wrapping**: Smart line breaking with word boundaries
+- **Text Alignment**: Left, right, center, and justified text alignment
 - **Multiple Pages**: Create documents with any number of pages
 - **Metadata Support**: Set document title, author, and other properties
 - **Color Spaces**: Support for RGB, Grayscale, and CMYK colors
 - **Transformations**: Translate, rotate, and scale graphics
+- **Configurable Margins**: Set page margins for content area control
 
 ## Installation
 
@@ -113,6 +116,28 @@ page.graphics()
     .restore_state();
 ```
 
+### Text Wrapping and Alignment
+
+```rust
+let mut page = Page::a4();
+page.set_margins(50.0, 50.0, 50.0, 50.0);
+
+let mut text_flow = page.text_flow();
+
+// Automatic text wrapping with different alignments
+text_flow
+    .set_font(Font::Helvetica, 12.0)
+    .set_alignment(TextAlign::Left)
+    .at(0.0, 750.0)
+    .write_wrapped("This text will automatically wrap when it reaches the margin...")?
+    
+    .set_alignment(TextAlign::Justified)
+    .newline()
+    .write_paragraph("Justified text creates clean edges on both sides by adjusting space between words. This creates a professional appearance similar to newspapers and books.")?;
+
+page.add_text_flow(&text_flow);
+```
+
 ## Supported Fonts
 
 The library includes support for the 14 standard PDF fonts:
@@ -163,6 +188,9 @@ cargo run --example graphics_demo
 
 # Text formatting options
 cargo run --example text_formatting
+
+# Text wrapping and alignment
+cargo run --example text_wrapping
 ```
 
 ## License

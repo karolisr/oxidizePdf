@@ -1,8 +1,12 @@
 mod font;
 mod encoding;
+mod metrics;
+mod flow;
 
 pub use font::{Font, FontFamily};
 pub use encoding::TextEncoding;
+pub use metrics::{measure_text, measure_char, split_into_words};
+pub use flow::{TextFlowContext, TextAlign};
 
 use crate::error::Result;
 use std::fmt::Write;
