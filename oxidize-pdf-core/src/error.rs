@@ -22,3 +22,22 @@ pub enum PdfError {
 }
 
 pub type Result<T> = std::result::Result<T, PdfError>;
+
+// Separate error type for oxidize-pdf-core
+#[derive(Error, Debug)]
+pub enum OxidizePdfError {
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+    
+    #[error("Parse error: {0}")]
+    ParseError(String),
+    
+    #[error("Invalid PDF structure: {0}")]
+    InvalidStructure(String),
+    
+    #[error("Encoding error: {0}")]
+    EncodingError(String),
+    
+    #[error("Other error: {0}")]
+    Other(String),
+}

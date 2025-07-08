@@ -2,7 +2,9 @@ pub mod document;
 pub mod error;
 pub mod graphics;
 pub mod objects;
+pub mod operations;
 pub mod page;
+pub mod parser;
 pub mod text;
 pub mod writer;
 
@@ -13,6 +15,7 @@ pub use document::{Document, DocumentMetadata};
 pub use error::{PdfError, Result};
 pub use graphics::{Color, GraphicsContext};
 pub use page::{Page, Margins};
+pub use parser::PdfReader;
 pub use text::{Font, FontFamily, TextContext, TextAlign, TextFlowContext, measure_text, split_into_words};
 
 #[cfg(test)]

@@ -14,12 +14,14 @@ A **100% native Rust PDF library** for generation and manipulation. This library
 - Automatic text wrapping and alignment
 - Multiple page support
 - Document metadata
+- **NEW: Native PDF parser (beta)** - Read and analyze existing PDFs
+- **NEW: PDF operations** - Split, merge, and rotate PDFs
 - Examples and demos
 
 🚧 **Coming Soon** (Q1-Q2 2025):
-- Native PDF parser for reading existing PDFs
-- Merge, split, and rotate operations
+- Complete content stream parsing
 - Text and image extraction
+- Form field support
 - Compression and optimization
 
 See [ROADMAP.md](ROADMAP.md) for detailed timeline and features.
@@ -86,9 +88,24 @@ cargo build -p oxidize-pdf-cli --release
 # Generate a demo PDF
 ./target/release/oxidizepdf demo -o demo.pdf
 
-# Future commands (not yet implemented):
-# ./target/release/oxidizepdf merge file1.pdf file2.pdf -o merged.pdf
-# ./target/release/oxidizepdf split input.pdf --prefix page
+# Get information about a PDF
+./target/release/oxidizepdf info input.pdf
+./target/release/oxidizepdf info input.pdf --detailed
+
+# Split a PDF into individual pages
+./target/release/oxidizepdf split input.pdf
+./target/release/oxidizepdf split input.pdf --mode chunks --spec 3
+./target/release/oxidizepdf split input.pdf --mode at --spec "5,10,15"
+./target/release/oxidizepdf split input.pdf --mode ranges --spec "1-3;4-6;7-10"
+
+# Merge multiple PDFs
+./target/release/oxidizepdf merge file1.pdf file2.pdf -o merged.pdf
+./target/release/oxidizepdf merge file1.pdf file2.pdf file3.pdf -o combined.pdf -p "1-3" "all" "2,4,6"
+
+# Rotate pages in a PDF
+./target/release/oxidizepdf rotate input.pdf -o rotated.pdf --angle 90
+./target/release/oxidizepdf rotate input.pdf -o rotated.pdf --angle 180 --pages "1,3,5"
+./target/release/oxidizepdf rotate input.pdf -o rotated.pdf --angle 270 --pages "2-6"
 ```
 
 ### Using the API
@@ -123,6 +140,12 @@ cargo run --example text_formatting -p oxidize-pdf-core
 
 # Text wrapping and alignment
 cargo run --example text_wrapping -p oxidize-pdf-core
+
+# Parse existing PDF
+cargo run --example parse_pdf -p oxidize-pdf-core -- path/to/your.pdf
+
+# PDF operations (NEW!)
+cargo run --example split_merge_rotate -p oxidize-pdf-core
 ```
 
 ## 🎯 Features
@@ -135,11 +158,13 @@ cargo run --example text_wrapping -p oxidize-pdf-core
 - **Page Management**: Multiple pages, standard sizes (A4, Letter)
 - **Color Spaces**: RGB, Grayscale, CMYK
 - **Document Metadata**: Title, author, subject, keywords
+- **PDF Parser (Beta)**: Read and analyze existing PDFs
+- **PDF Operations**: Split, merge, and rotate PDFs
 
 ### Roadmap Features
-- **PDF Parser**: Read and parse existing PDFs
-- **Manipulation**: Merge, split, rotate, reorder pages
-- **Extraction**: Text and image extraction
+- **Content Stream Parsing**: Full parsing of PDF content streams
+- **Text Extraction**: Extract text with formatting information
+- **Image Extraction**: Extract embedded images
 - **Compression**: Optimize PDF size
 - **Forms**: Create and fill PDF forms
 - **Digital Signatures**: Sign PDFs

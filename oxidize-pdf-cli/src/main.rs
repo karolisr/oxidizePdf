@@ -1,5 +1,9 @@
 use clap::{Parser, Subcommand};
-use oxidize_pdf_core::{Document, Page, Font, Color, Result};
+use oxidize_pdf_core::{Document, Page, Font, Color, Result, PdfReader};
+use oxidize_pdf_core::operations::{
+    split_pdf, merge_pdf_files, rotate_pdf_pages,
+    SplitMode, SplitOptions, MergeInput, PageRange, RotationAngle, RotateOptions
+};
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -34,7 +38,7 @@ enum Commands {
         output: PathBuf,
     },
     
-    /// Future: Merge multiple PDFs (not yet implemented)
+    /// Merge multiple PDFs into one
     Merge {
         /// Input PDF files
         files: Vec<PathBuf>,
@@ -42,16 +46,56 @@ enum Commands {
         /// Output file path
         #[arg(short, long)]
         output: PathBuf,
+        
+        /// Page ranges for each file (e.g., "1-5,all,2,4-6")
+        #[arg(short, long)]
+        pages: Option<Vec<String>>,
     },
     
-    /// Future: Split a PDF (not yet implemented)
+    /// Split a PDF into multiple files
     Split {
         /// Input PDF file
         input: PathBuf,
         
-        /// Output prefix
-        #[arg(short, long, default_value = "page")]
-        prefix: String,
+        /// Output pattern (use {} for page number)
+        #[arg(short = 'p', long, default_value = "page_{}.pdf")]
+        pattern: String,
+        
+        /// Split mode: pages, ranges, or at specific pages
+        #[arg(short, long, default_value = "pages")]
+        mode: String,
+        
+        /// Page specification (depends on mode)
+        #[arg(long)]
+        spec: Option<String>,
+    },
+    
+    /// Rotate pages in a PDF
+    Rotate {
+        /// Input PDF file
+        input: PathBuf,
+        
+        /// Output file path
+        #[arg(short, long)]
+        output: PathBuf,
+        
+        /// Rotation angle (90, 180, 270)
+        #[arg(short, long, default_value = "90")]
+        angle: i32,
+        
+        /// Pages to rotate (e.g., "all", "1,3,5", "2-6")
+        #[arg(short = 'p', long, default_value = "all")]
+        pages: String,
+    },
+    
+    /// Get information about a PDF file
+    Info {
+        /// Input PDF file
+        input: PathBuf,
+        
+        /// Show detailed information
+        #[arg(short, long)]
+        detailed: bool,
     },
 }
 
@@ -113,6 +157,141 @@ fn main() -> Result<()> {
         Commands::Split { .. } => {
             eprintln!("PDF split functionality coming in Q2 2025");
             eprintln!("This will require implementing the native PDF parser first");
+        }
+        
+        Commands::Info { input, detailed } => {
+            match PdfReader::open(&input) {
+                Ok(mut reader) => {
+                    println!("PDF Information for: {}", input.display());
+                    println!("==========================================");
+                    
+                    // Basic info
+                    let version = reader.version();
+                    println!("PDF Version: {}", version.to_string());
+                    
+                    // Try to get metadata
+                    match reader.metadata() {
+                        Ok(metadata) => {
+                            if let Some(title) = &metadata.title {
+                                println!("Title: {}", title);
+                            }
+                            if let Some(author) = &metadata.author {
+                                println!("Author: {}", author);
+                            }
+                            if let Some(subject) = &metadata.subject {
+                                println!("Subject: {}", subject);
+                            }
+                            if let Some(creator) = &metadata.creator {
+                                println!("Creator: {}", creator);
+                            }
+                            if let Some(producer) = &metadata.producer {
+                                println!("Producer: {}", producer);
+                            }
+                            if let Some(page_count) = metadata.page_count {
+                                println!("Pages: {}", page_count);
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Warning: Could not read metadata: {}", e);
+                        }
+                    }
+                    
+                    if detailed {
+                        println!("\nDetailed Information:");
+                        println!("--------------------");
+                        
+                        // Try to get catalog info
+                        match reader.catalog() {
+                            Ok(catalog) => {
+                                if let Some(catalog_type) = catalog.get_type() {
+                                    println!("Catalog Type: {}", catalog_type);
+                                }
+                                
+                                // Check for common catalog entries
+                                if catalog.contains_key("ViewerPreferences") {
+                                    println!("Has Viewer Preferences: Yes");
+                                }
+                                if catalog.contains_key("Names") {
+                                    println!("Has Names Dictionary: Yes");
+                                }
+                                if catalog.contains_key("Outlines") {
+                                    println!("Has Outlines (Bookmarks): Yes");
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("Warning: Could not read catalog: {}", e);
+                            }
+                        }
+                        
+                        // Show page information
+                        match reader.page_count() {
+                            Ok(count) if count > 0 => {
+                                println!("\nPage Information:");
+                                println!("-----------------");
+                                
+                                // Show first few pages
+                                let pages_to_show = std::cmp::min(3, count);
+                                for i in 0..pages_to_show {
+                                    match reader.get_page(i) {
+                                        Ok(page) => {
+                                            println!("Page {}: {:.0}x{:.0} pts", 
+                                                i + 1, page.width(), page.height());
+                                        }
+                                        Err(_) => {
+                                            println!("Page {}: [Could not read]", i + 1);
+                                        }
+                                    }
+                                }
+                                
+                                if count > pages_to_show {
+                                    println!("... and {} more pages", count - pages_to_show);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    
+                    println!("\n✓ PDF parsed successfully!");
+                }
+                Err(e) => {
+                    eprintln!("Error: Failed to parse PDF: {}", e);
+                    eprintln!("\nNote: The PDF parser is currently in early development.");
+                    eprintln!("Some PDF features may not be supported yet.");
+                    std::process::exit(1);
+                }
+            }
+        }
+        
+        Commands::Rotate { input, output, angle, pages } => {
+            // Parse rotation angle
+            let rotation = RotationAngle::from_degrees(angle)
+                .unwrap_or_else(|e| {
+                    eprintln!("Error: {}. Valid angles are 90, 180, 270", e);
+                    std::process::exit(1);
+                });
+            
+            // Parse page range
+            let page_range = PageRange::parse(&pages)
+                .unwrap_or_else(|e| {
+                    eprintln!("Error parsing page range '{}': {}", pages, e);
+                    std::process::exit(1);
+                });
+            
+            let options = RotateOptions {
+                pages: page_range,
+                angle: rotation,
+                preserve_page_size: false,
+            };
+            
+            match rotate_pdf_pages(&input, &output, options) {
+                Ok(_) => {
+                    println!("✓ Successfully rotated pages {} degrees in {}", angle, output.display());
+                }
+                Err(e) => {
+                    eprintln!("Error rotating PDF: {}", e);
+                    std::process::exit(1);
+                }
+            }
         }
     }
     

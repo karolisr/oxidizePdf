@@ -52,8 +52,14 @@ required-features = ["semantic"]
 [[example]]
 name = "basic_tagging"
 
+[[example]]
+name = "parse_pdf"
+
+[[example]]
+name = "split_merge_rotate"
+
 [features]
-default = []
+default = ["compression"]
 
 # Basic features
 async = ["tokio"]
