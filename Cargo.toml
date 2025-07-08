@@ -1,25 +1,57 @@
-[package]
-name = "oxidize_pdf"
+[workspace]
+members = [
+    "oxidize-pdf-core",
+    "oxidize-pdf-cli",
+    "oxidize-pdf-api",
+]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
 authors = ["Santiago Fernández de Munoz"]
-description = "A native PDF generation and editing library written in Rust"
 license = "GPL-3.0"
 repository = "https://github.com/bzsanti/oxidizePdf"
+homepage = "https://oxidizepdf.dev"
+documentation = "https://docs.oxidizepdf.dev"
+readme = "README.md"
 keywords = ["pdf", "document", "generation", "graphics", "text"]
 categories = ["graphics", "text-processing", "encoding"]
 
-[dependencies]
+[workspace.dependencies]
+# Core dependencies
 thiserror = "1.0"
 chrono = "0.4"
 lazy_static = "1.4"
 
-[dev-dependencies]
+# CLI dependencies
+clap = { version = "4.5", features = ["derive"] }
 
-[features]
-default = []
-compression = ["flate2"]
+# API dependencies
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
 
-[dependencies.flate2]
-version = "1.0"
-optional = true
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Compression (optional)
+flate2 = "1.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

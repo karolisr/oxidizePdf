@@ -1,0 +1,39 @@
+[package]
+name = "oxidize-pdf-api"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation.workspace = true
+description = "REST API for oxidizePdf (Community edition)"
+keywords = ["pdf", "api", "rest", "web"]
+categories = ["web-programming::http-server"]
+
+[dependencies]
+# Core functionality
+oxidize-pdf-core = { path = "../oxidize-pdf-core", features = ["async"] }
+
+# Web framework
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+pretty_assertions = { workspace = true }

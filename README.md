@@ -1,217 +1,213 @@
-# oxidize_pdf
+# oxidizePdf
 
-A native Rust library for PDF generation and editing. This library provides a simple, safe, and ergonomic API for creating PDF documents with text, graphics, and various formatting options.
+A **100% native Rust PDF library** for generation and manipulation. This library provides a pure Rust implementation with zero external PDF dependencies, ensuring complete control over performance, security, and licensing.
 
-## Features
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=flat&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 
-- **Pure Rust Implementation**: No external dependencies for core functionality
-- **Memory Safe**: Leverages Rust's ownership system for safe PDF generation
-- **Simple API**: Easy-to-use builder pattern for creating documents
-- **Graphics Support**: Draw shapes, lines, and curves with various colors
-- **Text Rendering**: Support for standard PDF fonts with formatting options
-- **Automatic Text Wrapping**: Smart line breaking with word boundaries
-- **Text Alignment**: Left, right, center, and justified text alignment
-- **Multiple Pages**: Create documents with any number of pages
-- **Metadata Support**: Set document title, author, and other properties
-- **Color Spaces**: Support for RGB, Grayscale, and CMYK colors
-- **Transformations**: Translate, rotate, and scale graphics
-- **Configurable Margins**: Set page margins for content area control
+## 🚀 Current Status
 
-## Installation
+✅ **What's Working Now**:
+- Native PDF generation from scratch
+- Graphics primitives (shapes, colors, transformations)
+- Text rendering with standard PDF fonts
+- Automatic text wrapping and alignment
+- Multiple page support
+- Document metadata
+- Examples and demos
 
-Add this to your `Cargo.toml`:
+🚧 **Coming Soon** (Q1-Q2 2025):
+- Native PDF parser for reading existing PDFs
+- Merge, split, and rotate operations
+- Text and image extraction
+- Compression and optimization
+
+See [ROADMAP.md](ROADMAP.md) for detailed timeline and features.
+
+## 📦 Project Structure
+
+This is a Cargo workspace with three crates:
+
+```
+oxidizePdf/
+├── oxidize-pdf-core/    # Core PDF engine (native implementation)
+├── oxidize-pdf-cli/     # Command-line interface
+└── oxidize-pdf-api/     # REST API server
+```
+
+## 🛠️ Quick Start
+
+### Using the Library
+
+Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-oxidize_pdf = "0.1.0"
+oxidize-pdf-core = { path = "path/to/oxidize-pdf-core" }
 ```
 
-## Quick Start
+Create a simple PDF:
 
 ```rust
-use oxidize_pdf::{Document, Page, Font, Color};
+use oxidize_pdf_core::{Document, Page, Font, Color};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a new document
     let mut doc = Document::new();
-    
-    // Create a page (A4 size)
     let mut page = Page::a4();
     
     // Add graphics
     page.graphics()
-        .set_stroke_color(Color::red())
-        .rect(50.0, 50.0, 200.0, 100.0)
-        .stroke();
+        .set_fill_color(Color::blue())
+        .circle(300.0, 400.0, 50.0)
+        .fill();
     
     // Add text
     page.text()
         .set_font(Font::Helvetica, 24.0)
         .at(100.0, 700.0)
-        .write("Hello, PDF!")?;
+        .write("Hello, oxidizePdf!")?;
     
-    // Add page to document
     doc.add_page(page);
-    
-    // Save the document
     doc.save("output.pdf")?;
     
     Ok(())
 }
 ```
 
-## Examples
-
-### Creating Graphics
-
-```rust
-let mut page = Page::a4();
-
-page.graphics()
-    // Draw a red rectangle
-    .set_stroke_color(Color::red())
-    .rect(100.0, 100.0, 200.0, 150.0)
-    .stroke()
-    
-    // Draw a filled blue circle
-    .set_fill_color(Color::blue())
-    .circle(300.0, 400.0, 50.0)
-    .fill()
-    
-    // Draw lines with different widths
-    .set_stroke_color(Color::black())
-    .set_line_width(3.0)
-    .move_to(50.0, 500.0)
-    .line_to(350.0, 500.0)
-    .stroke();
-```
-
-### Working with Text
-
-```rust
-let mut page = Page::a4();
-
-page.text()
-    // Set font and size
-    .set_font(Font::HelveticaBold, 18.0)
-    .at(50.0, 750.0)
-    .write("Title Text")?
-    
-    // Change font
-    .set_font(Font::TimesRoman, 12.0)
-    .at(50.0, 700.0)
-    .write("Body text in Times Roman")?;
-```
-
-### Transformations
-
-```rust
-page.graphics()
-    .save_state()
-    .translate(200.0, 400.0)
-    .rotate(std::f64::consts::PI / 4.0)
-    .set_fill_color(Color::green())
-    .rect(-50.0, -25.0, 100.0, 50.0)
-    .fill()
-    .restore_state();
-```
-
-### Text Wrapping and Alignment
-
-```rust
-let mut page = Page::a4();
-page.set_margins(50.0, 50.0, 50.0, 50.0);
-
-let mut text_flow = page.text_flow();
-
-// Automatic text wrapping with different alignments
-text_flow
-    .set_font(Font::Helvetica, 12.0)
-    .set_alignment(TextAlign::Left)
-    .at(0.0, 750.0)
-    .write_wrapped("This text will automatically wrap when it reaches the margin...")?
-    
-    .set_alignment(TextAlign::Justified)
-    .newline()
-    .write_paragraph("Justified text creates clean edges on both sides by adjusting space between words. This creates a professional appearance similar to newspapers and books.")?;
-
-page.add_text_flow(&text_flow);
-```
-
-## Supported Fonts
-
-The library includes support for the 14 standard PDF fonts:
-
-- Helvetica (Regular, Bold, Oblique, Bold-Oblique)
-- Times (Roman, Bold, Italic, Bold-Italic)
-- Courier (Regular, Bold, Oblique, Bold-Oblique)
-- Symbol
-- ZapfDingbats
-
-## Page Sizes
-
-Common page sizes are provided as convenience methods:
-
-- `Page::a4()` - 595 x 842 points
-- `Page::letter()` - 612 x 792 points
-- `Page::new(width, height)` - Custom size
-
-## Color Support
-
-Three color spaces are supported:
-
-- **RGB**: `Color::rgb(r, g, b)` - Values from 0.0 to 1.0
-- **Grayscale**: `Color::gray(value)` - Value from 0.0 to 1.0
-- **CMYK**: `Color::cmyk(c, m, y, k)` - Values from 0.0 to 1.0
-
-Predefined colors: `black()`, `white()`, `red()`, `green()`, `blue()`, `yellow()`, `cyan()`, `magenta()`
-
-## Optional Features
-
-Enable compression support by adding the feature to your `Cargo.toml`:
-
-```toml
-[dependencies]
-oxidize_pdf = { version = "0.1.0", features = ["compression"] }
-```
-
-## Running Examples
-
-The repository includes several examples demonstrating various features:
+### Using the CLI
 
 ```bash
-# Basic hello world
-cargo run --example hello_world
+# Build the CLI
+cargo build -p oxidize-pdf-cli --release
 
-# Graphics demonstration
-cargo run --example graphics_demo
+# Create a simple PDF
+./target/release/oxidizepdf create -o hello.pdf -t "Hello World!"
 
-# Text formatting options
-cargo run --example text_formatting
+# Generate a demo PDF
+./target/release/oxidizepdf demo -o demo.pdf
 
-# Text wrapping and alignment
-cargo run --example text_wrapping
+# Future commands (not yet implemented):
+# ./target/release/oxidizepdf merge file1.pdf file2.pdf -o merged.pdf
+# ./target/release/oxidizepdf split input.pdf --prefix page
 ```
 
-## License
+### Using the API
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+```bash
+# Run the API server
+cargo run -p oxidize-pdf-api
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+# Create a PDF via HTTP
+curl -X POST http://localhost:3000/api/create \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Hello from API!", "font_size": 36}' \
+  --output generated.pdf
 
-## Contributing
+# Health check
+curl http://localhost:3000/api/health
+```
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## 📖 Examples
 
-## Roadmap
+Run the examples:
 
-Future enhancements planned:
+```bash
+# Hello world example
+cargo run --example hello_world -p oxidize-pdf-core
 
-- [ ] Image embedding (JPEG/PNG)
-- [ ] Custom fonts (TrueType/OpenType)
-- [ ] Forms and annotations
-- [ ] PDF parsing and editing
-- [ ] Digital signatures
-- [ ] Accessibility features
-- [ ] Advanced text layout
-- [ ] Gradients and patterns
+# Graphics demonstration
+cargo run --example graphics_demo -p oxidize-pdf-core
+
+# Text formatting
+cargo run --example text_formatting -p oxidize-pdf-core
+
+# Text wrapping and alignment
+cargo run --example text_wrapping -p oxidize-pdf-core
+```
+
+## 🎯 Features
+
+### Currently Implemented
+- **Pure Rust Implementation**: No external PDF library dependencies
+- **Graphics Support**: Shapes, lines, curves, colors, transformations
+- **Text Rendering**: Standard PDF fonts with size and style control
+- **Text Flow**: Automatic wrapping, alignment (left, right, center, justified)
+- **Page Management**: Multiple pages, standard sizes (A4, Letter)
+- **Color Spaces**: RGB, Grayscale, CMYK
+- **Document Metadata**: Title, author, subject, keywords
+
+### Roadmap Features
+- **PDF Parser**: Read and parse existing PDFs
+- **Manipulation**: Merge, split, rotate, reorder pages
+- **Extraction**: Text and image extraction
+- **Compression**: Optimize PDF size
+- **Forms**: Create and fill PDF forms
+- **Digital Signatures**: Sign PDFs
+- **Accessibility**: PDF/UA compliance
+
+## 🏗️ Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/bzsanti/oxidizePdf.git
+cd oxidizePdf
+
+# Build all crates
+cargo build --release
+
+# Run tests
+cargo test --all
+
+# Build documentation
+cargo doc --all --open
+```
+
+## 📊 Product Editions
+
+### Community Edition (Open Source - GPL v3)
+What you see here - free forever:
+- Core PDF generation and manipulation
+- CLI tool
+- Basic REST API
+- Community support
+
+### PRO Edition (Commercial License)
+Advanced features for professional use:
+- OCR integration
+- Advanced compression
+- Format conversions (PDF ↔ Word/Excel)
+- Priority support
+- Commercial license
+
+### Enterprise Edition
+For large-scale deployments:
+- Distributed processing
+- Cloud integrations
+- Multi-tenancy
+- SLA & 24/7 support
+
+## 🤝 Contributing
+
+We welcome contributions! Areas where we need help:
+- PDF specification compliance
+- Performance optimizations
+- Additional examples
+- Documentation improvements
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting PRs.
+
+## 📄 License
+
+- **Community Edition**: [GPL v3](LICENSE)
+- **PRO/Enterprise**: Contact enterprise@oxidizepdf.dev
+
+## 🙏 Acknowledgments
+
+Building a PDF library from scratch is a massive undertaking. Special thanks to:
+- The Rust community for excellent tooling
+- PDF specification maintainers
+- Early contributors and testers
+
+---
+
+⭐ **Star this repo** to follow our journey building the first truly native Rust PDF library!

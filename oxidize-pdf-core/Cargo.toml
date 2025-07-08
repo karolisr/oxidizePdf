@@ -1,0 +1,69 @@
+[package]
+name = "oxidize-pdf-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation.workspace = true
+description = "Core library for PDF processing operations"
+keywords = ["pdf", "pdf-processing", "pdf-manipulation"]
+categories = ["parsing", "multimedia::images"]
+
+[dependencies]
+# Error handling
+thiserror = { workspace = true }
+
+# Utilities
+chrono = { workspace = true }
+lazy_static = { workspace = true }
+
+# Compression (optional)
+flate2 = { workspace = true, optional = true }
+
+# Serialization (for PRO features)
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+
+# Logging
+tracing = { workspace = true }
+
+[dev-dependencies]
+
+[[example]]
+name = "hello_world"
+
+[[example]]
+name = "graphics_demo"
+
+[[example]]
+name = "text_formatting"
+
+[[example]]
+name = "text_wrapping"
+
+[[example]]
+name = "simple_text_wrap"
+
+[[example]]
+name = "ai_ready_invoice"
+required-features = ["semantic"]
+
+[[example]]
+name = "basic_tagging"
+
+[features]
+default = []
+
+# Basic features
+async = ["tokio"]
+compression = ["flate2"]
+
+# Semantic marking (Community level - basic tagging)
+semantic = []
+
+# PRO edition features (requires commercial license)
+pro = ["semantic", "serde", "serde_json"]
+
+# Enterprise features
+enterprise = ["pro"]
