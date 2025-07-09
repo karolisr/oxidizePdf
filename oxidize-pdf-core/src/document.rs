@@ -56,8 +56,22 @@ impl Document {
         self.metadata.author = Some(author.into());
     }
     
+    pub fn set_subject(&mut self, subject: impl Into<String>) {
+        self.metadata.subject = Some(subject.into());
+    }
+    
+    pub fn set_keywords(&mut self, keywords: impl Into<String>) {
+        self.metadata.keywords = Some(keywords.into());
+    }
+    
     pub fn save(&mut self, path: impl AsRef<std::path::Path>) -> Result<()> {
         let mut writer = PdfWriter::new(path)?;
+        writer.write_document(self)?;
+        Ok(())
+    }
+    
+    pub fn write(&mut self, buffer: &mut Vec<u8>) -> Result<()> {
+        let mut writer = PdfWriter::new_with_writer(buffer);
         writer.write_document(self)?;
         Ok(())
     }

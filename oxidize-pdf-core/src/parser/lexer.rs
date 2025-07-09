@@ -3,7 +3,7 @@
 //! Tokenizes PDF syntax according to ISO 32000-1 Section 7.2
 
 use super::{ParseError, ParseResult};
-use std::io::{Read, BufRead};
+use std::io::Read;
 
 /// PDF Token types
 #[derive(Debug, Clone, PartialEq)]
@@ -47,6 +47,9 @@ pub enum Token {
     /// Endobj keyword
     EndObj,
     
+    /// StartXRef keyword
+    StartXRef,
+    
     /// Reference (e.g., 1 0 R)
     Reference(u32, u16),
     
@@ -66,7 +69,7 @@ pub struct Lexer<R: Read> {
     buffer: Vec<u8>,
     position: usize,
     peek_buffer: Option<u8>,
-    token_buffer: Option<Token>,
+    token_buffer: Vec<Token>,
 }
 
 impl<R: Read> Lexer<R> {
@@ -77,14 +80,14 @@ impl<R: Read> Lexer<R> {
             buffer: Vec::with_capacity(1024),
             position: 0,
             peek_buffer: None,
-            token_buffer: None,
+            token_buffer: Vec::new(),
         }
     }
     
     /// Get the next token
     pub fn next_token(&mut self) -> ParseResult<Token> {
         // Check if we have a pushed-back token
-        if let Some(token) = self.token_buffer.take() {
+        if let Some(token) = self.token_buffer.pop() {
             return Ok(token);
         }
         
@@ -123,6 +126,11 @@ impl<R: Read> Lexer<R> {
             b't' | b'f' => self.read_boolean(),
             b'n' => self.read_null(),
             b'+' | b'-' | b'0'..=b'9' | b'.' => self.read_number(),
+            b'R' => {
+                // R could be a keyword (for references)
+                self.consume_char()?;
+                Ok(Token::Name("R".to_string()))
+            }
             _ if ch.is_ascii_alphabetic() => self.read_keyword(),
             _ => Err(ParseError::SyntaxError {
                 position: self.position,
@@ -159,7 +167,7 @@ impl<R: Read> Lexer<R> {
     }
     
     /// Skip whitespace and return the number of bytes skipped
-    fn skip_whitespace(&mut self) -> ParseResult<usize> {
+    pub(crate) fn skip_whitespace(&mut self) -> ParseResult<usize> {
         let mut count = 0;
         while let Some(ch) = self.peek_char()? {
             if ch.is_ascii_whitespace() {
@@ -376,11 +384,21 @@ impl<R: Read> Lexer<R> {
         let mut number_str = String::new();
         let mut has_dot = false;
         
-        // Handle sign
+        // Handle sign - consume it first
         if let Some(ch) = self.peek_char()? {
             if ch == b'+' || ch == b'-' {
                 self.consume_char()?;
                 number_str.push(ch as char);
+                
+                // After sign, we must have at least one digit
+                if let Some(next) = self.peek_char()? {
+                    if !next.is_ascii_digit() && next != b'.' {
+                        return Err(ParseError::SyntaxError {
+                            position: self.position,
+                            message: "Expected digit after sign".to_string(),
+                        });
+                    }
+                }
             }
         }
         
@@ -400,50 +418,20 @@ impl<R: Read> Lexer<R> {
             }
         }
         
-        // Check if this might be part of a reference (e.g., "1 0 R")
-        let saved_position = self.position;
-        let saved_buffer = self.peek_buffer;
-        
-        if !has_dot {
-            // Try to read a reference
-            self.skip_whitespace()?;
-            if let Some(ch) = self.peek_char()? {
-                if ch.is_ascii_digit() {
-                    // Read generation number
-                    let gen_str = self.read_digits()?;
-                    self.skip_whitespace()?;
-                    
-                    if self.peek_char()? == Some(b'R') {
-                        self.consume_char()?;
-                        let obj_num = number_str.parse::<u32>().map_err(|_| ParseError::SyntaxError {
-                            position: saved_position,
-                            message: "Invalid object number".to_string(),
-                        })?;
-                        let gen_num = gen_str.parse::<u16>().map_err(|_| ParseError::SyntaxError {
-                            position: saved_position,
-                            message: "Invalid generation number".to_string(),
-                        })?;
-                        return Ok(Token::Reference(obj_num, gen_num));
-                    }
-                }
-            }
-            
-            // Not a reference, restore position
-            self.position = saved_position;
-            self.peek_buffer = saved_buffer;
-        }
+        // Don't try to parse references here - let the parser handle it
+        // References are just "num num R" and can be handled at a higher level
         
         // Parse as number
         if has_dot {
             let value = number_str.parse::<f64>().map_err(|_| ParseError::SyntaxError {
                 position: self.position,
-                message: "Invalid real number".to_string(),
+                message: format!("Invalid real number: '{}'", number_str),
             })?;
             Ok(Token::Real(value))
         } else {
             let value = number_str.parse::<i64>().map_err(|_| ParseError::SyntaxError {
                 position: self.position,
-                message: "Invalid integer".to_string(),
+                message: format!("Invalid integer: '{}'", number_str),
             })?;
             Ok(Token::Integer(value))
         }
@@ -462,6 +450,7 @@ impl<R: Read> Lexer<R> {
             "endstream" => Ok(Token::EndStream),
             "obj" => Ok(Token::Obj),
             "endobj" => Ok(Token::EndObj),
+            "startxref" => Ok(Token::StartXRef),
             _ => Err(ParseError::SyntaxError {
                 position: self.position,
                 message: format!("Unknown keyword: {}", word),
@@ -570,7 +559,7 @@ impl<R: Read> Lexer<R> {
     
     /// Push back a token to be returned by the next call to next_token
     pub fn push_token(&mut self, token: Token) {
-        self.token_buffer = Some(token);
+        self.token_buffer.push(token);
     }
 }
 
@@ -581,6 +570,7 @@ mod tests {
     
     #[test]
     fn test_lexer_basic_tokens() {
+        // Test positive and negative numbers
         let input = b"123 -456 3.14 true false null /Name";
         let mut lexer = Lexer::new(Cursor::new(input));
         
@@ -592,6 +582,16 @@ mod tests {
         assert_eq!(lexer.next_token().unwrap(), Token::Null);
         assert_eq!(lexer.next_token().unwrap(), Token::Name("Name".to_string()));
         assert_eq!(lexer.next_token().unwrap(), Token::Eof);
+    }
+    
+    #[test]
+    fn test_lexer_negative_numbers() {
+        // Test negative numbers without space
+        let input = b"-123 -45.67";
+        let mut lexer = Lexer::new(Cursor::new(input));
+        
+        assert_eq!(lexer.next_token().unwrap(), Token::Integer(-123));
+        assert_eq!(lexer.next_token().unwrap(), Token::Real(-45.67));
     }
     
     #[test]
@@ -626,13 +626,27 @@ mod tests {
         assert_eq!(lexer.next_token().unwrap(), Token::ArrayEnd);
     }
     
+    
     #[test]
     fn test_lexer_references() {
         let input = b"1 0 R 25 1 R";
         let mut lexer = Lexer::new(Cursor::new(input));
         
-        assert_eq!(lexer.next_token().unwrap(), Token::Reference(1, 0));
-        assert_eq!(lexer.next_token().unwrap(), Token::Reference(25, 1));
+        // Now references are parsed as separate tokens
+        assert_eq!(lexer.next_token().unwrap(), Token::Integer(1));
+        assert_eq!(lexer.next_token().unwrap(), Token::Integer(0));
+        // 'R' should be parsed as a keyword or name
+        match lexer.next_token().unwrap() {
+            Token::Name(s) if s == "R" => {}, // Could be a name
+            other => panic!("Expected R token, got {:?}", other),
+        }
+        
+        assert_eq!(lexer.next_token().unwrap(), Token::Integer(25));
+        assert_eq!(lexer.next_token().unwrap(), Token::Integer(1));
+        match lexer.next_token().unwrap() {
+            Token::Name(s) if s == "R" => {}, // Could be a name
+            other => panic!("Expected R token, got {:?}", other),
+        }
     }
     
     #[test]

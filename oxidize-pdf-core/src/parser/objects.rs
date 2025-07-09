@@ -69,16 +69,50 @@ impl PdfObject {
         match token {
             Token::Null => Ok(PdfObject::Null),
             Token::Boolean(b) => Ok(PdfObject::Boolean(b)),
-            Token::Integer(i) => Ok(PdfObject::Integer(i)),
+            Token::Integer(i) => {
+                // For negative numbers or large values, don't check for references
+                if i < 0 || i > 9999999 {
+                    return Ok(PdfObject::Integer(i));
+                }
+                
+                // Check if this is part of a reference (e.g., "1 0 R")
+                match lexer.next_token()? {
+                    Token::Integer(gen) if gen >= 0 && gen <= 65535 => {
+                        // Might be a reference, check for 'R'
+                        match lexer.next_token()? {
+                            Token::Name(s) if s == "R" => {
+                                Ok(PdfObject::Reference(i as u32, gen as u16))
+                            }
+                            token => {
+                                // Not a reference, push back the tokens
+                                lexer.push_token(token);
+                                lexer.push_token(Token::Integer(gen));
+                                Ok(PdfObject::Integer(i))
+                            }
+                        }
+                    }
+                    token => {
+                        // Not a reference, just an integer
+                        lexer.push_token(token);
+                        Ok(PdfObject::Integer(i))
+                    }
+                }
+            }
             Token::Real(r) => Ok(PdfObject::Real(r)),
             Token::String(s) => Ok(PdfObject::String(PdfString(s))),
             Token::Name(n) => Ok(PdfObject::Name(PdfName(n))),
-            Token::Reference(obj, gen) => Ok(PdfObject::Reference(obj, gen)),
             Token::ArrayStart => Self::parse_array(lexer),
             Token::DictStart => Self::parse_dictionary_or_stream(lexer),
             Token::Comment(_) => {
                 // Skip comments and parse next object
                 Self::parse(lexer)
+            }
+            Token::StartXRef => {
+                // This is a PDF structure marker, not a parseable object
+                Err(ParseError::SyntaxError {
+                    position: 0,
+                    message: "StartXRef encountered - this is not a PDF object".to_string(),
+                })
             }
             Token::Eof => Err(ParseError::SyntaxError {
                 position: 0,
@@ -117,6 +151,7 @@ impl PdfObject {
         // Check if this is followed by a stream
         loop {
             let token = lexer.next_token()?;
+            // Check for stream
             match token {
                 Token::Stream => {
                     // Parse stream data
@@ -130,9 +165,17 @@ impl PdfObject {
                     // Skip comment and continue checking
                     continue;
                 }
+                Token::StartXRef => {
+                    // This is the end of the PDF structure, not a stream
+                    // Push the token back for later processing
+                    // Push back StartXRef token
+                    lexer.push_token(token);
+                    return Ok(PdfObject::Dictionary(dict));
+                }
                 _ => {
                     // Not a stream, just a dictionary
                     // Push the token back for later processing
+                    // Push back token
                     lexer.push_token(token);
                     return Ok(PdfObject::Dictionary(dict));
                 }
@@ -397,17 +440,33 @@ mod tests {
     
     #[test]
     fn test_parse_array() {
-        let input = b"[1 2 3 /Name (test)]";
+        // Test simple array without potential references
+        let input = b"[100 200 300 /Name (test)]";
         let mut lexer = Lexer::new(Cursor::new(input));
         
         let obj = PdfObject::parse(&mut lexer).unwrap();
         let array = obj.as_array().unwrap();
         
         assert_eq!(array.len(), 5);
-        assert_eq!(array.get(0).unwrap().as_integer(), Some(1));
-        assert_eq!(array.get(1).unwrap().as_integer(), Some(2));
-        assert_eq!(array.get(2).unwrap().as_integer(), Some(3));
+        assert_eq!(array.get(0).unwrap().as_integer(), Some(100));
+        assert_eq!(array.get(1).unwrap().as_integer(), Some(200));
+        assert_eq!(array.get(2).unwrap().as_integer(), Some(300));
         assert_eq!(array.get(3).unwrap().as_name().unwrap().as_str(), "Name");
+        assert_eq!(array.get(4).unwrap().as_string().unwrap().as_bytes(), b"test");
+    }
+    
+    #[test]
+    fn test_parse_array_with_references() {
+        // Test array with references
+        let input = b"[1 0 R 2 0 R]";
+        let mut lexer = Lexer::new(Cursor::new(input));
+        
+        let obj = PdfObject::parse(&mut lexer).unwrap();
+        let array = obj.as_array().unwrap();
+        
+        assert_eq!(array.len(), 2);
+        assert!(array.get(0).unwrap().as_reference().is_some());
+        assert!(array.get(1).unwrap().as_reference().is_some());
     }
     
     #[test]

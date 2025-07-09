@@ -2,11 +2,12 @@
 //! 
 //! This module provides functionality to rotate pages in PDF documents.
 
-use crate::parser::{PdfReader, ParsedPage};
+use crate::parser::{PdfReader, PdfDocument, ContentParser, ContentOperation};
+use crate::parser::page_tree::ParsedPage;
 use crate::{Document, Page};
 use super::{OperationError, OperationResult, PageRange};
 use std::path::Path;
-use std::io::{Read, Seek};
+use std::fs::File;
 
 /// Rotation angle
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,26 +76,26 @@ impl Default for RotateOptions {
 }
 
 /// PDF page rotator
-pub struct PageRotator<R: Read + Seek> {
-    reader: PdfReader<R>,
+pub struct PageRotator {
+    document: PdfDocument<File>,
 }
 
-impl<R: Read + Seek> PageRotator<R> {
+impl PageRotator {
     /// Create a new page rotator
-    pub fn new(reader: PdfReader<R>) -> Self {
-        Self { reader }
+    pub fn new(document: PdfDocument<File>) -> Self {
+        Self { document }
     }
     
     /// Rotate pages according to options
     pub fn rotate(&mut self, options: &RotateOptions) -> OperationResult<Document> {
-        let total_pages = self.reader.page_count()
+        let total_pages = self.document.page_count()
             .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
         
         let page_indices = options.pages.get_indices(total_pages)?;
         let mut output_doc = Document::new();
         
         // Copy metadata
-        if let Ok(metadata) = self.reader.metadata() {
+        if let Ok(metadata) = self.document.metadata() {
             if let Some(title) = metadata.title {
                 output_doc.set_title(&title);
             }
@@ -111,19 +112,18 @@ impl<R: Read + Seek> PageRotator<R> {
         
         // Process each page
         for page_idx in 0..total_pages {
-            let parsed_page = self.reader.get_page(page_idx as u32)
+            let parsed_page = self.document.get_page(page_idx as u32)
                 .map_err(|e| OperationError::ParseError(e.to_string()))?;
             
-            // Check if this page should be rotated
             let should_rotate = page_indices.contains(&page_idx);
             
-            let new_page = if should_rotate {
-                self.create_rotated_page(parsed_page, options.angle, options.preserve_page_size)?
+            let page = if should_rotate {
+                self.create_rotated_page(&parsed_page, options.angle, options.preserve_page_size)?
             } else {
-                self.create_page_copy(parsed_page)?
+                self.create_page_copy(&parsed_page)?
             };
             
-            output_doc.add_page(new_page);
+            output_doc.add_page(page);
         }
         
         Ok(output_doc)
@@ -154,10 +154,10 @@ impl<R: Read + Seek> PageRotator<R> {
             }
         };
         
-        let mut page = Page::new(new_width as f32, new_height as f32);
+        let mut page = Page::new(new_width, new_height);
         
         // Get content streams
-        let content_streams = parsed_page.content_streams(&mut self.reader)
+        let content_streams = self.document.get_page_content_streams(parsed_page)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
         
         // Add rotation transformation
@@ -170,31 +170,45 @@ impl<R: Read + Seek> PageRotator<R> {
                 // Transform: x' = y, y' = width - x
                 page.graphics()
                     .save_state()
-                    .transform(0.0, 1.0, -1.0, 0.0, new_width as f32, 0.0);
+                    .transform(0.0, 1.0, -1.0, 0.0, new_width, 0.0);
             }
             RotationAngle::Rotate180 => {
                 // Rotate 180 degrees
                 // Transform: x' = width - x, y' = height - y
                 page.graphics()
                     .save_state()
-                    .transform(-1.0, 0.0, 0.0, -1.0, new_width as f32, new_height as f32);
+                    .transform(-1.0, 0.0, 0.0, -1.0, new_width, new_height);
             }
             RotationAngle::Clockwise270 => {
                 // Rotate 270 degrees clockwise (90 counter-clockwise)
                 // Transform: x' = height - y, y' = x
                 page.graphics()
                     .save_state()
-                    .transform(0.0, -1.0, 1.0, 0.0, 0.0, new_height as f32);
+                    .transform(0.0, -1.0, 1.0, 0.0, 0.0, new_height);
             }
         }
         
-        // For now, add a placeholder
-        // Full implementation would apply the rotation transformation to the content
-        if !content_streams.is_empty() {
+        // Parse and process content streams with rotation
+        let mut has_content = false;
+        for stream_data in &content_streams {
+            match ContentParser::parse_content(stream_data) {
+                Ok(operators) => {
+                    // Process the operators with rotation transformation already applied
+                    self.process_operators_with_rotation(&mut page, &operators)?;
+                    has_content = true;
+                }
+                Err(e) => {
+                    eprintln!("Warning: Failed to parse content stream: {}", e);
+                }
+            }
+        }
+        
+        // If no content was successfully processed, add a placeholder
+        if !has_content {
             page.text()
                 .set_font(crate::text::Font::Helvetica, 10.0)
-                .at(50.0, new_height as f32 - 50.0)
-                .write(&format!("[Page rotated {} degrees - content transformation not yet implemented]", angle.to_degrees()))
+                .at(50.0, new_height - 50.0)
+                .write(&format!("[Page rotated {} degrees - content reconstruction in progress]", angle.to_degrees()))
                 .map_err(|e| OperationError::PdfError(e))?;
         }
         
@@ -210,22 +224,138 @@ impl<R: Read + Seek> PageRotator<R> {
     fn create_page_copy(&mut self, parsed_page: &ParsedPage) -> OperationResult<Page> {
         let width = parsed_page.width();
         let height = parsed_page.height();
-        let mut page = Page::new(width as f32, height as f32);
+        let mut page = Page::new(width, height);
         
         // Get content streams
-        let content_streams = parsed_page.content_streams(&mut self.reader)
+        let content_streams = self.document.get_page_content_streams(parsed_page)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
         
-        // For now, add a placeholder
-        if !content_streams.is_empty() {
+        // Parse and process content streams
+        let mut has_content = false;
+        for stream_data in content_streams {
+            match ContentParser::parse_content(&stream_data) {
+                Ok(operators) => {
+                    self.process_operators_with_rotation(&mut page, &operators)?;
+                    has_content = true;
+                }
+                Err(e) => {
+                    eprintln!("Warning: Failed to parse content stream: {}", e);
+                }
+            }
+        }
+        
+        // If no content was successfully processed, add a placeholder
+        if !has_content {
             page.text()
                 .set_font(crate::text::Font::Helvetica, 10.0)
-                .at(50.0, height as f32 - 50.0)
-                .write("[Page copied - content parsing not yet implemented]")
+                .at(50.0, height - 50.0)
+                .write("[Page copied - content reconstruction in progress]")
                 .map_err(|e| OperationError::PdfError(e))?;
         }
         
         Ok(page)
+    }
+    
+    /// Process content operators (rotation transformation already applied via graphics state)
+    fn process_operators_with_rotation(
+        &self,
+        page: &mut Page,
+        operators: &[ContentOperation],
+    ) -> OperationResult<()> {
+        // Track graphics state
+        let mut text_object = false;
+        let mut current_font = crate::text::Font::Helvetica;
+        let mut current_font_size = 12.0;
+        let mut current_x = 0.0;
+        let mut current_y = 0.0;
+        
+        for operator in operators {
+            match operator {
+                ContentOperation::BeginText => {
+                    text_object = true;
+                }
+                ContentOperation::EndText => {
+                    text_object = false;
+                }
+                ContentOperation::SetFont(name, size) => {
+                    // Map PDF font names to our fonts
+                    current_font = match name.as_str() {
+                        "Times-Roman" => crate::text::Font::TimesRoman,
+                        "Times-Bold" => crate::text::Font::TimesBold,
+                        "Times-Italic" => crate::text::Font::TimesItalic,
+                        "Times-BoldItalic" => crate::text::Font::TimesBoldItalic,
+                        "Helvetica-Bold" => crate::text::Font::HelveticaBold,
+                        "Helvetica-Oblique" => crate::text::Font::HelveticaOblique,
+                        "Helvetica-BoldOblique" => crate::text::Font::HelveticaBoldOblique,
+                        "Courier" => crate::text::Font::Courier,
+                        "Courier-Bold" => crate::text::Font::CourierBold,
+                        "Courier-Oblique" => crate::text::Font::CourierOblique,
+                        "Courier-BoldOblique" => crate::text::Font::CourierBoldOblique,
+                        _ => crate::text::Font::Helvetica,
+                    };
+                    current_font_size = *size;
+                }
+                ContentOperation::MoveText(tx, ty) => {
+                    current_x += tx;
+                    current_y += ty;
+                }
+                ContentOperation::ShowText(text_bytes) => {
+                    if text_object {
+                        if let Ok(text) = String::from_utf8(text_bytes.clone()) {
+                            page.text()
+                                .set_font(current_font, current_font_size as f64)
+                                .at(current_x as f64, current_y as f64)
+                                .write(&text)
+                                .map_err(|e| OperationError::PdfError(e))?;
+                        }
+                    }
+                }
+                ContentOperation::Rectangle(x, y, width, height) => {
+                    page.graphics()
+                        .rect(*x as f64, *y as f64, *width as f64, *height as f64);
+                }
+                ContentOperation::MoveTo(x, y) => {
+                    page.graphics().move_to(*x as f64, *y as f64);
+                }
+                ContentOperation::LineTo(x, y) => {
+                    page.graphics().line_to(*x as f64, *y as f64);
+                }
+                ContentOperation::Stroke => {
+                    page.graphics().stroke();
+                }
+                ContentOperation::Fill => {
+                    page.graphics().fill();
+                }
+                ContentOperation::SetNonStrokingRGB(r, g, b) => {
+                    page.graphics().set_fill_color(
+                        crate::graphics::Color::Rgb(*r as f64, *g as f64, *b as f64)
+                    );
+                }
+                ContentOperation::SetStrokingRGB(r, g, b) => {
+                    page.graphics().set_stroke_color(
+                        crate::graphics::Color::Rgb(*r as f64, *g as f64, *b as f64)
+                    );
+                }
+                ContentOperation::SetLineWidth(width) => {
+                    page.graphics().set_line_width(*width as f64);
+                }
+                // Graphics state operators are important for rotation
+                ContentOperation::SaveGraphicsState => {
+                    page.graphics().save_state();
+                }
+                ContentOperation::RestoreGraphicsState => {
+                    page.graphics().restore_state();
+                }
+                ContentOperation::SetTransformMatrix(a, b, c, d, e, f) => {
+                    page.graphics().transform(*a as f64, *b as f64, *c as f64, *d as f64, *e as f64, *f as f64);
+                }
+                _ => {
+                    // Silently skip unimplemented operators for now
+                }
+            }
+        }
+        
+        Ok(())
     }
 }
 
@@ -235,11 +365,11 @@ pub fn rotate_pdf_pages<P: AsRef<Path>, Q: AsRef<Path>>(
     output_path: Q,
     options: RotateOptions,
 ) -> OperationResult<()> {
-    let reader = PdfReader::open(input_path)
+    let document = PdfReader::open_document(input_path)
         .map_err(|e| OperationError::ParseError(e.to_string()))?;
     
-    let mut rotator = PageRotator::new(reader);
-    let doc = rotator.rotate(&options)?;
+    let mut rotator = PageRotator::new(document);
+    let mut doc = rotator.rotate(&options)?;
     
     doc.save(output_path)?;
     Ok(())

@@ -3,6 +3,7 @@ members = [
     "oxidize-pdf-core",
     "oxidize-pdf-cli",
     "oxidize-pdf-api",
+    "test-suite",
 ]
 resolver = "2"
 
@@ -21,7 +22,8 @@ categories = ["graphics", "text-processing", "encoding"]
 [workspace.dependencies]
 # Core dependencies
 thiserror = "1.0"
-chrono = "0.4"
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
 lazy_static = "1.4"
 
 # CLI dependencies
@@ -45,6 +47,18 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Compression (optional)
 flate2 = "1.0"
+
+# Testing
+tempfile = "3.0"
+pretty_assertions = "1.0"
+proptest = "1.5"
+criterion = { version = "0.5", features = ["html_reports"] }
+insta = "1.38"
+
+# Utilities
+rand = "0.8"
+hex = "0.4"
+regex = "1.11"
 
 [profile.release]
 lto = true

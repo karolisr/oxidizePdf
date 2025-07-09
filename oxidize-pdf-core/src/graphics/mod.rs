@@ -137,6 +137,16 @@ impl GraphicsContext {
         self
     }
     
+    pub fn transform(&mut self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) -> &mut Self {
+        write!(&mut self.operations, "{:.2} {:.2} {:.2} {:.2} {:.2} {:.2} cm\n", 
+               a, b, c, d, e, f).unwrap();
+        self
+    }
+    
+    pub fn rectangle(&mut self, x: f64, y: f64, width: f64, height: f64) -> &mut Self {
+        self.rect(x, y, width, height)
+    }
+    
     fn apply_stroke_color(&mut self) {
         match self.stroke_color {
             Color::Rgb(r, g, b) => {

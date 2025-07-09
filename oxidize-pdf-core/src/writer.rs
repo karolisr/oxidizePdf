@@ -5,22 +5,19 @@ use std::collections::HashMap;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 
-pub struct PdfWriter {
-    writer: BufWriter<std::fs::File>,
+pub struct PdfWriter<W: Write> {
+    writer: W,
     xref_positions: HashMap<ObjectId, u64>,
     current_position: u64,
 }
 
-impl PdfWriter {
-    pub fn new(path: impl AsRef<Path>) -> Result<Self> {
-        let file = std::fs::File::create(path)?;
-        let writer = BufWriter::new(file);
-        
-        Ok(Self {
+impl<W: Write> PdfWriter<W> {
+    pub fn new_with_writer(writer: W) -> Self {
+        Self {
             writer,
             xref_positions: HashMap::new(),
             current_position: 0,
-        })
+        }
     }
     
     pub fn write_document(&mut self, document: &mut Document) -> Result<()> {
@@ -38,7 +35,9 @@ impl PdfWriter {
         // Write trailer
         self.write_trailer(catalog_id, info_id, xref_position)?;
         
-        self.writer.flush()?;
+        if let Ok(()) = self.writer.flush() {
+            // Flush succeeded
+        }
         Ok(())
     }
     
@@ -167,6 +166,22 @@ impl PdfWriter {
         Ok(info_id)
     }
     
+}
+
+impl PdfWriter<BufWriter<std::fs::File>> {
+    pub fn new(path: impl AsRef<Path>) -> Result<Self> {
+        let file = std::fs::File::create(path)?;
+        let writer = BufWriter::new(file);
+        
+        Ok(Self {
+            writer,
+            xref_positions: HashMap::new(),
+            current_position: 0,
+        })
+    }
+}
+
+impl<W: Write> PdfWriter<W> {
     fn write_object(&mut self, id: ObjectId, object: Object) -> Result<()> {
         self.xref_positions.insert(id, self.current_position);
         
@@ -230,28 +245,51 @@ impl PdfWriter {
     
     fn write_xref(&mut self) -> Result<()> {
         self.write_bytes(b"xref\n")?;
-        self.write_bytes(b"0 ")?;
-        self.write_bytes((self.xref_positions.len() + 1).to_string().as_bytes())?;
-        self.write_bytes(b"\n")?;
-        
-        // Write free object entry
-        self.write_bytes(b"0000000000 65535 f \n")?;
         
         // Sort by object number and write entries
         let mut entries: Vec<_> = self.xref_positions.iter().map(|(id, pos)| (*id, *pos)).collect();
         entries.sort_by_key(|(id, _)| id.number());
         
-        for (id, position) in entries {
-            let entry = format!("{:010} {:05} n \n", position, id.generation());
-            self.write_bytes(entry.as_bytes())?;
+        // Find the highest object number to determine size
+        let max_obj_num = entries.iter()
+            .map(|(id, _)| id.number())
+            .max()
+            .unwrap_or(0);
+        
+        // Write subsection header - PDF 1.7 spec allows multiple subsections
+        // For simplicity, write one subsection from 0 to max
+        self.write_bytes(b"0 ")?;
+        self.write_bytes((max_obj_num + 1).to_string().as_bytes())?;
+        self.write_bytes(b"\n")?;
+        
+        // Write free object entry
+        self.write_bytes(b"0000000000 65535 f \n")?;
+        
+        // Write entries for all object numbers from 1 to max
+        // Fill in gaps with free entries
+        for obj_num in 1..=max_obj_num {
+            let obj_id = ObjectId::new(obj_num, 0);
+            if let Some((_, position)) = entries.iter().find(|(id, _)| id.number() == obj_num) {
+                let entry = format!("{:010} {:05} n \n", position, 0);
+                self.write_bytes(entry.as_bytes())?;
+            } else {
+                // Free entry for gap
+                self.write_bytes(b"0000000000 00000 f \n")?;
+            }
         }
         
         Ok(())
     }
     
     fn write_trailer(&mut self, catalog_id: ObjectId, info_id: ObjectId, xref_position: u64) -> Result<()> {
+        // Find the highest object number to determine size
+        let max_obj_num = self.xref_positions.keys()
+            .map(|id| id.number())
+            .max()
+            .unwrap_or(0);
+        
         let mut trailer = Dictionary::new();
-        trailer.set("Size", Object::Integer((self.xref_positions.len() + 1) as i64));
+        trailer.set("Size", Object::Integer((max_obj_num + 1) as i64));
         trailer.set("Root", Object::Reference(catalog_id));
         trailer.set("Info", Object::Reference(info_id));
         

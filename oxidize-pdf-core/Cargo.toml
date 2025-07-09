@@ -29,6 +29,7 @@ serde_json = { workspace = true, optional = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
+tempfile = "3.8"
 
 [[example]]
 name = "hello_world"
@@ -55,14 +56,10 @@ name = "basic_tagging"
 [[example]]
 name = "parse_pdf"
 
-[[example]]
-name = "split_merge_rotate"
-
 [features]
 default = ["compression"]
 
 # Basic features
-async = ["tokio"]
 compression = ["flate2"]
 
 # Semantic marking (Community level - basic tagging)

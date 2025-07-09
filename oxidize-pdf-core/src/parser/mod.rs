@@ -11,11 +11,16 @@ pub mod trailer;
 pub mod reader;
 pub mod filters;
 pub mod page_tree;
+pub mod content;
+pub mod document;
 
 use crate::error::OxidizePdfError;
 
 pub use self::reader::PdfReader;
 pub use self::objects::{PdfObject, PdfDictionary, PdfArray, PdfName, PdfString};
+pub use self::content::{ContentParser, ContentOperation};
+pub use self::page_tree::ParsedPage;
+pub use self::document::{PdfDocument, ResourceManager};
 
 /// Result type for parser operations
 pub type ParseResult<T> = Result<T, ParseError>;

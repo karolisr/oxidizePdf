@@ -1,9 +1,10 @@
 use clap::{Parser, Subcommand};
-use oxidize_pdf_core::{Document, Page, Font, Color, Result, PdfReader};
+use oxidize_pdf_core::{Document, Page, Font, Color, PdfReader};
+use anyhow::Result;
 use oxidize_pdf_core::operations::{
-    split_pdf, merge_pdf_files, rotate_pdf_pages,
-    SplitMode, SplitOptions, MergeInput, PageRange, RotationAngle, RotateOptions
+    PageRange, RotationAngle, RotateOptions, rotate_pdf_pages
 };
+use oxidize_pdf_core::text::{TextExtractor, ExtractionOptions};
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -96,6 +97,24 @@ enum Commands {
         /// Show detailed information
         #[arg(short, long)]
         detailed: bool,
+    },
+    
+    /// Extract text from a PDF file
+    ExtractText {
+        /// Input PDF file
+        input: PathBuf,
+        
+        /// Output text file (defaults to stdout)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        
+        /// Page number to extract (0-based, extracts all if not specified)
+        #[arg(short = 'p', long)]
+        page: Option<u32>,
+        
+        /// Preserve layout
+        #[arg(short = 'l', long)]
+        preserve_layout: bool,
     },
 }
 
@@ -291,6 +310,44 @@ fn main() -> Result<()> {
                     eprintln!("Error rotating PDF: {}", e);
                     std::process::exit(1);
                 }
+            }
+        }
+        
+        Commands::ExtractText { input, output, page, preserve_layout } => {
+            
+            let document = PdfReader::open_document(&input)
+                .map_err(|e| anyhow::anyhow!("Failed to open PDF: {}", e))?;
+            
+            let options = ExtractionOptions {
+                preserve_layout,
+                ..Default::default()
+            };
+            
+            let extractor = TextExtractor::with_options(options);
+            
+            // Extract text from specific page or all pages
+            let extracted_text = if let Some(page_num) = page {
+                vec![extractor.extract_from_page(&document, page_num)
+                    .map_err(|e| anyhow::anyhow!("Failed to extract text from page {}: {}", page_num, e))?]
+            } else {
+                extractor.extract_from_document(&document)
+                    .map_err(|e| anyhow::anyhow!("Failed to extract text: {}", e))?
+            };
+            
+            // Combine all extracted text
+            let full_text = extracted_text
+                .iter()
+                .map(|et| et.text.as_str())
+                .collect::<Vec<_>>()
+                .join("\n\n");
+            
+            // Write to output file or stdout
+            if let Some(output_path) = output {
+                std::fs::write(&output_path, &full_text)
+                    .map_err(|e| anyhow::anyhow!("Failed to write output file: {}", e))?;
+                println!("✓ Text extracted to: {}", output_path.display());
+            } else {
+                println!("{}", full_text);
             }
         }
     }

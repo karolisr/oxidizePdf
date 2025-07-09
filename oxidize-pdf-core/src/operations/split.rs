@@ -3,12 +3,12 @@
 //! This module provides functionality to split PDF documents into multiple files
 //! based on page ranges or other criteria.
 
-use crate::parser::{PdfReader, ParsedPage};
+use crate::parser::{PdfReader, PdfDocument, ContentParser, ContentOperation};
+use crate::parser::page_tree::ParsedPage;
 use crate::{Document, Page};
-use crate::writer::PdfWriter;
 use super::{OperationError, OperationResult, PageRange};
 use std::path::{Path, PathBuf};
-use std::io::{Read, Seek};
+use std::fs::File;
 
 /// Options for PDF splitting
 #[derive(Debug, Clone)]
@@ -48,20 +48,20 @@ pub enum SplitMode {
 }
 
 /// PDF splitter
-pub struct PdfSplitter<R: Read + Seek> {
-    reader: PdfReader<R>,
+pub struct PdfSplitter {
+    document: PdfDocument<File>,
     options: SplitOptions,
 }
 
-impl<R: Read + Seek> PdfSplitter<R> {
+impl PdfSplitter {
     /// Create a new PDF splitter
-    pub fn new(reader: PdfReader<R>, options: SplitOptions) -> Self {
-        Self { reader, options }
+    pub fn new(document: PdfDocument<File>, options: SplitOptions) -> Self {
+        Self { document, options }
     }
     
     /// Split the PDF according to the options
     pub fn split(&mut self) -> OperationResult<Vec<PathBuf>> {
-        let total_pages = self.reader.page_count()
+        let total_pages = self.document.page_count()
             .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
         
         if total_pages == 0 {
@@ -120,7 +120,7 @@ impl<R: Read + Seek> PdfSplitter<R> {
     
     /// Extract a page range to a new PDF file
     fn extract_range(&mut self, range: &PageRange, output_path: &Path) -> OperationResult<()> {
-        let total_pages = self.reader.page_count()
+        let total_pages = self.document.page_count()
             .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
         
         let indices = range.get_indices(total_pages)?;
@@ -133,7 +133,7 @@ impl<R: Read + Seek> PdfSplitter<R> {
         
         // Copy metadata if requested
         if self.options.preserve_metadata {
-            if let Ok(metadata) = self.reader.metadata() {
+            if let Ok(metadata) = self.document.metadata() {
                 if let Some(title) = metadata.title {
                     doc.set_title(&title);
                 }
@@ -151,12 +151,11 @@ impl<R: Read + Seek> PdfSplitter<R> {
         
         // Extract and add pages
         for &page_idx in &indices {
-            let parsed_page = self.reader.get_page(page_idx as u32)
+            let parsed_page = self.document.get_page(page_idx as u32)
                 .map_err(|e| OperationError::ParseError(e.to_string()))?;
             
-            // Convert parsed page to new page
-            let new_page = self.convert_page(parsed_page)?;
-            doc.add_page(new_page);
+            let page = self.convert_page(&parsed_page)?;
+            doc.add_page(page);
         }
         
         // Save the document
@@ -170,7 +169,7 @@ impl<R: Read + Seek> PdfSplitter<R> {
         // Create new page with same dimensions
         let width = parsed_page.width();
         let height = parsed_page.height();
-        let mut page = Page::new(width as f32, height as f32);
+        let mut page = Page::new(width, height);
         
         // Set rotation if needed
         if parsed_page.rotation != 0 {
@@ -179,23 +178,125 @@ impl<R: Read + Seek> PdfSplitter<R> {
         }
         
         // Get content streams
-        let content_streams = parsed_page.content_streams(&mut self.reader)
+        let content_streams = self.document.get_page_content_streams(parsed_page)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
         
-        // For now, we'll create a placeholder that copies the content
-        // In a full implementation, we would parse and recreate the content
-        // This is a limitation that we'll address when implementing content stream parsing
+        // Parse and process content streams
+        let mut has_content = false;
+        for stream_data in &content_streams {
+            match ContentParser::parse_content(stream_data) {
+                Ok(operators) => {
+                    // Process the operators to recreate content
+                    self.process_operators(&mut page, &operators)?;
+                    has_content = true;
+                }
+                Err(e) => {
+                    // If parsing fails, fall back to placeholder
+                    eprintln!("Warning: Failed to parse content stream: {}", e);
+                }
+            }
+        }
         
-        if !content_streams.is_empty() {
-            // Add a note about the limitation
+        // If no content was successfully processed, add a placeholder
+        if !has_content {
             page.text()
                 .set_font(crate::text::Font::Helvetica, 10.0)
-                .at(50.0, height as f32 - 50.0)
-                .write("[Page extracted - content parsing not yet implemented]")
+                .at(50.0, height - 50.0)
+                .write("[Page extracted - content reconstruction in progress]")
                 .map_err(|e| OperationError::PdfError(e))?;
         }
         
         Ok(page)
+    }
+    
+    /// Process content operators to recreate page content
+    fn process_operators(&self, page: &mut Page, operators: &[ContentOperation]) -> OperationResult<()> {
+        // Track graphics state
+        let mut text_object = false;
+        let mut current_font = crate::text::Font::Helvetica;
+        let mut current_font_size = 12.0;
+        let mut current_x = 0.0;
+        let mut current_y = 0.0;
+        
+        for operator in operators {
+            match operator {
+                ContentOperation::BeginText => {
+                    text_object = true;
+                }
+                ContentOperation::EndText => {
+                    text_object = false;
+                }
+                ContentOperation::SetFont(name, size) => {
+                    // Map PDF font names to our fonts
+                    current_font = match name.as_str() {
+                        "Times-Roman" => crate::text::Font::TimesRoman,
+                        "Times-Bold" => crate::text::Font::TimesBold,
+                        "Times-Italic" => crate::text::Font::TimesItalic,
+                        "Times-BoldItalic" => crate::text::Font::TimesBoldItalic,
+                        "Helvetica-Bold" => crate::text::Font::HelveticaBold,
+                        "Helvetica-Oblique" => crate::text::Font::HelveticaOblique,
+                        "Helvetica-BoldOblique" => crate::text::Font::HelveticaBoldOblique,
+                        "Courier" => crate::text::Font::Courier,
+                        "Courier-Bold" => crate::text::Font::CourierBold,
+                        "Courier-Oblique" => crate::text::Font::CourierOblique,
+                        "Courier-BoldOblique" => crate::text::Font::CourierBoldOblique,
+                        _ => crate::text::Font::Helvetica, // Default fallback
+                    };
+                    current_font_size = *size;
+                }
+                ContentOperation::MoveText(tx, ty) => {
+                    current_x += tx;
+                    current_y += ty;
+                }
+                ContentOperation::ShowText(text_bytes) => {
+                    if text_object {
+                        // Convert bytes to string (assuming ASCII/UTF-8 for now)
+                        if let Ok(text) = String::from_utf8(text_bytes.clone()) {
+                            page.text()
+                                .set_font(current_font, current_font_size as f64)
+                                .at(current_x as f64, current_y as f64)
+                                .write(&text)
+                                .map_err(|e| OperationError::PdfError(e))?;
+                        }
+                    }
+                }
+                ContentOperation::Rectangle(x, y, width, height) => {
+                    page.graphics()
+                        .rect(*x as f64, *y as f64, *width as f64, *height as f64);
+                }
+                ContentOperation::MoveTo(x, y) => {
+                    page.graphics().move_to(*x as f64, *y as f64);
+                }
+                ContentOperation::LineTo(x, y) => {
+                    page.graphics().line_to(*x as f64, *y as f64);
+                }
+                ContentOperation::Stroke => {
+                    page.graphics().stroke();
+                }
+                ContentOperation::Fill => {
+                    page.graphics().fill();
+                }
+                ContentOperation::SetNonStrokingRGB(r, g, b) => {
+                    page.graphics().set_fill_color(
+                        crate::graphics::Color::Rgb(*r as f64, *g as f64, *b as f64)
+                    );
+                }
+                ContentOperation::SetStrokingRGB(r, g, b) => {
+                    page.graphics().set_stroke_color(
+                        crate::graphics::Color::Rgb(*r as f64, *g as f64, *b as f64)
+                    );
+                }
+                ContentOperation::SetLineWidth(width) => {
+                    page.graphics().set_line_width(*width as f64);
+                }
+                // TODO: Implement more operators as needed
+                _ => {
+                    // Silently skip unimplemented operators for now
+                }
+            }
+        }
+        
+        Ok(())
     }
     
     /// Format the output path based on the pattern
@@ -230,10 +331,10 @@ pub fn split_pdf<P: AsRef<Path>>(
     input_path: P,
     options: SplitOptions,
 ) -> OperationResult<Vec<PathBuf>> {
-    let reader = PdfReader::open(input_path)
+    let document = PdfReader::open_document(input_path)
         .map_err(|e| OperationError::ParseError(e.to_string()))?;
     
-    let mut splitter = PdfSplitter::new(reader, options);
+    let mut splitter = PdfSplitter::new(document, options);
     splitter.split()
 }
 

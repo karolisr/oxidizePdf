@@ -1,0 +1,44 @@
+[package]
+name = "oxidize-pdf-test-suite"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+oxidize-pdf-core = { path = "../oxidize-pdf-core" }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+
+# Testing dependencies
+proptest = "1.5"
+criterion = { version = "0.5", features = ["html_reports"] }
+insta = "1.38"
+pretty_assertions = { workspace = true }
+tempfile = { workspace = true }
+
+# For test data generation
+rand = "0.8"
+hex = "0.4"
+regex = "1.11"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+
+[lib]
+name = "oxidize_pdf_test_suite"
+path = "src/lib.rs"
+
+[[bin]]
+name = "generate-test-pdfs"
+path = "src/bin/generate_test_pdfs.rs"
+
+[[bench]]
+name = "parser_bench"
+harness = false
+
+[features]
+default = []
+# Enable downloading external test suites
+external-suites = []

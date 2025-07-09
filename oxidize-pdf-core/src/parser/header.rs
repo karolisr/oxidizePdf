@@ -91,17 +91,36 @@ impl PdfHeader {
     
     /// Check for binary marker comment
     fn check_binary_marker<R: BufRead>(reader: &mut R) -> ParseResult<bool> {
-        let mut line = String::new();
-        let bytes_read = reader.read_line(&mut line)?;
+        let mut buffer = Vec::new();
         
-        if bytes_read == 0 {
+        // Read bytes until we find a newline or EOF
+        loop {
+            let mut byte = [0u8; 1];
+            match reader.read_exact(&mut byte) {
+                Ok(_) => {
+                    buffer.push(byte[0]);
+                    if byte[0] == b'\n' || byte[0] == b'\r' {
+                        break;
+                    }
+                    // Limit line length to prevent excessive memory usage
+                    if buffer.len() > 1024 {
+                        break;
+                    }
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                    break;
+                }
+                Err(e) => return Err(e.into()),
+            }
+        }
+        
+        if buffer.is_empty() {
             return Ok(false);
         }
         
         // Binary marker should be a comment with at least 4 binary characters
-        if line.starts_with('%') {
-            let line_bytes = line.as_bytes();
-            let binary_count = line_bytes.iter()
+        if buffer.first() == Some(&b'%') {
+            let binary_count = buffer.iter()
                 .skip(1) // Skip the %
                 .filter(|&&b| b >= 128)
                 .count();

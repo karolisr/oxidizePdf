@@ -1,0 +1,16 @@
+{
+  "metadata": {
+    "name": "minimal_with_info",
+    "description": "Minimal PDF with info dictionary",
+    "pdf_version": "1.4",
+    "features": [],
+    "compliance": [
+      "Pdf17"
+    ]
+  },
+  "expected_behavior": {
+    "ParseSuccess": {
+      "page_count": 1
+    }
+  }
+}

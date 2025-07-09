@@ -7,9 +7,9 @@ pub mod split;
 pub mod merge;
 pub mod rotate;
 
-pub use split::{PdfSplitter, SplitOptions};
-pub use merge::{PdfMerger, MergeOptions};
-pub use rotate::{PageRotator, RotationAngle};
+pub use split::{PdfSplitter, SplitOptions, SplitMode, split_pdf, split_into_pages};
+pub use merge::{PdfMerger, MergeOptions, MergeInput, merge_pdfs, merge_pdf_files};
+pub use rotate::{PageRotator, RotationAngle, RotateOptions, rotate_pdf_pages, rotate_all_pages};
 
 use crate::error::PdfError;
 

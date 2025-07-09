@@ -2,7 +2,8 @@
 //! 
 //! This module provides functionality to merge multiple PDF documents into a single file.
 
-use crate::parser::{PdfReader, ParsedPage};
+use crate::parser::{PdfReader, PdfDocument, ContentParser, ContentOperation};
+use crate::parser::page_tree::ParsedPage;
 use crate::{Document, Page};
 use super::{OperationError, OperationResult, PageRange};
 use std::path::{Path, PathBuf};
@@ -122,7 +123,7 @@ impl PdfMerger {
         
         // Process each input file
         for (input_idx, input) in self.inputs.iter().enumerate() {
-            let mut reader = PdfReader::open(&input.path)
+            let document = PdfReader::open_document(&input.path)
                 .map_err(|e| OperationError::ParseError(
                     format!("Failed to open {}: {}", input.path.display(), e)
                 ))?;
@@ -131,7 +132,7 @@ impl PdfMerger {
             self.object_mappings.push(HashMap::new());
             
             // Get page range
-            let total_pages = reader.page_count()
+            let total_pages = document.page_count()
                 .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
             
             let page_range = input.pages.as_ref()
@@ -141,20 +142,20 @@ impl PdfMerger {
             
             // Extract and add pages
             for page_idx in page_indices {
-                let parsed_page = reader.get_page(page_idx as u32)
+                let parsed_page = document.get_page(page_idx as u32)
                     .map_err(|e| OperationError::ParseError(e.to_string()))?;
                 
-                let new_page = self.convert_page_for_merge(parsed_page, &mut reader, input_idx)?;
-                output_doc.add_page(new_page);
+                let page = self.convert_page_for_merge(&parsed_page, &document, input_idx)?;
+                output_doc.add_page(page);
             }
             
             // Handle metadata for the first document or specified document
             match &self.options.metadata_mode {
                 MetadataMode::FromFirst if input_idx == 0 => {
-                    self.copy_metadata(&mut reader, &mut output_doc)?;
+                    self.copy_metadata(&document, &mut output_doc)?;
                 }
                 MetadataMode::FromDocument(idx) if input_idx == *idx => {
-                    self.copy_metadata(&mut reader, &mut output_doc)?;
+                    self.copy_metadata(&document, &mut output_doc)?;
                 }
                 _ => {}
             }
@@ -181,47 +182,162 @@ impl PdfMerger {
     
     /// Merge files and save to output path
     pub fn merge_to_file<P: AsRef<Path>>(&mut self, output_path: P) -> OperationResult<()> {
-        let doc = self.merge()?;
+        let mut doc = self.merge()?;
         doc.save(output_path)?;
         Ok(())
     }
     
     /// Convert a page for merging, handling object renumbering
     fn convert_page_for_merge(
-        &mut self,
+        &self,
         parsed_page: &ParsedPage,
-        reader: &mut PdfReader<File>,
+        document: &PdfDocument<File>,
         input_idx: usize,
     ) -> OperationResult<Page> {
         // Create new page with same dimensions
         let width = parsed_page.width();
         let height = parsed_page.height();
-        let mut page = Page::new(width as f32, height as f32);
+        let mut page = Page::new(width, height);
         
         // Get content streams
-        let content_streams = parsed_page.content_streams(reader)
+        let content_streams = document.get_page_content_streams(parsed_page)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
         
-        // For now, add a placeholder
-        // Full implementation would require parsing and renumbering all object references
-        if !content_streams.is_empty() {
+        // Parse and process content streams
+        let mut has_content = false;
+        for stream_data in &content_streams {
+            match ContentParser::parse_content(stream_data) {
+                Ok(operators) => {
+                    // Process the operators to recreate content
+                    // Note: In a full implementation, we would need to handle object
+                    // reference renumbering for resources like fonts and images
+                    self.process_operators_for_merge(&mut page, &operators, input_idx)?;
+                    has_content = true;
+                }
+                Err(e) => {
+                    eprintln!("Warning: Failed to parse content stream from document {}: {}", 
+                             input_idx + 1, e);
+                }
+            }
+        }
+        
+        // If no content was successfully processed, add a placeholder
+        if !has_content {
             page.text()
                 .set_font(crate::text::Font::Helvetica, 10.0)
-                .at(50.0, height as f32 - 50.0)
-                .write(&format!("[Page from document {} - content parsing not yet implemented]", input_idx + 1))
+                .at(50.0, height - 50.0)
+                .write(&format!("[Page from document {} - content reconstruction in progress]", input_idx + 1))
                 .map_err(|e| OperationError::PdfError(e))?;
         }
         
         Ok(page)
     }
     
+    /// Process content operators for merge, handling resource remapping
+    fn process_operators_for_merge(
+        &self,
+        page: &mut Page,
+        operators: &[ContentOperation],
+        _input_idx: usize,
+    ) -> OperationResult<()> {
+        // Track graphics state
+        let mut text_object = false;
+        let mut current_font = crate::text::Font::Helvetica;
+        let mut current_font_size = 12.0;
+        let mut current_x = 0.0;
+        let mut current_y = 0.0;
+        
+        for operator in operators {
+            match operator {
+                ContentOperation::BeginText => {
+                    text_object = true;
+                }
+                ContentOperation::EndText => {
+                    text_object = false;
+                }
+                ContentOperation::SetFont(name, size) => {
+                    // Map PDF font names to our fonts
+                    // TODO: Handle font resource remapping for merged documents
+                    current_font = match name.as_str() {
+                        "Times-Roman" => crate::text::Font::TimesRoman,
+                        "Times-Bold" => crate::text::Font::TimesBold,
+                        "Times-Italic" => crate::text::Font::TimesItalic,
+                        "Times-BoldItalic" => crate::text::Font::TimesBoldItalic,
+                        "Helvetica-Bold" => crate::text::Font::HelveticaBold,
+                        "Helvetica-Oblique" => crate::text::Font::HelveticaOblique,
+                        "Helvetica-BoldOblique" => crate::text::Font::HelveticaBoldOblique,
+                        "Courier" => crate::text::Font::Courier,
+                        "Courier-Bold" => crate::text::Font::CourierBold,
+                        "Courier-Oblique" => crate::text::Font::CourierOblique,
+                        "Courier-BoldOblique" => crate::text::Font::CourierBoldOblique,
+                        _ => crate::text::Font::Helvetica,
+                    };
+                    current_font_size = *size;
+                }
+                ContentOperation::MoveText(tx, ty) => {
+                    current_x += tx;
+                    current_y += ty;
+                }
+                ContentOperation::ShowText(text_bytes) => {
+                    if text_object {
+                        if let Ok(text) = String::from_utf8(text_bytes.clone()) {
+                            page.text()
+                                .set_font(current_font, current_font_size as f64)
+                                .at(current_x as f64, current_y as f64)
+                                .write(&text)
+                                .map_err(|e| OperationError::PdfError(e))?;
+                        }
+                    }
+                }
+                ContentOperation::Rectangle(x, y, width, height) => {
+                    page.graphics()
+                        .rect(*x as f64, *y as f64, *width as f64, *height as f64);
+                }
+                ContentOperation::MoveTo(x, y) => {
+                    page.graphics().move_to(*x as f64, *y as f64);
+                }
+                ContentOperation::LineTo(x, y) => {
+                    page.graphics().line_to(*x as f64, *y as f64);
+                }
+                ContentOperation::Stroke => {
+                    page.graphics().stroke();
+                }
+                ContentOperation::Fill => {
+                    page.graphics().fill();
+                }
+                ContentOperation::SetNonStrokingRGB(r, g, b) => {
+                    page.graphics().set_fill_color(
+                        crate::graphics::Color::Rgb(*r as f64, *g as f64, *b as f64)
+                    );
+                }
+                ContentOperation::SetStrokingRGB(r, g, b) => {
+                    page.graphics().set_stroke_color(
+                        crate::graphics::Color::Rgb(*r as f64, *g as f64, *b as f64)
+                    );
+                }
+                ContentOperation::SetLineWidth(width) => {
+                    page.graphics().set_line_width(*width as f64);
+                }
+                // TODO: Handle XObject references (images, forms) with remapping
+                ContentOperation::PaintXObject(_name) => {
+                    // Would need to remap XObject references
+                }
+                _ => {
+                    // Silently skip unimplemented operators for now
+                }
+            }
+        }
+        
+        Ok(())
+    }
+    
     /// Copy metadata from source to destination document
     fn copy_metadata(
         &self,
-        reader: &mut PdfReader<File>,
+        document: &PdfDocument<File>,
         doc: &mut Document,
     ) -> OperationResult<()> {
-        if let Ok(metadata) = reader.metadata() {
+        if let Ok(metadata) = document.metadata() {
             if let Some(title) = metadata.title {
                 doc.set_title(&title);
             }
@@ -247,15 +363,15 @@ impl PdfMerger {
     
     /// Map an object number from an input document to the merged document
     fn map_object_number(&mut self, input_idx: usize, old_num: u32) -> u32 {
-        let mapping = &mut self.object_mappings[input_idx];
-        
-        if let Some(&new_num) = mapping.get(&old_num) {
-            new_num
-        } else {
-            let new_num = self.allocate_object_number();
-            mapping.insert(old_num, new_num);
-            new_num
+        // Check if already mapped
+        if let Some(&new_num) = self.object_mappings[input_idx].get(&old_num) {
+            return new_num;
         }
+        
+        // Allocate new number
+        let new_num = self.allocate_object_number();
+        self.object_mappings[input_idx].insert(old_num, new_num);
+        new_num
     }
 }
 

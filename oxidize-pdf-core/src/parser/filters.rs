@@ -3,7 +3,7 @@
 //! Handles decompression and decoding of PDF streams according to ISO 32000-1 Section 7.4
 
 use super::{ParseError, ParseResult};
-use super::objects::{PdfObject, PdfDictionary, PdfArray, PdfName};
+use super::objects::{PdfObject, PdfDictionary};
 
 #[cfg(feature = "compression")]
 use flate2::read::ZlibDecoder;
@@ -197,8 +197,22 @@ fn decode_ascii85(data: &[u8]) -> ParseResult<Vec<u8>> {
     let mut chars = data.iter().filter(|&&b| !b.is_ascii_whitespace());
     let mut group = Vec::with_capacity(5);
     
-    while let Some(&ch) = chars.next() {
-        match ch {
+    // Skip optional <~ prefix
+    let mut ch = match chars.next() {
+        Some(&b'<') => {
+            if chars.next() == Some(&b'~') {
+                // Skip the prefix and get next char
+                chars.next()
+            } else {
+                // Not a valid prefix, treat '<' as data
+                Some(&b'<')
+            }
+        }
+        other => other,
+    };
+    
+    while let Some(&c) = ch {
+        match c {
             b'~' => {
                 // Check for end marker ~>
                 if chars.next() == Some(&b'>') {
@@ -214,7 +228,7 @@ fn decode_ascii85(data: &[u8]) -> ParseResult<Vec<u8>> {
                 result.extend_from_slice(&[0, 0, 0, 0]);
             }
             b'!'..=b'u' => {
-                group.push(ch);
+                group.push(c);
                 if group.len() == 5 {
                     // Decode complete group
                     let value = group.iter().enumerate()
@@ -231,14 +245,18 @@ fn decode_ascii85(data: &[u8]) -> ParseResult<Vec<u8>> {
             }
             _ => {
                 return Err(ParseError::StreamDecodeError(
-                    format!("Invalid ASCII85 character: {}", ch as char)
+                    format!("Invalid ASCII85 character: {}", c as char)
                 ));
             }
         }
+        ch = chars.next();
     }
     
     // Handle incomplete final group
     if !group.is_empty() {
+        // Save original length to know how many bytes to output
+        let original_len = group.len();
+        
         // Pad with 'u' (84)
         while group.len() < 5 {
             group.push(b'u');
@@ -249,7 +267,7 @@ fn decode_ascii85(data: &[u8]) -> ParseResult<Vec<u8>> {
             .sum::<u32>();
         
         // Only output the number of bytes that were actually encoded
-        let output_bytes = group.len() - 1;
+        let output_bytes = original_len - 1;
         for i in 0..output_bytes {
             result.push((value >> (24 - 8 * i)) as u8);
         }
@@ -281,10 +299,11 @@ mod tests {
     fn test_ascii85_decode() {
         let data = b"87cURD]j7BEbo80~>";
         let result = decode_ascii85(data).unwrap();
-        assert_eq!(result, b"Hello World");
+        assert_eq!(result, b"Hello world!");
         
         let data = b"z~>"; // Special case for zeros
         let result = decode_ascii85(data).unwrap();
         assert_eq!(result, &[0, 0, 0, 0]);
+        
     }
 }

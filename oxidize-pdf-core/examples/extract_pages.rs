@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     let pdf_path = &args[1];
     println!("Extracting pages from: {}", pdf_path);
-    println!("=" .repeat(50));
+    println!("{}", "=".repeat(50));
     
     // Open and parse the PDF
     let mut reader = PdfReader::open(pdf_path)?;
@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Extract information about each page
     for i in 0..page_count {
         println!("Page {} Information:", i + 1);
-        println!("-" .repeat(30));
+        println!("{}", "-".repeat(30));
         
         match reader.get_page(i) {
             Ok(page) => {
@@ -86,7 +86,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Try to extract the first page's content (if any)
     if page_count > 0 {
         println!("\nExtracting content from first page...");
-        println!("-" .repeat(50));
+        println!("{}", "-".repeat(50));
         
         if let Ok(page) = reader.get_page(0) {
             match page.content_streams(&mut reader) {

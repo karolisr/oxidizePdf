@@ -41,14 +41,17 @@ impl XRefTable {
         
         // Find and parse xref
         let xref_offset = Self::find_xref_offset(reader)?;
+        // Found xref offset
         reader.seek(SeekFrom::Start(xref_offset))?;
         
         // Check if this is a traditional xref table or xref stream
         let mut line = String::new();
         let pos = reader.stream_position()?;
         reader.read_line(&mut line)?;
+        // Check first line
         
         if line.trim() == "xref" {
+            // Traditional xref table
             // Traditional xref table
             Self::parse_traditional_xref(reader, &mut table)?;
         } else {
@@ -64,7 +67,7 @@ impl XRefTable {
                 _ => return Err(ParseError::InvalidXRef),
             };
             
-            let gen_num = match lexer.next_token()? {
+            let _gen_num = match lexer.next_token()? {
                 super::lexer::Token::Integer(n) => n as u16,
                 _ => return Err(ParseError::InvalidXRef),
             };
@@ -83,8 +86,8 @@ impl XRefTable {
                     let xref_stream = XRefStream::parse(stream.clone())?;
                     
                     // Copy entries from xref stream
-                    for (obj_num, entry) in xref_stream.entries {
-                        table.entries.insert(obj_num, entry);
+                    for (obj_num, entry) in &xref_stream.entries {
+                        table.entries.insert(*obj_num, entry.clone());
                     }
                     
                     // Set trailer from xref stream
@@ -111,16 +114,19 @@ impl XRefTable {
         loop {
             line.clear();
             reader.read_line(&mut line)?;
-            let line = line.trim();
+            let trimmed_line = line.trim();
+            
+            // Parse subsection
             
             // Check if we've reached the trailer
-            if line == "trailer" {
+            if trimmed_line == "trailer" {
                 break;
             }
             
             // Parse subsection header (first_obj_num count)
-            let parts: Vec<&str> = line.split_whitespace().collect();
+            let parts: Vec<&str> = trimmed_line.split_whitespace().collect();
             if parts.len() != 2 {
+                // Invalid subsection header
                 return Err(ParseError::InvalidXRef);
             }
             
@@ -130,19 +136,25 @@ impl XRefTable {
                 .map_err(|_| ParseError::InvalidXRef)?;
             
             // Parse entries
+            // Parse xref entries
             for i in 0..count {
                 line.clear();
                 reader.read_line(&mut line)?;
                 let entry = Self::parse_xref_entry(&line)?;
                 table.entries.insert(first_obj_num + i, entry);
             }
+            // Finished parsing xref entries
         }
         
         // Parse trailer dictionary
         let mut lexer = super::lexer::Lexer::new(reader);
         let trailer_obj = super::objects::PdfObject::parse(&mut lexer)?;
+        // Trailer object parsed successfully
         
         table.trailer = trailer_obj.as_dict().cloned();
+        
+        // After parsing the trailer, the reader is positioned after the dictionary
+        // We don't need to parse anything else - startxref/offset/%%EOF are handled elsewhere
         
         Ok(())
     }
@@ -152,6 +164,7 @@ impl XRefTable {
         // Go to end of file
         reader.seek(SeekFrom::End(0))?;
         let file_size = reader.stream_position()?;
+        // eprintln!("DEBUG: File size: {}", file_size);
         
         // Read last 1024 bytes (should be enough for EOL + startxref + offset + %%EOF)
         let read_size = std::cmp::min(1024, file_size);
@@ -163,21 +176,22 @@ impl XRefTable {
         // Convert to string and find startxref
         let content = String::from_utf8_lossy(&buffer);
         let lines: Vec<&str> = content.lines().collect();
+        // Debug output removed
         
-        // Find startxref line
-        let mut found_startxref = false;
-        for line in lines.iter().rev() {
-            if found_startxref {
-                // This should be the offset
-                let offset = line.trim().parse::<u64>()
-                    .map_err(|_| ParseError::InvalidXRef)?;
-                return Ok(offset);
-            }
+        // Find startxref line - need to iterate forward after finding it
+        for (i, line) in lines.iter().enumerate() {
             if line.trim() == "startxref" {
-                found_startxref = true;
+                // The offset should be on the next line
+                if i + 1 < lines.len() {
+                    let offset_line = lines[i + 1];
+                    let offset = offset_line.trim().parse::<u64>()
+                        .map_err(|_| ParseError::InvalidXRef)?;
+                    return Ok(offset);
+                }
             }
         }
         
+        // Did not find startxref
         Err(ParseError::InvalidXRef)
     }
     
@@ -188,12 +202,15 @@ impl XRefTable {
         // Entry format: nnnnnnnnnn ggggg n/f
         // Where n = offset (10 digits), g = generation (5 digits), n/f = in use flag
         if line.len() < 18 {
+            // Line too short
             return Err(ParseError::InvalidXRef);
         }
         
         let offset_str = &line[0..10];
         let gen_str = &line[11..16];
         let flag = line.chars().nth(17);
+        
+        // Parse xref entry
         
         let offset = offset_str.trim().parse::<u64>()
             .map_err(|_| ParseError::InvalidXRef)?;

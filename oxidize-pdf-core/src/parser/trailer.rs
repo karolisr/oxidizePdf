@@ -3,7 +3,7 @@
 //! Parses PDF trailer according to ISO 32000-1 Section 7.5.5
 
 use super::{ParseError, ParseResult};
-use super::objects::{PdfObject, PdfDictionary, PdfName};
+use super::objects::{PdfObject, PdfDictionary};
 
 /// PDF Trailer information
 #[derive(Debug, Clone)]
