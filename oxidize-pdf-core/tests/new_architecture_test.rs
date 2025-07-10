@@ -1,10 +1,9 @@
 //! Integration test for the new PdfDocument architecture
 
-use oxidize_pdf_core::operations::{merge_pdf_files, rotate_pdf_pages, split_pdf};
-use oxidize_pdf_core::operations::{RotateOptions, RotationAngle, SplitMode, SplitOptions};
-use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
-use oxidize_pdf_core::{Document, Page};
-use std::fs;
+use oxidize_pdf::operations::{merge_pdf_files, rotate_pdf_pages, split_pdf};
+use oxidize_pdf::operations::{RotateOptions, RotationAngle, SplitMode, SplitOptions};
+use oxidize_pdf::parser::PdfReader;
+use oxidize_pdf::{Document, Page};
 use tempfile::TempDir;
 
 #[test]
@@ -20,7 +19,7 @@ fn test_pdf_document_page_access() {
     for i in 1..=3 {
         let mut page = Page::new(612.0, 792.0);
         page.text()
-            .set_font(oxidize_pdf_core::text::Font::Helvetica, 12.0)
+            .set_font(oxidize_pdf::text::Font::Helvetica, 12.0)
             .at(100.0, 700.0)
             .write(&format!("Page {}", i))
             .unwrap();
@@ -61,7 +60,7 @@ fn test_split_operation_with_new_architecture() {
     for i in 1..=5 {
         let mut page = Page::new(612.0, 792.0);
         page.text()
-            .set_font(oxidize_pdf_core::text::Font::Helvetica, 12.0)
+            .set_font(oxidize_pdf::text::Font::Helvetica, 12.0)
             .at(100.0, 700.0)
             .write(&format!("Split Page {}", i))
             .unwrap();
@@ -112,7 +111,7 @@ fn test_merge_operation_with_new_architecture() {
         for j in 1..=2 {
             let mut page = Page::new(612.0, 792.0);
             page.text()
-                .set_font(oxidize_pdf_core::text::Font::Helvetica, 12.0)
+                .set_font(oxidize_pdf::text::Font::Helvetica, 12.0)
                 .at(100.0, 700.0)
                 .write(&format!("Document {} Page {}", i + 1, j))
                 .unwrap();
@@ -149,14 +148,14 @@ fn test_rotate_operation_with_new_architecture() {
     for i in 1..=3 {
         let mut page = Page::new(612.0, 792.0);
         page.text()
-            .set_font(oxidize_pdf_core::text::Font::Helvetica, 12.0)
+            .set_font(oxidize_pdf::text::Font::Helvetica, 12.0)
             .at(100.0, 700.0)
             .write(&format!("Rotate Page {}", i))
             .unwrap();
 
         // Add a rectangle to see rotation
         page.graphics()
-            .set_stroke_color(oxidize_pdf_core::graphics::Color::Rgb(1.0, 0.0, 0.0))
+            .set_stroke_color(oxidize_pdf::graphics::Color::Rgb(1.0, 0.0, 0.0))
             .rect(50.0, 50.0, 100.0, 200.0)
             .stroke();
         doc.add_page(page);
@@ -191,7 +190,7 @@ fn test_resource_caching() {
     let mut doc = Document::new();
     let mut page = Page::new(612.0, 792.0);
     page.text()
-        .set_font(oxidize_pdf_core::text::Font::Helvetica, 12.0)
+        .set_font(oxidize_pdf::text::Font::Helvetica, 12.0)
         .at(100.0, 700.0)
         .write("Cache Test")
         .unwrap();

@@ -1,8 +1,8 @@
 //! Tests for text extraction functionality
 
-use oxidize_pdf_core::parser::PdfReader;
-use oxidize_pdf_core::text::{ExtractionOptions, TextExtractor};
-use oxidize_pdf_core::{Document, Font, Page};
+use oxidize_pdf::parser::PdfReader;
+use oxidize_pdf::text::{ExtractionOptions, TextExtractor};
+use oxidize_pdf::{Document, Font, Page};
 use tempfile::TempDir;
 
 #[test]

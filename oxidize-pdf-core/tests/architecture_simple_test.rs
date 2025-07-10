@@ -1,8 +1,8 @@
 //! Simple test for the new architecture without file I/O
 
-use oxidize_pdf_core::parser::objects::PdfDictionary;
-use oxidize_pdf_core::parser::page_tree::{PageTree, ParsedPage};
-use oxidize_pdf_core::parser::{PdfDocument, ResourceManager};
+use oxidize_pdf::parser::objects::PdfDictionary;
+use oxidize_pdf::parser::page_tree::{PageTree, ParsedPage};
+use oxidize_pdf::parser::{PdfDocument, ResourceManager};
 
 #[test]
 fn test_resource_manager() {
@@ -10,7 +10,7 @@ fn test_resource_manager() {
 
     // Test caching
     let obj_ref = (1, 0);
-    let obj = oxidize_pdf_core::parser::PdfObject::Integer(42);
+    let obj = oxidize_pdf::parser::PdfObject::Integer(42);
 
     // Initially empty
     assert!(manager.get_cached(obj_ref).is_none());

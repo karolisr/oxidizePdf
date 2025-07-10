@@ -1,9 +1,9 @@
 //! Integration tests for PDF operations
 
-use oxidize_pdf_core::operations::{
+use oxidize_pdf::operations::{
     merge_pdf_files, rotate_all_pages, split_into_pages, PageRange, RotationAngle,
 };
-use oxidize_pdf_core::{Document, Page};
+use oxidize_pdf::{Document, Page};
 use std::fs;
 use std::path::Path;
 
@@ -95,13 +95,13 @@ fn test_rotation_angles() {
 }
 
 // Helper function to create a test PDF with multiple pages
-fn create_test_pdf(path: &str, page_count: usize) -> oxidize_pdf_core::Result<()> {
+fn create_test_pdf(path: &str, page_count: usize) -> oxidize_pdf::Result<()> {
     let mut doc = Document::new();
 
     for i in 1..=page_count {
         let mut page = Page::a4();
         page.text()
-            .set_font(oxidize_pdf_core::text::Font::Helvetica, 24.0)
+            .set_font(oxidize_pdf::text::Font::Helvetica, 24.0)
             .at(100.0, 700.0)
             .write(&format!("Test Page {}", i))?;
         doc.add_page(page);

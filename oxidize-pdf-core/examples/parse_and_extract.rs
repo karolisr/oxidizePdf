@@ -14,7 +14,7 @@ fn main() -> Result<()> {
 
     let pdf_path = &args[1];
     println!("Parsing PDF: {}", pdf_path);
-    println!("=".repeat(50));
+    println!("{}", "=".repeat(50));
 
     // Open and parse the PDF
     let mut reader = PdfReader::open(pdf_path)?;
@@ -51,7 +51,7 @@ fn main() -> Result<()> {
 
     // Extract text from all pages
     println!("\nExtracting text from pages...");
-    println!("-".repeat(50));
+    println!("{}", "-".repeat(50));
 
     match document.extract_text() {
         Ok(pages_text) => {

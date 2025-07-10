@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Get basic information
     let version = reader.version();
-    println!("PDF Version: {}", version.to_string());
+    println!("PDF Version: {}", version);
 
     let page_count = reader.page_count()?;
     println!("Total Pages: {}\n", page_count);
@@ -70,17 +70,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
 
-                // Try to get content streams
-                match page.content_streams(&mut reader) {
-                    Ok(streams) => {
-                        println!("  Content streams: {}", streams.len());
-                        let total_size: usize = streams.iter().map(|s| s.len()).sum();
-                        println!("  Content size: {} bytes", total_size);
-                    }
-                    Err(e) => {
-                        println!("  Warning: Could not read content streams: {}", e);
-                    }
-                }
+                // Note: Content stream extraction requires restructuring due to borrow checker
+                // See parse_and_extract.rs example for content extraction
             }
             Err(e) => {
                 println!("  Error extracting page: {}", e);
@@ -96,25 +87,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{}", "-".repeat(50));
 
         if let Ok(page) = reader.get_page(0) {
-            match page.content_streams(&mut reader) {
-                Ok(streams) => {
-                    for (i, stream) in streams.iter().enumerate() {
-                        println!("\nContent Stream {}:", i + 1);
-
-                        // Show first 200 bytes of content
-                        let preview_len = std::cmp::min(200, stream.len());
-                        let preview = String::from_utf8_lossy(&stream[..preview_len]);
-                        println!("{}", preview);
-
-                        if stream.len() > preview_len {
-                            println!("... ({} more bytes)", stream.len() - preview_len);
-                        }
-                    }
-                }
-                Err(e) => {
-                    println!("Could not extract content: {}", e);
-                }
-            }
+            // Note: Content stream extraction requires restructuring due to borrow checker
+            // See parse_and_extract.rs example for content extraction
+            println!("(Content stream extraction commented out - see parse_and_extract.rs)");
         }
     }
 

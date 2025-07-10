@@ -8,7 +8,6 @@ use oxidize_pdf_test_suite::{
     },
     utils, TestCategory, TestCorpus,
 };
-use std::path::PathBuf;
 
 #[test]
 fn test_minimal_pdf_compliance() {

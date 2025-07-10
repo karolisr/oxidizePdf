@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod tests {
-    use oxidize_pdf_core::parser::{
+    use oxidize_pdf::parser::{
         header::*, lexer::*, objects::*, trailer::*, xref::*, PdfReader,
     };
     use std::io::Cursor;
