@@ -69,3 +69,32 @@ strip = true
 [profile.dev]
 opt-level = 0
 debug = true
+
+[workspace.metadata.release]
+# Don't sign commits or tags (requires GPG setup)
+sign-commit = false
+sign-tag = false
+
+# Commit messages
+pre-release-commit-message = "chore: Release {{version}}"
+pre-release-replacements = [
+    {file="CHANGELOG.md", search="Unreleased", replace="{{version}}", min=1},
+    {file="CHANGELOG.md", search="\\.\\.\\.HEAD", replace="...v{{version}}", exactly=1},
+    {file="CHANGELOG.md", search="ReleaseDate", replace="{{date}}", min=1},
+    {file="CHANGELOG.md", search="<!-- next-header -->", replace="<!-- next-header -->\n## [Unreleased] - ReleaseDate\n", exactly=1},
+    {file="README.md", search="oxidize-pdf = \"[0-9.]+\"", replace="oxidize-pdf = \"{{version}}\"", exactly=1},
+]
+
+# Tag configuration
+tag-message = "Release v{{version}}"
+tag-name = "v{{version}}"
+
+# Consolidate commits when releasing workspace
+consolidate-commits = true
+
+# Push options
+push = true
+push-remote = "origin"
+
+# Publishing
+publish = true

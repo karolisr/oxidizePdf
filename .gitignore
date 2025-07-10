@@ -19,3 +19,6 @@ oxidizePdf-private*/
 
 # External test suites
 test-suite/external-suites/
+
+# Keep GitHub workflows
+!.github/
