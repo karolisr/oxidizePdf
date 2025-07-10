@@ -1,10 +1,10 @@
 use clap::{Parser, Subcommand};
-use oxidize_pdf_core::{Document, Page, Font, Color, PdfReader};
+use oxidize_pdf::{Document, Page, Font, Color, PdfReader};
 use anyhow::Result;
-use oxidize_pdf_core::operations::{
+use oxidize_pdf::operations::{
     PageRange, RotationAngle, RotateOptions, rotate_pdf_pages
 };
-use oxidize_pdf_core::text::{TextExtractor, ExtractionOptions};
+use oxidize_pdf::text::{TextExtractor, ExtractionOptions};
 use std::path::PathBuf;
 
 #[derive(Parser)]

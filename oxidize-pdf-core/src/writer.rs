@@ -116,6 +116,26 @@ impl<W: Write> PdfWriter<W> {
         }
         
         resources.set("Font", Object::Dictionary(font_dict));
+        
+        // Add images as XObjects
+        if !page.images().is_empty() {
+            let mut xobject_dict = Dictionary::new();
+            let mut image_id_counter = 1000; // Start high to avoid conflicts
+            
+            for (name, image) in page.images() {
+                let image_id = ObjectId::new(image_id_counter, 0);
+                image_id_counter += 1;
+                
+                // Write the image XObject
+                self.write_object(image_id, image.to_pdf_object())?;
+                
+                // Add reference to XObject dictionary
+                xobject_dict.set(name, Object::Reference(image_id));
+            }
+            
+            resources.set("XObject", Object::Dictionary(xobject_dict));
+        }
+        
         page_dict.set("Resources", Object::Dictionary(resources));
         
         self.write_object(page_id, Object::Dictionary(page_dict))?;

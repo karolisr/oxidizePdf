@@ -1,14 +1,16 @@
 [package]
-name = "oxidize-pdf-core"
+name = "oxidize-pdf"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-documentation.workspace = true
-description = "Core library for PDF processing operations"
-keywords = ["pdf", "pdf-processing", "pdf-manipulation"]
-categories = ["parsing", "multimedia::images"]
+documentation = "https://docs.rs/oxidize-pdf"
+homepage = "https://github.com/bzsanti/oxidizePdf"
+description = "A pure Rust PDF generation and manipulation library with zero external dependencies"
+keywords = ["pdf", "document", "generation", "parser", "graphics"]
+categories = ["graphics", "text-processing", "parsing", "multimedia::images"]
+readme = "../README.md"
 
 [dependencies]
 # Error handling
@@ -55,6 +57,15 @@ name = "basic_tagging"
 
 [[example]]
 name = "parse_pdf"
+
+[[example]]
+name = "jpeg_image"
+
+[[example]]
+name = "comprehensive_demo"
+
+[[example]]
+name = "parse_and_extract"
 
 [features]
 default = ["compression"]

@@ -1,8 +1,10 @@
 mod path;
 mod color;
+mod image;
 
 pub use path::{PathBuilder, LineJoin, LineCap};
 pub use color::Color;
+pub use image::{Image, ImageFormat, ColorSpace as ImageColorSpace};
 
 use crate::error::Result;
 use std::fmt::Write;
@@ -145,6 +147,24 @@ impl GraphicsContext {
     
     pub fn rectangle(&mut self, x: f64, y: f64, width: f64, height: f64) -> &mut Self {
         self.rect(x, y, width, height)
+    }
+    
+    pub fn draw_image(&mut self, image_name: &str, x: f64, y: f64, width: f64, height: f64) -> &mut Self {
+        // Save graphics state
+        self.save_state();
+        
+        // Set up transformation matrix for image placement
+        // PDF coordinate system has origin at bottom-left, so we need to translate and scale
+        write!(&mut self.operations, "{:.2} 0 0 {:.2} {:.2} {:.2} cm\n", 
+               width, height, x, y).unwrap();
+        
+        // Draw the image XObject
+        write!(&mut self.operations, "/{} Do\n", image_name).unwrap();
+        
+        // Restore graphics state
+        self.restore_state();
+        
+        self
     }
     
     fn apply_stroke_color(&mut self) {

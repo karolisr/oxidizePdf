@@ -7,6 +7,7 @@ use super::header::PdfHeader;
 use super::xref::XRefTable;
 use super::trailer::PdfTrailer;
 use super::objects::{PdfObject, PdfDictionary};
+use super::object_stream::ObjectStream;
 use std::io::{Read, Seek, BufReader};
 use std::fs::File;
 use std::path::Path;
@@ -20,6 +21,8 @@ pub struct PdfReader<R: Read + Seek> {
     trailer: PdfTrailer,
     /// Cache of loaded objects
     object_cache: HashMap<(u32, u16), PdfObject>,
+    /// Cache of object streams
+    object_stream_cache: HashMap<u32, ObjectStream>,
     /// Page tree navigator
     page_tree: Option<super::page_tree::PageTree>,
 }
@@ -65,6 +68,7 @@ impl<R: Read + Seek> PdfReader<R> {
             xref,
             trailer,
             object_cache: HashMap::new(),
+            object_stream_cache: HashMap::new(),
             page_tree: None,
         })
     }
@@ -104,6 +108,14 @@ impl<R: Read + Seek> PdfReader<R> {
         // Check cache first
         if self.object_cache.contains_key(&key) {
             return Ok(&self.object_cache[&key]);
+        }
+        
+        // Check if this is a compressed object
+        if let Some(ext_entry) = self.xref.get_extended_entry(obj_num) {
+            if let Some((stream_obj_num, index_in_stream)) = ext_entry.compressed_info {
+                // This is a compressed object - need to extract from object stream
+                return self.get_compressed_object(obj_num, gen_num, stream_obj_num, index_in_stream);
+            }
         }
         
         // Get xref entry
@@ -196,6 +208,40 @@ impl<R: Read + Seek> PdfReader<R> {
             }
             _ => Ok(obj),
         }
+    }
+    
+    /// Get a compressed object from an object stream
+    fn get_compressed_object(&mut self, obj_num: u32, gen_num: u16, stream_obj_num: u32, index_in_stream: u32) -> ParseResult<&PdfObject> {
+        let key = (obj_num, gen_num);
+        
+        // Load the object stream if not cached
+        if !self.object_stream_cache.contains_key(&stream_obj_num) {
+            // Get the stream object
+            let stream_obj = self.get_object(stream_obj_num, 0)?;
+            
+            if let Some(stream) = stream_obj.as_stream() {
+                // Parse the object stream
+                let obj_stream = ObjectStream::parse(stream.clone())?;
+                self.object_stream_cache.insert(stream_obj_num, obj_stream);
+            } else {
+                return Err(ParseError::SyntaxError {
+                    position: 0,
+                    message: format!("Object {} is not a stream", stream_obj_num),
+                });
+            }
+        }
+        
+        // Get the object from the stream
+        let obj_stream = &self.object_stream_cache[&stream_obj_num];
+        let obj = obj_stream.get_object(obj_num)
+            .ok_or_else(|| ParseError::SyntaxError {
+                position: 0,
+                message: format!("Object {} not found in object stream {}", obj_num, stream_obj_num),
+            })?;
+        
+        // Cache the object
+        self.object_cache.insert(key, obj.clone());
+        Ok(&self.object_cache[&key])
     }
     
     /// Get the page tree root

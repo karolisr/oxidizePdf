@@ -19,6 +19,9 @@ pub enum PdfError {
     
     #[error("Compression error: {0}")]
     CompressionError(String),
+    
+    #[error("Invalid image: {0}")]
+    InvalidImage(String),
 }
 
 pub type Result<T> = std::result::Result<T, PdfError>;

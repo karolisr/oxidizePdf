@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-oxidize-pdf-core = { path = "../oxidize-pdf-core" }
+oxidize-pdf = { path = "../oxidize-pdf-core" }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }

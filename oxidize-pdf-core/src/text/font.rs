@@ -1,19 +1,37 @@
+/// Standard PDF fonts (Type 1 base 14 fonts).
+/// 
+/// These fonts are guaranteed to be available in all PDF readers
+/// and don't need to be embedded in the document.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Font {
     // Standard 14 PDF fonts
+    /// Helvetica (sans-serif)
     Helvetica,
+    /// Helvetica Bold
     HelveticaBold,
+    /// Helvetica Oblique (italic)
     HelveticaOblique,
+    /// Helvetica Bold Oblique
     HelveticaBoldOblique,
+    /// Times Roman (serif)
     TimesRoman,
+    /// Times Bold
     TimesBold,
+    /// Times Italic
     TimesItalic,
+    /// Times Bold Italic
     TimesBoldItalic,
+    /// Courier (monospace)
     Courier,
+    /// Courier Bold
     CourierBold,
+    /// Courier Oblique
     CourierOblique,
+    /// Courier Bold Oblique
     CourierBoldOblique,
+    /// Symbol font (mathematical symbols)
     Symbol,
+    /// ZapfDingbats (decorative symbols)
     ZapfDingbats,
 }
 

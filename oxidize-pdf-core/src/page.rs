@@ -1,12 +1,18 @@
 use crate::error::Result;
-use crate::graphics::GraphicsContext;
+use crate::graphics::{GraphicsContext, Image};
 use crate::text::{TextContext, TextFlowContext};
+use std::collections::HashMap;
 
+/// Page margins in points (1/72 inch).
 #[derive(Clone, Debug)]
 pub struct Margins {
+    /// Left margin
     pub left: f64,
+    /// Right margin
     pub right: f64,
+    /// Top margin
     pub top: f64,
+    /// Bottom margin
     pub bottom: f64,
 }
 
@@ -21,6 +27,31 @@ impl Default for Margins {
     }
 }
 
+/// A single page in a PDF document.
+/// 
+/// Pages have a size (width and height in points), margins, and can contain
+/// graphics, text, and images.
+/// 
+/// # Example
+/// 
+/// ```rust
+/// use oxidize_pdf::{Page, Font, Color};
+/// 
+/// let mut page = Page::a4();
+/// 
+/// // Add text
+/// page.text()
+///     .set_font(Font::Helvetica, 12.0)
+///     .at(100.0, 700.0)
+///     .write("Hello World")?;
+/// 
+/// // Add graphics
+/// page.graphics()
+///     .set_fill_color(Color::red())
+///     .rect(100.0, 100.0, 200.0, 150.0)
+///     .fill();
+/// # Ok::<(), oxidize_pdf::PdfError>(())
+/// ```
 #[derive(Clone)]
 pub struct Page {
     width: f64,
@@ -29,9 +60,13 @@ pub struct Page {
     content: Vec<u8>,
     graphics_context: GraphicsContext,
     text_context: TextContext,
+    images: HashMap<String, Image>,
 }
 
 impl Page {
+    /// Creates a new page with the specified width and height in points.
+    /// 
+    /// Points are 1/72 of an inch.
     pub fn new(width: f64, height: f64) -> Self {
         Self {
             width,
@@ -40,21 +75,26 @@ impl Page {
             content: Vec::new(),
             graphics_context: GraphicsContext::new(),
             text_context: TextContext::new(),
+            images: HashMap::new(),
         }
     }
     
+    /// Creates a new A4 page (595 x 842 points).
     pub fn a4() -> Self {
         Self::new(595.0, 842.0)
     }
     
+    /// Creates a new US Letter page (612 x 792 points).
     pub fn letter() -> Self {
         Self::new(612.0, 792.0)
     }
     
+    /// Returns a mutable reference to the graphics context for drawing shapes.
     pub fn graphics(&mut self) -> &mut GraphicsContext {
         &mut self.graphics_context
     }
     
+    /// Returns a mutable reference to the text context for adding text.
     pub fn text(&mut self) -> &mut TextContext {
         &mut self.text_context
     }
@@ -99,6 +139,23 @@ impl Page {
     pub fn add_text_flow(&mut self, text_flow: &TextFlowContext) {
         let operations = text_flow.generate_operations();
         self.content.extend_from_slice(&operations);
+    }
+    
+    pub fn add_image(&mut self, name: impl Into<String>, image: Image) {
+        self.images.insert(name.into(), image);
+    }
+    
+    pub fn draw_image(&mut self, name: &str, x: f64, y: f64, width: f64, height: f64) -> Result<()> {
+        if self.images.contains_key(name) {
+            self.graphics_context.draw_image(name, x, y, width, height);
+            Ok(())
+        } else {
+            Err(crate::PdfError::InvalidReference(format!("Image '{}' not found", name)))
+        }
+    }
+    
+    pub(crate) fn images(&self) -> &HashMap<String, Image> {
+        &self.images
     }
     
     pub(crate) fn generate_content(&mut self) -> Result<Vec<u8>> {

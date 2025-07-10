@@ -878,12 +878,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
+name = "oxidize-pdf"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "flate2",
+ "lazy_static",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "oxidize-pdf-api"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
- "oxidize-pdf-core",
+ "oxidize-pdf",
  "pretty_assertions",
  "serde",
  "serde_json",
@@ -902,26 +916,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "oxidize-pdf-core",
+ "oxidize-pdf",
  "pretty_assertions",
  "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "oxidize-pdf-core"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "flate2",
- "lazy_static",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror",
- "tracing",
 ]
 
 [[package]]
@@ -933,7 +933,7 @@ dependencies = [
  "criterion",
  "hex",
  "insta",
- "oxidize-pdf-core",
+ "oxidize-pdf",
  "pretty_assertions",
  "proptest",
  "rand 0.8.5",

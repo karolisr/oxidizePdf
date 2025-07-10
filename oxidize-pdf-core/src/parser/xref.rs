@@ -17,11 +17,22 @@ pub struct XRefEntry {
     pub in_use: bool,
 }
 
+/// Extended XRef entry information for compressed objects
+#[derive(Debug, Clone, PartialEq)]
+pub struct XRefEntryExt {
+    /// Basic entry information
+    pub basic: XRefEntry,
+    /// Additional info for compressed objects
+    pub compressed_info: Option<(u32, u32)>, // (stream_obj_num, index_in_stream)
+}
+
 /// Cross-reference table
 #[derive(Debug, Clone)]
 pub struct XRefTable {
     /// Map of object number to xref entry
     entries: HashMap<u32, XRefEntry>,
+    /// Extended entry information (for compressed objects)
+    extended_entries: HashMap<u32, XRefEntryExt>,
     /// Trailer dictionary
     trailer: Option<super::objects::PdfDictionary>,
 }
@@ -31,6 +42,7 @@ impl XRefTable {
     pub fn new() -> Self {
         Self {
             entries: HashMap::new(),
+            extended_entries: HashMap::new(),
             trailer: None,
         }
     }
@@ -41,17 +53,14 @@ impl XRefTable {
         
         // Find and parse xref
         let xref_offset = Self::find_xref_offset(reader)?;
-        // Found xref offset
         reader.seek(SeekFrom::Start(xref_offset))?;
         
         // Check if this is a traditional xref table or xref stream
         let mut line = String::new();
         let pos = reader.stream_position()?;
         reader.read_line(&mut line)?;
-        // Check first line
         
         if line.trim() == "xref" {
-            // Traditional xref table
             // Traditional xref table
             Self::parse_traditional_xref(reader, &mut table)?;
         } else {
@@ -90,6 +99,11 @@ impl XRefTable {
                         table.entries.insert(*obj_num, entry.clone());
                     }
                     
+                    // Copy extended entries for compressed objects
+                    for (obj_num, ext_entry) in &xref_stream.extended_entries {
+                        table.extended_entries.insert(*obj_num, ext_entry.clone());
+                    }
+                    
                     // Set trailer from xref stream
                     table.trailer = Some(xref_stream.trailer().clone());
                 } else {
@@ -116,7 +130,10 @@ impl XRefTable {
             reader.read_line(&mut line)?;
             let trimmed_line = line.trim();
             
-            // Parse subsection
+            // Skip empty lines
+            if trimmed_line.is_empty() {
+                continue;
+            }
             
             // Check if we've reached the trailer
             if trimmed_line == "trailer" {
@@ -164,7 +181,6 @@ impl XRefTable {
         // Go to end of file
         reader.seek(SeekFrom::End(0))?;
         let file_size = reader.stream_position()?;
-        // eprintln!("DEBUG: File size: {}", file_size);
         
         // Read last 1024 bytes (should be enough for EOL + startxref + offset + %%EOF)
         let read_size = std::cmp::min(1024, file_size);
@@ -176,7 +192,6 @@ impl XRefTable {
         // Convert to string and find startxref
         let content = String::from_utf8_lossy(&buffer);
         let lines: Vec<&str> = content.lines().collect();
-        // Debug output removed
         
         // Find startxref line - need to iterate forward after finding it
         for (i, line) in lines.iter().enumerate() {
@@ -191,7 +206,6 @@ impl XRefTable {
             }
         }
         
-        // Did not find startxref
         Err(ParseError::InvalidXRef)
     }
     
@@ -254,6 +268,18 @@ impl XRefTable {
     pub fn iter(&self) -> impl Iterator<Item = (&u32, &XRefEntry)> {
         self.entries.iter()
     }
+    
+    /// Get extended entry information (for compressed objects)
+    pub fn get_extended_entry(&self, obj_num: u32) -> Option<&XRefEntryExt> {
+        self.extended_entries.get(&obj_num)
+    }
+    
+    /// Check if an object is compressed
+    pub fn is_compressed(&self, obj_num: u32) -> bool {
+        self.extended_entries.get(&obj_num)
+            .map(|e| e.compressed_info.is_some())
+            .unwrap_or(false)
+    }
 }
 
 /// Cross-reference stream (PDF 1.5+)
@@ -264,6 +290,8 @@ pub struct XRefStream {
     stream: super::objects::PdfStream,
     /// Decoded entries
     entries: HashMap<u32, XRefEntry>,
+    /// Extended entries for compressed objects
+    extended_entries: HashMap<u32, XRefEntryExt>,
 }
 
 impl XRefStream {
@@ -272,6 +300,7 @@ impl XRefStream {
         let mut xref_stream = Self {
             stream,
             entries: HashMap::new(),
+            extended_entries: HashMap::new(),
         };
         
         xref_stream.decode_entries()?;
@@ -393,18 +422,30 @@ impl XRefStream {
                         // Compressed object (in object stream)
                         // field2 = object stream number
                         // field3 = index within object stream
-                        // For now, treat as a regular object at offset 0
-                        XRefEntry {
-                            offset: 0, // TODO: Handle object streams properly
+                        let entry = XRefEntry {
+                            offset: 0,
                             generation: 0,
                             in_use: true,
-                        }
+                        };
+                        
+                        // Store extended info for compressed objects
+                        let ext_entry = XRefEntryExt {
+                            basic: entry,
+                            compressed_info: Some((field2 as u32, field3 as u32)),
+                        };
+                        self.extended_entries.insert(first_obj_num + i, ext_entry);
+                        
+                        entry
                     }
                     _ => {
-                        return Err(ParseError::SyntaxError {
-                            position: 0,
-                            message: format!("Unknown xref entry type: {}", field1),
-                        });
+                        // Unknown type - treat as free object for compatibility
+                        // PDF spec says unknown types should be ignored
+                        eprintln!("Warning: Unknown xref entry type {} for object {}", field1, first_obj_num + i);
+                        XRefEntry {
+                            offset: 0,
+                            generation: 0,
+                            in_use: false,
+                        }
                     }
                 };
                 

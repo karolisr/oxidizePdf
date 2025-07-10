@@ -5,7 +5,7 @@ use axum::{
     routing::post,
     Router,
 };
-use oxidize_pdf_core::{Document, Page, Font, Color};
+use oxidize_pdf::{Document, Page, Font, Color};
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
 use tower_http::cors::CorsLayer;
@@ -93,7 +93,7 @@ async fn health_check() -> impl IntoResponse {
 
 // Error handling
 enum AppError {
-    Pdf(oxidize_pdf_core::PdfError),
+    Pdf(oxidize_pdf::PdfError),
     Io(std::io::Error),
 }
 
@@ -112,8 +112,8 @@ impl IntoResponse for AppError {
     }
 }
 
-impl From<oxidize_pdf_core::PdfError> for AppError {
-    fn from(err: oxidize_pdf_core::PdfError) -> Self {
+impl From<oxidize_pdf::PdfError> for AppError {
+    fn from(err: oxidize_pdf::PdfError) -> Self {
         AppError::Pdf(err)
     }
 }

@@ -13,6 +13,7 @@ pub mod filters;
 pub mod page_tree;
 pub mod content;
 pub mod document;
+pub mod object_stream;
 
 use crate::error::OxidizePdfError;
 
