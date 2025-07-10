@@ -66,6 +66,7 @@ pub enum Token {
 /// PDF Lexer for tokenizing PDF content
 pub struct Lexer<R: Read> {
     reader: std::io::BufReader<R>,
+    #[allow(dead_code)]
     buffer: Vec<u8>,
     position: usize,
     peek_buffer: Option<u8>,
@@ -486,6 +487,7 @@ impl<R: Read> Lexer<R> {
     }
 
     /// Read a sequence of digits
+    #[allow(dead_code)]
     fn read_digits(&mut self) -> ParseResult<String> {
         let mut digits = String::new();
 

@@ -123,8 +123,8 @@ impl SpecificationTest for Pdf17ComplianceTester {
 
         // Check for binary marker (recommended)
         let mut found_binary_marker = false;
-        for i in 8..pdf.len().min(1024) {
-            if pdf[i] > 127 {
+        for &byte in pdf.iter().take(pdf.len().min(1024)).skip(8) {
+            if byte > 127 {
                 found_binary_marker = true;
                 break;
             }

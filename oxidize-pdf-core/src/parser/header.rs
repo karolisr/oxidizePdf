@@ -21,16 +21,13 @@ impl PdfVersion {
     /// Check if this version is supported
     pub fn is_supported(&self) -> bool {
         // We support PDF 1.0 through 2.0
-        match (self.major, self.minor) {
-            (1, 0..=7) => true,
-            (2, 0) => true,
-            _ => false,
-        }
+        matches!((self.major, self.minor), (1, 0..=7) | (2, 0))
     }
+}
 
-    /// Convert to string representation
-    pub fn to_string(&self) -> String {
-        format!("{}.{}", self.major, self.minor)
+impl std::fmt::Display for PdfVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}", self.major, self.minor)
     }
 }
 

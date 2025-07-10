@@ -33,6 +33,7 @@ impl Default for PathBuilder {
     }
 }
 
+#[allow(dead_code)]
 impl PathBuilder {
     pub fn new() -> Self {
         Self {

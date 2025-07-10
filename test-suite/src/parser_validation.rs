@@ -176,7 +176,7 @@ impl ParserValidator {
     }
 
     /// Compare with qpdf output
-    pub fn compare_with_qpdf(&self, pdf: &[u8]) -> Result<ComparisonResult> {
+    pub fn compare_with_qpdf(&self, _pdf: &[u8]) -> Result<ComparisonResult> {
         if !self.use_external_tools {
             anyhow::bail!("External tools not enabled");
         }
@@ -249,7 +249,7 @@ impl ParserValidator {
 
     /// Parse a PDF and extract information
     fn parse_pdf(&self, pdf: &[u8]) -> Result<ParsedPdfInfo> {
-        let cursor = Cursor::new(pdf);
+        let _cursor = Cursor::new(pdf);
         // Note: This would require fixing the compilation errors in PdfReader
         // For now, we'll create a mock response
 
@@ -383,8 +383,11 @@ struct ParsedPdfInfo {
     info: HashMap<String, String>,
     pages: Vec<PageInfo>,
     object_count: usize,
+    #[allow(dead_code)]
     has_forms: bool,
+    #[allow(dead_code)]
     has_javascript: bool,
+    #[allow(dead_code)]
     encryption: Option<String>,
 }
 

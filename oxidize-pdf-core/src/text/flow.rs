@@ -20,6 +20,7 @@ pub struct TextFlowContext {
     cursor_y: f64,
     alignment: TextAlign,
     page_width: f64,
+    #[allow(dead_code)]
     page_height: f64,
     margins: Margins,
 }

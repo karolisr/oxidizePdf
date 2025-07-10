@@ -5,9 +5,8 @@ use axum::{
     routing::post,
     Router,
 };
-use oxidize_pdf::{Color, Document, Font, Page};
+use oxidize_pdf::{Document, Font, Page};
 use serde::{Deserialize, Serialize};
-use std::io::Cursor;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -66,7 +65,7 @@ async fn create_pdf(Json(payload): Json<CreatePdfRequest>) -> Result<Response, A
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_millis();
-    let temp_path = std::env::temp_dir().join(format!("oxidizepdf_{}.pdf", timestamp));
+    let temp_path = std::env::temp_dir().join(format!("oxidizepdf_{timestamp}.pdf"));
     doc.save(&temp_path)?;
     let pdf_bytes = std::fs::read(&temp_path)?;
     let _ = std::fs::remove_file(&temp_path);

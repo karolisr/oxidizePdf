@@ -451,7 +451,7 @@ impl ExternalSuiteManager {
         );
 
         instructions.push_str("## veraPDF Corpus\n\n");
-        instructions.push_str(&"```bash\n".to_string());
+        instructions.push_str("```bash\n");
         instructions.push_str(&format!("cd {} && \\\n", self.base_path.display()));
         instructions.push_str(&format!(
             "git clone {} {} && \\\n",
@@ -648,7 +648,9 @@ impl ExternalSuiteRunner {
                     }
                 }
             }
-            ExpectedBehavior::ParseWarning { warning_patterns } => {
+            ExpectedBehavior::ParseWarning {
+                warning_patterns: _,
+            } => {
                 // Should parse with warnings
                 let reader = reader_result
                     .map_err(|e| format!("Parse failed when warnings expected: {e:?}"))?;

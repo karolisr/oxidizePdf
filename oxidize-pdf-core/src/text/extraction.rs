@@ -62,6 +62,7 @@ struct TextState {
     /// Current text line matrix
     text_line_matrix: [f64; 6],
     /// Current transformation matrix (CTM)
+    #[allow(dead_code)]
     ctm: [f64; 6],
     /// Text leading (line spacing)
     leading: f64,

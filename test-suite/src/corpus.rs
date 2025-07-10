@@ -171,6 +171,7 @@ pub struct TestCorpus {
     /// Test PDFs organized by category
     fixtures: HashMap<TestCategory, Vec<TestPdf>>,
     /// External test suites
+    #[allow(dead_code)]
     external_suites: Vec<ExternalTestSuite>,
 }
 

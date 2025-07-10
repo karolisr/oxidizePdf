@@ -89,6 +89,7 @@ pub struct PdfMerger {
     /// Object number mapping for each input document
     object_mappings: Vec<HashMap<u32, u32>>,
     /// Next available object number
+    #[allow(dead_code)]
     next_object_num: u32,
 }
 
@@ -374,6 +375,7 @@ impl PdfMerger {
     }
 
     /// Get the next available object number and increment
+    #[allow(dead_code)]
     fn allocate_object_number(&mut self) -> u32 {
         let num = self.next_object_num;
         self.next_object_num += 1;
@@ -381,6 +383,7 @@ impl PdfMerger {
     }
 
     /// Map an object number from an input document to the merged document
+    #[allow(dead_code)]
     fn map_object_number(&mut self, input_idx: usize, old_num: u32) -> u32 {
         // Check if already mapped
         if let Some(&new_num) = self.object_mappings[input_idx].get(&old_num) {

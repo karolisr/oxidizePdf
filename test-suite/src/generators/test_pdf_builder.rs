@@ -18,9 +18,9 @@ pub enum PdfVersion {
     V2_0,
 }
 
-impl PdfVersion {
-    pub fn to_string(&self) -> String {
-        match self {
+impl std::fmt::Display for PdfVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let version = match self {
             PdfVersion::V1_0 => "1.0",
             PdfVersion::V1_1 => "1.1",
             PdfVersion::V1_2 => "1.2",
@@ -30,8 +30,8 @@ impl PdfVersion {
             PdfVersion::V1_6 => "1.6",
             PdfVersion::V1_7 => "1.7",
             PdfVersion::V2_0 => "2.0",
-        }
-        .to_string()
+        };
+        write!(f, "{version}")
     }
 }
 
@@ -44,6 +44,7 @@ pub struct TestPdfBuilder {
     include_binary_marker: bool,
     compress_streams: bool,
     use_xref_stream: bool,
+    #[allow(dead_code)]
     linearized: bool,
 }
 
@@ -215,7 +216,7 @@ impl TestPdfBuilder {
         let mut xref_positions = Vec::new();
 
         // Header
-        pdf.extend_from_slice(format!("%PDF-{}\n", self.version.to_string()).as_bytes());
+        pdf.extend_from_slice(format!("%PDF-{}\n", self.version).as_bytes());
 
         // Binary marker
         if self.include_binary_marker {

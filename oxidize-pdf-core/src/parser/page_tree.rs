@@ -33,6 +33,7 @@ pub struct PageTree {
     /// Cached pages by index
     pages: HashMap<u32, ParsedPage>,
     /// Root pages dictionary (for navigation)
+    #[allow(dead_code)]
     pages_dict: Option<PdfDictionary>,
 }
 
@@ -71,6 +72,7 @@ impl PageTree {
     }
 
     /// Load a specific page by traversing the page tree
+    #[allow(dead_code)]
     fn load_page_at_index<R: Read + Seek>(
         &self,
         reader: &mut PdfReader<R>,
@@ -229,6 +231,7 @@ impl PageTree {
     }
 
     /// Get a rectangle value, checking both node and inherited dictionaries
+    #[allow(dead_code)]
     fn get_rectangle(
         node: &PdfDictionary,
         inherited: Option<&PdfDictionary>,
@@ -258,6 +261,7 @@ impl PageTree {
     }
 
     /// Get an integer value, checking both node and inherited dictionaries
+    #[allow(dead_code)]
     fn get_integer(
         node: &PdfDictionary,
         inherited: Option<&PdfDictionary>,

@@ -184,7 +184,7 @@ fn main() -> Result<()> {
 
                     // Basic info
                     let version = reader.version();
-                    println!("PDF Version: {}", version.to_string());
+                    println!("PDF Version: {version}");
 
                     // Try to get metadata
                     match reader.metadata() {
