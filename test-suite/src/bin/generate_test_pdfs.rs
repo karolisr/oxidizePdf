@@ -14,7 +14,7 @@ fn main() -> Result<()> {
 
     // Generate minimal PDFs
     let minimal_dir = fixtures_dir.join("valid/minimal");
-    println!("Generating minimal PDFs in {:?}...", minimal_dir);
+    println!("Generating minimal PDFs in {minimal_dir:?}...");
     minimal_pdfs::generate_all(&minimal_dir)?;
 
     // TODO: Generate other categories

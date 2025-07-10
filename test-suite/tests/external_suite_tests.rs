@@ -82,10 +82,7 @@ fn test_qpdf_suite() {
         })
         .count();
 
-    println!(
-        "Found {} PDFs with 'bad' or 'invalid' in filename",
-        bad_pdfs
-    );
+    println!("Found {bad_pdfs} PDFs with 'bad' or 'invalid' in filename");
 }
 
 #[test]
@@ -133,7 +130,7 @@ fn test_run_all_external_suites() {
 
     // Generate report
     let report = runner.generate_report();
-    println!("\n{}", report);
+    println!("\n{report}");
 
     // Save report to file
     let report_path = external_suites_dir().join("test-results.md");
@@ -191,7 +188,7 @@ fn test_suite_availability() {
             .expect("Failed to create download instructions");
 
         let instructions_path = external_suites_dir().join("DOWNLOAD_INSTRUCTIONS.md");
-        std::fs::create_dir_all(&external_suites_dir()).ok();
+        std::fs::create_dir_all(external_suites_dir()).ok();
         std::fs::write(&instructions_path, &instructions)
             .expect("Failed to write download instructions");
 
@@ -226,7 +223,7 @@ fn test_specific_compliance_level() {
         .filter(|pdf| pdf.metadata.compliance.contains(&ComplianceLevel::PdfA1b))
         .count();
 
-    println!("Found {} PDF/A-1b compliance tests", pdfa1b_tests);
+    println!("Found {pdfa1b_tests} PDF/A-1b compliance tests");
 
     // Test PDF/A-2b compliance tests
     let pdfa2b_tests = pdfs
@@ -234,7 +231,7 @@ fn test_specific_compliance_level() {
         .filter(|pdf| pdf.metadata.compliance.contains(&ComplianceLevel::PdfA2b))
         .count();
 
-    println!("Found {} PDF/A-2b compliance tests", pdfa2b_tests);
+    println!("Found {pdfa2b_tests} PDF/A-2b compliance tests");
 
     // Test PDF/UA-1 compliance tests
     let pdfua1_tests = pdfs
@@ -242,5 +239,5 @@ fn test_specific_compliance_level() {
         .filter(|pdf| pdf.metadata.compliance.contains(&ComplianceLevel::PdfUA1))
         .count();
 
-    println!("Found {} PDF/UA-1 compliance tests", pdfua1_tests);
+    println!("Found {pdfua1_tests} PDF/UA-1 compliance tests");
 }

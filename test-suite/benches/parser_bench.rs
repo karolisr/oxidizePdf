@@ -3,7 +3,7 @@
 //! Performance benchmarks for the PDF parser.
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use oxidize_pdf_core::parser::PdfReader;
+use oxidize_pdf::parser::PdfReader;
 use oxidize_pdf_test_suite::generators::test_pdf_builder::{PdfVersion, TestPdfBuilder};
 use std::io::Cursor;
 
@@ -77,7 +77,7 @@ fn benchmark_parsing(c: &mut Criterion) {
 
 /// Benchmark content stream parsing
 fn benchmark_content_parsing(c: &mut Criterion) {
-    use oxidize_pdf_core::parser::content::ContentParser;
+    use oxidize_pdf::parser::content::ContentParser;
 
     let mut group = c.benchmark_group("content_parsing");
 

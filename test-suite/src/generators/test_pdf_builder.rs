@@ -2,7 +2,6 @@
 //!
 //! A builder for creating test PDFs with specific characteristics.
 
-use anyhow::Result;
 use std::collections::HashMap;
 
 /// PDF version to generate
@@ -232,11 +231,8 @@ impl TestPdfBuilder {
         // Catalog object
         xref_positions.push(pdf.len());
         pdf.extend_from_slice(
-            format!(
-                "{} 0 obj\n<< /Type /Catalog /Pages {} 0 R >>\nendobj\n",
-                catalog_obj, pages_obj
-            )
-            .as_bytes(),
+            format!("{catalog_obj} 0 obj\n<< /Type /Catalog /Pages {pages_obj} 0 R >>\nendobj\n")
+                .as_bytes(),
         );
         object_num += 1;
 
@@ -270,7 +266,7 @@ impl TestPdfBuilder {
             if !page.resources.is_empty() {
                 page_dict.push_str(" /Resources <<");
                 for (key, value) in &page.resources {
-                    page_dict.push_str(&format!(" /{} {}", key, value));
+                    page_dict.push_str(&format!(" /{key} {value}"));
                 }
                 page_dict.push_str(" >>");
             }
@@ -278,14 +274,12 @@ impl TestPdfBuilder {
             // Add content stream reference if there's content
             if !page.content_stream.is_empty() {
                 let content_obj = object_num + self.pages.len() as u32 + 1 + i as u32;
-                page_dict.push_str(&format!(" /Contents {} 0 R", content_obj));
+                page_dict.push_str(&format!(" /Contents {content_obj} 0 R"));
             }
 
             page_dict.push_str(" >>");
 
-            pdf.extend_from_slice(
-                format!("{} 0 obj\n{}\nendobj\n", object_num, page_dict).as_bytes(),
-            );
+            pdf.extend_from_slice(format!("{object_num} 0 obj\n{page_dict}\nendobj\n").as_bytes());
             object_num += 1;
         }
 
@@ -325,9 +319,7 @@ impl TestPdfBuilder {
             }
             info_dict.push_str(">>");
 
-            pdf.extend_from_slice(
-                format!("{} 0 obj\n{}\nendobj\n", info_obj, info_dict).as_bytes(),
-            );
+            pdf.extend_from_slice(format!("{info_obj} 0 obj\n{info_dict}\nendobj\n").as_bytes());
             object_num += 1;
         }
 
@@ -354,18 +346,14 @@ impl TestPdfBuilder {
         }
 
         // Trailer
-        let mut trailer_dict = format!("<< /Size {} /Root {} 0 R", object_num, catalog_obj);
+        let mut trailer_dict = format!("<< /Size {object_num} /Root {catalog_obj} 0 R");
         if info_obj > 0 {
-            trailer_dict.push_str(&format!(" /Info {} 0 R", info_obj));
+            trailer_dict.push_str(&format!(" /Info {info_obj} 0 R"));
         }
         trailer_dict.push_str(" >>");
 
         pdf.extend_from_slice(
-            format!(
-                "trailer\n{}\nstartxref\n{}\n%%EOF",
-                trailer_dict, xref_offset
-            )
-            .as_bytes(),
+            format!("trailer\n{trailer_dict}\nstartxref\n{xref_offset}\n%%EOF").as_bytes(),
         );
 
         pdf
@@ -374,14 +362,14 @@ impl TestPdfBuilder {
     /// Write traditional cross-reference table
     fn write_traditional_xref(&self, pdf: &mut Vec<u8>, positions: &[usize], num_objects: u32) {
         pdf.extend_from_slice(b"xref\n");
-        pdf.extend_from_slice(format!("0 {}\n", num_objects).as_bytes());
+        pdf.extend_from_slice(format!("0 {num_objects}\n").as_bytes());
 
         // Entry for object 0 (always free)
         pdf.extend_from_slice(b"0000000000 65535 f \n");
 
         // Entries for actual objects
         for &pos in positions {
-            pdf.extend_from_slice(format!("{:010} 00000 n \n", pos).as_bytes());
+            pdf.extend_from_slice(format!("{pos:010} 00000 n \n").as_bytes());
         }
     }
 }

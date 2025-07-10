@@ -4,10 +4,9 @@
 //! qpdf, and the Isartor test suite for comprehensive validation.
 
 use crate::corpus::{
-    ComplianceLevel, ExpectedBehavior, ExternalSuite, PdfFeature, TestCategory, TestMetadata,
-    TestPdf,
+    ComplianceLevel, ExpectedBehavior, ExternalSuite, TestCategory, TestMetadata, TestPdf,
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -247,7 +246,7 @@ impl ExternalSuiteManager {
                                 .and_then(|s| s.to_str())
                                 .unwrap_or("unknown")
                                 .to_string(),
-                            description: format!("veraPDF {} {} test", category, result_type),
+                            description: format!("veraPDF {category} {result_type} test"),
                             pdf_version: "1.4".to_string(), // Will be determined by actual parsing
                             features: Vec::new(),
                             compliance: vec![compliance.clone()],
@@ -323,7 +322,7 @@ impl ExternalSuiteManager {
 
                 let metadata = TestMetadata {
                     name: file_name.to_string(),
-                    description: format!("qpdf test: {}", file_name),
+                    description: format!("qpdf test: {file_name}"),
                     pdf_version: "1.4".to_string(),
                     features: Vec::new(),
                     compliance: Vec::new(),
@@ -375,7 +374,7 @@ impl ExternalSuiteManager {
                 let test_description = test_mapping
                     .get(file_name)
                     .cloned()
-                    .unwrap_or_else(|| format!("Isartor test: {}", file_name));
+                    .unwrap_or_else(|| format!("Isartor test: {file_name}"));
 
                 let expected_behavior = if is_negative && self.config.isartor.include_negative {
                     ExpectedBehavior::ParseError {
@@ -452,7 +451,7 @@ impl ExternalSuiteManager {
         );
 
         instructions.push_str("## veraPDF Corpus\n\n");
-        instructions.push_str(&format!("```bash\n"));
+        instructions.push_str(&"```bash\n".to_string());
         instructions.push_str(&format!("cd {} && \\\n", self.base_path.display()));
         instructions.push_str(&format!(
             "git clone {} {} && \\\n",
@@ -578,11 +577,11 @@ impl ExternalSuiteRunner {
 
     /// Run a single test
     fn run_single_test(&self, pdf: &TestPdf) -> Result<(), String> {
-        use oxidize_pdf_core::parser::{document::PdfDocument, PdfReader};
+        use oxidize_pdf::parser::{document::PdfDocument, PdfReader};
         use std::fs::File;
 
         // Open the PDF file
-        let file = File::open(&pdf.path).map_err(|e| format!("Failed to open PDF file: {}", e))?;
+        let file = File::open(&pdf.path).map_err(|e| format!("Failed to open PDF file: {e}"))?;
 
         // Try to parse with our parser
         let reader_result = PdfReader::new(file);
@@ -590,7 +589,7 @@ impl ExternalSuiteRunner {
         match &pdf.expected_behavior {
             ExpectedBehavior::ParseSuccess { page_count, .. } => {
                 // Should parse successfully
-                let reader = reader_result.map_err(|e| format!("Parse failed: {:?}", e))?;
+                let reader = reader_result.map_err(|e| format!("Parse failed: {e:?}"))?;
 
                 // Create PdfDocument for higher-level operations
                 let document = PdfDocument::new(reader);
@@ -599,11 +598,10 @@ impl ExternalSuiteRunner {
                 if let Some(expected_pages) = page_count {
                     let actual_pages = document
                         .page_count()
-                        .map_err(|e| format!("Failed to get page count: {:?}", e))?;
+                        .map_err(|e| format!("Failed to get page count: {e:?}"))?;
                     if actual_pages != *expected_pages as u32 {
                         return Err(format!(
-                            "Expected {} pages, got {}",
-                            expected_pages, actual_pages
+                            "Expected {expected_pages} pages, got {actual_pages}"
                         ));
                     }
                 }
@@ -612,7 +610,7 @@ impl ExternalSuiteRunner {
                 if document.page_count().unwrap_or(0) > 0 {
                     let _page = document
                         .get_page(0)
-                        .map_err(|e| format!("Failed to get first page: {:?}", e))?;
+                        .map_err(|e| format!("Failed to get first page: {e:?}"))?;
                 }
 
                 Ok(())
@@ -625,14 +623,13 @@ impl ExternalSuiteRunner {
                 match reader_result {
                     Ok(_) => Err("Expected parse error but succeeded".to_string()),
                     Err(e) => {
-                        let error_str = format!("{:?}", e);
+                        let error_str = format!("{e:?}");
 
                         // Check if error matches expected pattern
                         if let Some(pattern) = error_pattern {
                             if !error_str.contains(pattern) {
                                 return Err(format!(
-                                    "Error doesn't match pattern '{}': {}",
-                                    pattern, error_str
+                                    "Error doesn't match pattern '{pattern}': {error_str}"
                                 ));
                             }
                         }
@@ -643,8 +640,7 @@ impl ExternalSuiteRunner {
                             .contains(&error_type.to_lowercase())
                         {
                             return Err(format!(
-                                "Expected error type '{}', got: {}",
-                                error_type, error_str
+                                "Expected error type '{error_type}', got: {error_str}"
                             ));
                         }
 
@@ -655,7 +651,7 @@ impl ExternalSuiteRunner {
             ExpectedBehavior::ParseWarning { warning_patterns } => {
                 // Should parse with warnings
                 let reader = reader_result
-                    .map_err(|e| format!("Parse failed when warnings expected: {:?}", e))?;
+                    .map_err(|e| format!("Parse failed when warnings expected: {e:?}"))?;
 
                 // Create PdfDocument
                 let document = PdfDocument::new(reader);
@@ -663,7 +659,7 @@ impl ExternalSuiteRunner {
                 // Verify document is readable despite warnings
                 let _ = document
                     .page_count()
-                    .map_err(|e| format!("Failed to get page count: {:?}", e))?;
+                    .map_err(|e| format!("Failed to get page count: {e:?}"))?;
 
                 // TODO: Implement warning collection and validation
 
@@ -675,11 +671,11 @@ impl ExternalSuiteRunner {
                     "vera_pdf_pdf_a-1a_fail" | "vera_pdf_pdf_a-1b_fail" => {
                         // For PDF/A compliance failures, we expect parsing to work
                         // but the PDF doesn't meet PDF/A requirements
-                        let reader = reader_result.map_err(|e| format!("Parse failed: {:?}", e))?;
+                        let reader = reader_result.map_err(|e| format!("Parse failed: {e:?}"))?;
                         let document = PdfDocument::new(reader);
                         let _ = document
                             .page_count()
-                            .map_err(|e| format!("Failed to get page count: {:?}", e))?;
+                            .map_err(|e| format!("Failed to get page count: {e:?}"))?;
                         Ok(())
                     }
                     _ => Ok(()), // Unknown validators pass by default
@@ -698,10 +694,9 @@ impl ExternalSuiteRunner {
             let passed = results.iter().filter(|r| r.passed).count();
             let failed = total - passed;
 
-            report.push_str(&format!("## {:?}\n\n", suite));
+            report.push_str(&format!("## {suite:?}\n\n"));
             report.push_str(&format!(
-                "Total: {} | Passed: {} | Failed: {}\n\n",
-                total, passed, failed
+                "Total: {total} | Passed: {passed} | Failed: {failed}\n\n"
             ));
 
             if failed > 0 {
@@ -716,7 +711,7 @@ impl ExternalSuiteRunner {
                             .unwrap_or(&"Unknown error".to_string())
                     ));
                 }
-                report.push_str("\n");
+                report.push('\n');
             }
         }
 

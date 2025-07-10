@@ -5,10 +5,10 @@
 //!
 //! To run: cargo run --example ai_ready_invoice --features pro
 
-use oxidize_pdf_core::{graphics::Rectangle, Color, Document, Font, Page};
+use oxidize_pdf::{graphics::Rectangle, Color, Document, Font, Page};
 
 #[cfg(feature = "semantic")]
-use oxidize_pdf_core::semantic::{EntityType, SemanticMarker};
+use oxidize_pdf::semantic::{EntityType, SemanticMarker};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(not(feature = "semantic"))]

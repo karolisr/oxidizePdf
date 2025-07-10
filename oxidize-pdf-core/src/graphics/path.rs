@@ -19,11 +19,18 @@ pub struct PathBuilder {
 }
 
 #[derive(Debug, Clone)]
-enum PathCommand {
+#[allow(dead_code)]
+pub(crate) enum PathCommand {
     MoveTo(f64, f64),
     LineTo(f64, f64),
     CurveTo(f64, f64, f64, f64, f64, f64),
     ClosePath,
+}
+
+impl Default for PathBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PathBuilder {
@@ -54,7 +61,7 @@ impl PathBuilder {
         self
     }
 
-    pub fn build(self) -> Vec<PathCommand> {
+    pub(crate) fn build(self) -> Vec<PathCommand> {
         self.commands
     }
 }

@@ -1,7 +1,7 @@
 //! Example of text extraction from PDF files
 
-use oxidize_pdf_core::parser::{document::PdfDocument, PdfReader};
-use oxidize_pdf_core::text::{ExtractionOptions, TextExtractor};
+use oxidize_pdf::parser::{document::PdfDocument, PdfReader};
+use oxidize_pdf::text::{ExtractionOptions, TextExtractor};
 use std::env;
 use std::fs::File;
 

@@ -98,7 +98,7 @@ pub fn decode_stream(data: &[u8], dict: &PdfDictionary) -> ParseResult<Vec<u8>> 
     for filter_name in filters {
         let filter = Filter::from_name(filter_name).ok_or_else(|| ParseError::SyntaxError {
             position: 0,
-            message: format!("Unknown filter: {}", filter_name),
+            message: format!("Unknown filter: {filter_name}"),
         })?;
 
         result = apply_filter(&result, filter)?;
@@ -115,7 +115,7 @@ fn apply_filter(data: &[u8], filter: Filter) -> ParseResult<Vec<u8>> {
         Filter::ASCII85Decode => decode_ascii85(data),
         _ => Err(ParseError::SyntaxError {
             position: 0,
-            message: format!("Filter {:?} not yet implemented", filter),
+            message: format!("Filter {filter:?} not yet implemented"),
         }),
     }
 }
@@ -127,7 +127,7 @@ fn decode_flate(data: &[u8]) -> ParseResult<Vec<u8>> {
     let mut result = Vec::new();
     decoder
         .read_to_end(&mut result)
-        .map_err(|e| ParseError::StreamDecodeError(format!("Flate decode error: {}", e)))?;
+        .map_err(|e| ParseError::StreamDecodeError(format!("Flate decode error: {e}")))?;
     Ok(result)
 }
 

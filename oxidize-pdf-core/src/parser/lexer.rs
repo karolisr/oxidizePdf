@@ -433,7 +433,7 @@ impl<R: Read> Lexer<R> {
                 .parse::<f64>()
                 .map_err(|_| ParseError::SyntaxError {
                     position: self.position,
-                    message: format!("Invalid real number: '{}'", number_str),
+                    message: format!("Invalid real number: '{number_str}'"),
                 })?;
             Ok(Token::Real(value))
         } else {
@@ -441,7 +441,7 @@ impl<R: Read> Lexer<R> {
                 .parse::<i64>()
                 .map_err(|_| ParseError::SyntaxError {
                     position: self.position,
-                    message: format!("Invalid integer: '{}'", number_str),
+                    message: format!("Invalid integer: '{number_str}'"),
                 })?;
             Ok(Token::Integer(value))
         }
@@ -463,7 +463,7 @@ impl<R: Read> Lexer<R> {
             "startxref" => Ok(Token::StartXRef),
             _ => Err(ParseError::SyntaxError {
                 position: self.position,
-                message: format!("Unknown keyword: {}", word),
+                message: format!("Unknown keyword: {word}"),
             }),
         }
     }
@@ -556,7 +556,7 @@ impl<R: Read> Lexer<R> {
         if match_pos < sequence.len() {
             return Err(ParseError::SyntaxError {
                 position: self.position,
-                message: format!("Sequence {:?} not found", sequence),
+                message: format!("Sequence {sequence:?} not found"),
             });
         }
 
@@ -654,14 +654,14 @@ mod tests {
         // 'R' should be parsed as a keyword or name
         match lexer.next_token().unwrap() {
             Token::Name(s) if s == "R" => {} // Could be a name
-            other => panic!("Expected R token, got {:?}", other),
+            other => panic!("Expected R token, got {other:?}"),
         }
 
         assert_eq!(lexer.next_token().unwrap(), Token::Integer(25));
         assert_eq!(lexer.next_token().unwrap(), Token::Integer(1));
         match lexer.next_token().unwrap() {
             Token::Name(s) if s == "R" => {} // Could be a name
-            other => panic!("Expected R token, got {:?}", other),
+            other => panic!("Expected R token, got {other:?}"),
         }
     }
 

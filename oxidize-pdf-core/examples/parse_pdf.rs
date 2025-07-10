@@ -3,7 +3,7 @@
 //! This example demonstrates how to use the PDF parser to read
 //! and extract information from existing PDF files.
 
-use oxidize_pdf_core::parser::PdfReader;
+use oxidize_pdf::parser::PdfReader;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {

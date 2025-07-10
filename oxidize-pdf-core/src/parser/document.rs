@@ -18,6 +18,12 @@ pub struct ResourceManager {
     object_cache: RefCell<HashMap<(u32, u16), PdfObject>>,
 }
 
+impl Default for ResourceManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ResourceManager {
     /// Create a new resource manager
     pub fn new() -> Self {
@@ -249,7 +255,7 @@ impl<R: Read + Seek> PdfDocument<R> {
             }
             _ => Err(ParseError::SyntaxError {
                 position: 0,
-                message: format!("Invalid page tree node type: {}", node_type),
+                message: format!("Invalid page tree node type: {node_type}"),
             }),
         }
     }
@@ -305,7 +311,7 @@ impl<R: Read + Seek> PdfDocument<R> {
             if array.len() != 4 {
                 return Err(ParseError::SyntaxError {
                     position: 0,
-                    message: format!("{} must have 4 elements", key),
+                    message: format!("{key} must have 4 elements"),
                 });
             }
 

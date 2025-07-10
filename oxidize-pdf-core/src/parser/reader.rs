@@ -126,7 +126,7 @@ impl<R: Read + Seek> PdfReader<R> {
         let entry = self
             .xref
             .get_entry(obj_num)
-            .ok_or_else(|| ParseError::InvalidReference(obj_num, gen_num))?;
+            .ok_or(ParseError::InvalidReference(obj_num, gen_num))?;
 
         if !entry.in_use {
             // Free object
@@ -160,8 +160,7 @@ impl<R: Read + Seek> PdfReader<R> {
             return Err(ParseError::SyntaxError {
                 position: entry.offset as usize,
                 message: format!(
-                    "Object number mismatch: expected {}, found {}",
-                    obj_num, read_obj_num
+                    "Object number mismatch: expected {obj_num}, found {read_obj_num}"
                 ),
             });
         }
@@ -182,8 +181,7 @@ impl<R: Read + Seek> PdfReader<R> {
             return Err(ParseError::SyntaxError {
                 position: entry.offset as usize,
                 message: format!(
-                    "Generation number mismatch: expected {}, found {}",
-                    gen_num, read_gen_num
+                    "Generation number mismatch: expected {gen_num}, found {read_gen_num}"
                 ),
             });
         }
@@ -234,7 +232,7 @@ impl<R: Read + Seek> PdfReader<R> {
         obj_num: u32,
         gen_num: u16,
         stream_obj_num: u32,
-        index_in_stream: u32,
+        _index_in_stream: u32,
     ) -> ParseResult<&PdfObject> {
         let key = (obj_num, gen_num);
 
@@ -250,7 +248,7 @@ impl<R: Read + Seek> PdfReader<R> {
             } else {
                 return Err(ParseError::SyntaxError {
                     position: 0,
-                    message: format!("Object {} is not a stream", stream_obj_num),
+                    message: format!("Object {stream_obj_num} is not a stream"),
                 });
             }
         }
@@ -261,10 +259,7 @@ impl<R: Read + Seek> PdfReader<R> {
             .get_object(obj_num)
             .ok_or_else(|| ParseError::SyntaxError {
                 position: 0,
-                message: format!(
-                    "Object {} not found in object stream {}",
-                    obj_num, stream_obj_num
-                ),
+                message: format!("Object {obj_num} not found in object stream {stream_obj_num}"),
             })?;
 
         // Cache the object
@@ -351,7 +346,7 @@ impl<R: Read + Seek> PdfReader<R> {
     }
 
     /// Get a specific page by index (0-based)
-    pub fn get_page(&mut self, index: u32) -> ParseResult<&super::page_tree::ParsedPage> {
+    pub fn get_page(&mut self, _index: u32) -> ParseResult<&super::page_tree::ParsedPage> {
         self.ensure_page_tree()?;
 
         // TODO: Fix borrow checker issues with page_tree
@@ -399,7 +394,6 @@ pub struct DocumentMetadata {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     #[test]
     fn test_reader_construction() {

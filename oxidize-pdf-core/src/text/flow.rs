@@ -118,16 +118,16 @@ impl TextFlowContext {
             self.operations.push_str("BT\n");
 
             // Set font
-            write!(
+            writeln!(
                 &mut self.operations,
-                "/{} {} Tf\n",
+                "/{} {} Tf",
                 self.current_font.pdf_name(),
                 self.font_size
             )
             .unwrap();
 
             // Set text position
-            write!(&mut self.operations, "{:.2} {:.2} Td\n", x, self.cursor_y).unwrap();
+            writeln!(&mut self.operations, "{:.2} {:.2} Td", x, self.cursor_y).unwrap();
 
             // Handle justification
             if self.alignment == TextAlign::Justified && i < lines.len() - 1 && line.len() > 1 {
@@ -138,7 +138,7 @@ impl TextFlowContext {
                     let space_adjustment = extra_space / spaces_count as f64;
 
                     // Set word spacing
-                    write!(&mut self.operations, "{:.2} Tw\n", space_adjustment).unwrap();
+                    writeln!(&mut self.operations, "{space_adjustment:.2} Tw").unwrap();
                 }
             }
 

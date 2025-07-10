@@ -1,6 +1,6 @@
 //! Test PDF compression
 
-use oxidize_pdf_core::{Document, Font, Page};
+use oxidize_pdf::{Document, Font, Page};
 use std::fs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -70,17 +70,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // To get a real comparison, let's measure the raw content size
     let raw_content_size = text.len() + (100 * 20); // text + graphics commands
-    println!(
-        "Raw content size (before compression): ~{} bytes",
-        raw_content_size
-    );
+    println!("Raw content size (before compression): ~{raw_content_size} bytes");
 
     // Calculate compression ratio based on raw content
     let ratio = 100.0 - (metadata.len() as f64 / raw_content_size as f64 * 100.0);
-    println!("Compression ratio vs raw content: {:.1}%", ratio);
+    println!("Compression ratio vs raw content: {ratio:.1}%");
 
     // Verify the PDF can be parsed
-    use oxidize_pdf_core::parser::PdfReader;
+    use oxidize_pdf::parser::PdfReader;
     let reader = PdfReader::open("test_compressed.pdf")?;
     println!("PDF version: {:?}", reader.version());
     println!("✓ Compressed PDF is valid and parseable!");

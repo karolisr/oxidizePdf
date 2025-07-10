@@ -112,7 +112,7 @@ impl PdfSplitter {
         let mut output_files = Vec::new();
 
         for (index, range) in ranges.iter().enumerate() {
-            let output_path = self.format_output_path(index, &range);
+            let output_path = self.format_output_path(index, range);
             self.extract_range(range, &output_path)?;
             output_files.push(output_path);
         }
@@ -200,7 +200,7 @@ impl PdfSplitter {
                 }
                 Err(e) => {
                     // If parsing fails, fall back to placeholder
-                    eprintln!("Warning: Failed to parse content stream: {}", e);
+                    eprintln!("Warning: Failed to parse content stream: {e}");
                 }
             }
         }
@@ -211,7 +211,7 @@ impl PdfSplitter {
                 .set_font(crate::text::Font::Helvetica, 10.0)
                 .at(50.0, height - 50.0)
                 .write("[Page extracted - content reconstruction in progress]")
-                .map_err(|e| OperationError::PdfError(e))?;
+                .map_err(OperationError::PdfError)?;
         }
 
         Ok(page)
@@ -268,7 +268,7 @@ impl PdfSplitter {
                                 .set_font(current_font, current_font_size as f64)
                                 .at(current_x as f64, current_y as f64)
                                 .write(&text)
-                                .map_err(|e| OperationError::PdfError(e))?;
+                                .map_err(OperationError::PdfError)?;
                         }
                     }
                 }

@@ -17,6 +17,12 @@ pub struct GraphicsContext {
     line_width: f64,
 }
 
+impl Default for GraphicsContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GraphicsContext {
     pub fn new() -> Self {
         Self {
@@ -28,30 +34,28 @@ impl GraphicsContext {
     }
 
     pub fn move_to(&mut self, x: f64, y: f64) -> &mut Self {
-        write!(&mut self.operations, "{:.2} {:.2} m\n", x, y).unwrap();
+        writeln!(&mut self.operations, "{x:.2} {y:.2} m").unwrap();
         self
     }
 
     pub fn line_to(&mut self, x: f64, y: f64) -> &mut Self {
-        write!(&mut self.operations, "{:.2} {:.2} l\n", x, y).unwrap();
+        writeln!(&mut self.operations, "{x:.2} {y:.2} l").unwrap();
         self
     }
 
     pub fn curve_to(&mut self, x1: f64, y1: f64, x2: f64, y2: f64, x3: f64, y3: f64) -> &mut Self {
-        write!(
+        writeln!(
             &mut self.operations,
-            "{:.2} {:.2} {:.2} {:.2} {:.2} {:.2} c\n",
-            x1, y1, x2, y2, x3, y3
+            "{x1:.2} {y1:.2} {x2:.2} {y2:.2} {x3:.2} {y3:.2} c"
         )
         .unwrap();
         self
     }
 
     pub fn rect(&mut self, x: f64, y: f64, width: f64, height: f64) -> &mut Self {
-        write!(
+        writeln!(
             &mut self.operations,
-            "{:.2} {:.2} {:.2} {:.2} re\n",
-            x, y, width, height
+            "{x:.2} {y:.2} {width:.2} {height:.2} re"
         )
         .unwrap();
         self
@@ -105,17 +109,17 @@ impl GraphicsContext {
 
     pub fn set_line_width(&mut self, width: f64) -> &mut Self {
         self.line_width = width;
-        write!(&mut self.operations, "{:.2} w\n", width).unwrap();
+        writeln!(&mut self.operations, "{width:.2} w").unwrap();
         self
     }
 
     pub fn set_line_cap(&mut self, cap: LineCap) -> &mut Self {
-        write!(&mut self.operations, "{} J\n", cap as u8).unwrap();
+        writeln!(&mut self.operations, "{} J", cap as u8).unwrap();
         self
     }
 
     pub fn set_line_join(&mut self, join: LineJoin) -> &mut Self {
-        write!(&mut self.operations, "{} j\n", join as u8).unwrap();
+        writeln!(&mut self.operations, "{} j", join as u8).unwrap();
         self
     }
 
@@ -130,21 +134,21 @@ impl GraphicsContext {
     }
 
     pub fn translate(&mut self, tx: f64, ty: f64) -> &mut Self {
-        write!(&mut self.operations, "1 0 0 1 {:.2} {:.2} cm\n", tx, ty).unwrap();
+        writeln!(&mut self.operations, "1 0 0 1 {tx:.2} {ty:.2} cm").unwrap();
         self
     }
 
     pub fn scale(&mut self, sx: f64, sy: f64) -> &mut Self {
-        write!(&mut self.operations, "{:.2} 0 0 {:.2} 0 0 cm\n", sx, sy).unwrap();
+        writeln!(&mut self.operations, "{sx:.2} 0 0 {sy:.2} 0 0 cm").unwrap();
         self
     }
 
     pub fn rotate(&mut self, angle: f64) -> &mut Self {
         let cos = angle.cos();
         let sin = angle.sin();
-        write!(
+        writeln!(
             &mut self.operations,
-            "{:.6} {:.6} {:.6} {:.6} 0 0 cm\n",
+            "{:.6} {:.6} {:.6} {:.6} 0 0 cm",
             cos, sin, -sin, cos
         )
         .unwrap();
@@ -152,10 +156,9 @@ impl GraphicsContext {
     }
 
     pub fn transform(&mut self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) -> &mut Self {
-        write!(
+        writeln!(
             &mut self.operations,
-            "{:.2} {:.2} {:.2} {:.2} {:.2} {:.2} cm\n",
-            a, b, c, d, e, f
+            "{a:.2} {b:.2} {c:.2} {d:.2} {e:.2} {f:.2} cm"
         )
         .unwrap();
         self
@@ -178,15 +181,14 @@ impl GraphicsContext {
 
         // Set up transformation matrix for image placement
         // PDF coordinate system has origin at bottom-left, so we need to translate and scale
-        write!(
+        writeln!(
             &mut self.operations,
-            "{:.2} 0 0 {:.2} {:.2} {:.2} cm\n",
-            width, height, x, y
+            "{width:.2} 0 0 {height:.2} {x:.2} {y:.2} cm"
         )
         .unwrap();
 
         // Draw the image XObject
-        write!(&mut self.operations, "/{} Do\n", image_name).unwrap();
+        writeln!(&mut self.operations, "/{image_name} Do").unwrap();
 
         // Restore graphics state
         self.restore_state();
@@ -197,18 +199,13 @@ impl GraphicsContext {
     fn apply_stroke_color(&mut self) {
         match self.stroke_color {
             Color::Rgb(r, g, b) => {
-                write!(&mut self.operations, "{:.3} {:.3} {:.3} RG\n", r, g, b).unwrap();
+                writeln!(&mut self.operations, "{r:.3} {g:.3} {b:.3} RG").unwrap();
             }
             Color::Gray(g) => {
-                write!(&mut self.operations, "{:.3} G\n", g).unwrap();
+                writeln!(&mut self.operations, "{g:.3} G").unwrap();
             }
             Color::Cmyk(c, m, y, k) => {
-                write!(
-                    &mut self.operations,
-                    "{:.3} {:.3} {:.3} {:.3} K\n",
-                    c, m, y, k
-                )
-                .unwrap();
+                writeln!(&mut self.operations, "{c:.3} {m:.3} {y:.3} {k:.3} K").unwrap();
             }
         }
     }
@@ -216,18 +213,13 @@ impl GraphicsContext {
     fn apply_fill_color(&mut self) {
         match self.current_color {
             Color::Rgb(r, g, b) => {
-                write!(&mut self.operations, "{:.3} {:.3} {:.3} rg\n", r, g, b).unwrap();
+                writeln!(&mut self.operations, "{r:.3} {g:.3} {b:.3} rg").unwrap();
             }
             Color::Gray(g) => {
-                write!(&mut self.operations, "{:.3} g\n", g).unwrap();
+                writeln!(&mut self.operations, "{g:.3} g").unwrap();
             }
             Color::Cmyk(c, m, y, k) => {
-                write!(
-                    &mut self.operations,
-                    "{:.3} {:.3} {:.3} {:.3} k\n",
-                    c, m, y, k
-                )
-                .unwrap();
+                writeln!(&mut self.operations, "{c:.3} {m:.3} {y:.3} {k:.3} k").unwrap();
             }
         }
     }

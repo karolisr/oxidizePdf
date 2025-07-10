@@ -127,7 +127,7 @@ impl PageTree {
                             })?;
 
                     // Get the kid object info first
-                    let (kid_type, count, is_target) = {
+                    let (_kid_type, count, is_target) = {
                         let kid_obj = reader.get_object(kid_ref.0, kid_ref.1)?;
                         let kid_dict =
                             kid_obj.as_dict().ok_or_else(|| ParseError::SyntaxError {
@@ -223,7 +223,7 @@ impl PageTree {
             }
             _ => Err(ParseError::SyntaxError {
                 position: 0,
-                message: format!("Invalid page tree node type: {}", node_type),
+                message: format!("Invalid page tree node type: {node_type}"),
             }),
         }
     }
@@ -240,7 +240,7 @@ impl PageTree {
             if array.len() != 4 {
                 return Err(ParseError::SyntaxError {
                     position: 0,
-                    message: format!("{} must have 4 elements", key),
+                    message: format!("{key} must have 4 elements"),
                 });
             }
 
@@ -405,20 +405,21 @@ impl ParsedPage {
 
         // Add Resources
         if let Some(resources) = self.get_resources() {
-            for (_, value) in &resources.0 {
+            for value in resources.0.values() {
                 Self::collect_references(value, &mut to_process);
             }
         }
 
         // Process all references
         while let Some((obj_num, gen_num)) = to_process.pop() {
-            if !objects.contains_key(&(obj_num, gen_num)) {
+            if let std::collections::hash_map::Entry::Vacant(e) = objects.entry((obj_num, gen_num))
+            {
                 let obj = reader.get_object(obj_num, gen_num)?;
 
                 // Collect nested references
                 Self::collect_references_from_object(obj, &mut to_process);
 
-                objects.insert((obj_num, gen_num), obj.clone());
+                e.insert(obj.clone());
             }
         }
 
@@ -437,7 +438,7 @@ impl ParsedPage {
                 }
             }
             PdfObject::Dictionary(dict) => {
-                for (_, value) in &dict.0 {
+                for value in dict.0.values() {
                     Self::collect_references(value, refs);
                 }
             }
@@ -454,7 +455,7 @@ impl ParsedPage {
                 }
             }
             PdfObject::Dictionary(dict) | PdfObject::Stream(PdfStream { dict, .. }) => {
-                for (_, value) in &dict.0 {
+                for value in dict.0.values() {
                     Self::collect_references(value, refs);
                 }
             }

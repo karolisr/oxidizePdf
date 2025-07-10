@@ -1,6 +1,6 @@
 //! Test encryption detection
 
-use oxidize_pdf_core::parser::PdfReader;
+use oxidize_pdf::parser::PdfReader;
 use std::path::Path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

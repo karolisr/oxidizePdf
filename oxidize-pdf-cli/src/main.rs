@@ -190,26 +190,26 @@ fn main() -> Result<()> {
                     match reader.metadata() {
                         Ok(metadata) => {
                             if let Some(title) = &metadata.title {
-                                println!("Title: {}", title);
+                                println!("Title: {title}");
                             }
                             if let Some(author) = &metadata.author {
-                                println!("Author: {}", author);
+                                println!("Author: {author}");
                             }
                             if let Some(subject) = &metadata.subject {
-                                println!("Subject: {}", subject);
+                                println!("Subject: {subject}");
                             }
                             if let Some(creator) = &metadata.creator {
-                                println!("Creator: {}", creator);
+                                println!("Creator: {creator}");
                             }
                             if let Some(producer) = &metadata.producer {
-                                println!("Producer: {}", producer);
+                                println!("Producer: {producer}");
                             }
                             if let Some(page_count) = metadata.page_count {
-                                println!("Pages: {}", page_count);
+                                println!("Pages: {page_count}");
                             }
                         }
                         Err(e) => {
-                            eprintln!("Warning: Could not read metadata: {}", e);
+                            eprintln!("Warning: Could not read metadata: {e}");
                         }
                     }
 
@@ -221,7 +221,7 @@ fn main() -> Result<()> {
                         match reader.catalog() {
                             Ok(catalog) => {
                                 if let Some(catalog_type) = catalog.get_type() {
-                                    println!("Catalog Type: {}", catalog_type);
+                                    println!("Catalog Type: {catalog_type}");
                                 }
 
                                 // Check for common catalog entries
@@ -236,7 +236,7 @@ fn main() -> Result<()> {
                                 }
                             }
                             Err(e) => {
-                                eprintln!("Warning: Could not read catalog: {}", e);
+                                eprintln!("Warning: Could not read catalog: {e}");
                             }
                         }
 
@@ -275,7 +275,7 @@ fn main() -> Result<()> {
                     println!("\n✓ PDF parsed successfully!");
                 }
                 Err(e) => {
-                    eprintln!("Error: Failed to parse PDF: {}", e);
+                    eprintln!("Error: Failed to parse PDF: {e}");
                     eprintln!("\nNote: The PDF parser is currently in early development.");
                     eprintln!("Some PDF features may not be supported yet.");
                     std::process::exit(1);
@@ -291,13 +291,13 @@ fn main() -> Result<()> {
         } => {
             // Parse rotation angle
             let rotation = RotationAngle::from_degrees(angle).unwrap_or_else(|e| {
-                eprintln!("Error: {}. Valid angles are 90, 180, 270", e);
+                eprintln!("Error: {e}. Valid angles are 90, 180, 270");
                 std::process::exit(1);
             });
 
             // Parse page range
             let page_range = PageRange::parse(&pages).unwrap_or_else(|e| {
-                eprintln!("Error parsing page range '{}': {}", pages, e);
+                eprintln!("Error parsing page range '{pages}': {e}");
                 std::process::exit(1);
             });
 
@@ -316,7 +316,7 @@ fn main() -> Result<()> {
                     );
                 }
                 Err(e) => {
-                    eprintln!("Error rotating PDF: {}", e);
+                    eprintln!("Error rotating PDF: {e}");
                     std::process::exit(1);
                 }
             }
@@ -364,7 +364,7 @@ fn main() -> Result<()> {
                     .map_err(|e| anyhow::anyhow!("Failed to write output file: {}", e))?;
                 println!("✓ Text extracted to: {}", output_path.display());
             } else {
-                println!("{}", full_text);
+                println!("{full_text}");
             }
         }
     }

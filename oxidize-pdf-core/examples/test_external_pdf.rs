@@ -2,8 +2,8 @@
 //!
 //! This example tests our parser against real-world PDFs
 
-use oxidize_pdf_core::parser::{document::PdfDocument, PdfReader};
-use oxidize_pdf_core::text::TextExtractor;
+use oxidize_pdf::parser::{document::PdfDocument, PdfReader};
+use oxidize_pdf::text::TextExtractor;
 use std::env;
 use std::fs;
 use std::path::Path;

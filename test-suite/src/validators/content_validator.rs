@@ -3,8 +3,7 @@
 //! Validates PDF content streams for correctness.
 
 use anyhow::{Context, Result};
-use oxidize_pdf_core::parser::content::{ContentOperation, ContentParser};
-use std::collections::HashSet;
+use oxidize_pdf::parser::content::{ContentOperation, ContentParser};
 
 /// Validator for PDF content streams
 pub struct ContentValidator {
@@ -68,8 +67,7 @@ impl ContentValidator {
             ContentOperation::BeginText => {
                 if state.in_text_object {
                     report.add_error(&format!(
-                        "Nested text object at operator {}: BT without ET",
-                        index
+                        "Nested text object at operator {index}: BT without ET"
                     ));
                 }
                 state.in_text_object = true;
@@ -77,7 +75,7 @@ impl ContentValidator {
 
             ContentOperation::EndText => {
                 if !state.in_text_object {
-                    report.add_error(&format!("ET without BT at operator {}", index));
+                    report.add_error(&format!("ET without BT at operator {index}"));
                 }
                 state.in_text_object = false;
             }
@@ -94,7 +92,7 @@ impl ContentValidator {
 
             ContentOperation::RestoreGraphicsState => {
                 if state.graphics_state_depth == 0 {
-                    report.add_error(&format!("Q without q at operator {}", index));
+                    report.add_error(&format!("Q without q at operator {index}"));
                 } else {
                     state.graphics_state_depth -= 1;
                 }
@@ -111,8 +109,7 @@ impl ContentValidator {
             | ContentOperation::NextLine => {
                 if !state.in_text_object {
                     report.add_warning(&format!(
-                        "Text operator outside text object at operator {}: {:?}",
-                        index, operator
+                        "Text operator outside text object at operator {index}: {operator:?}"
                     ));
                 }
             }
@@ -120,8 +117,7 @@ impl ContentValidator {
             // Deprecated operators
             ContentOperation::BeginCompatibility | ContentOperation::EndCompatibility => {
                 if !self.allow_deprecated {
-                    report
-                        .add_warning(&format!("Deprecated operator at {}: {:?}", index, operator));
+                    report.add_warning(&format!("Deprecated operator at {index}: {operator:?}"));
                 }
             }
 
@@ -132,7 +128,7 @@ impl ContentValidator {
         }
 
         // Track operator usage
-        let op_name = format!("{:?}", operator)
+        let op_name = format!("{operator:?}")
             .split('(')
             .next()
             .unwrap_or("Unknown")

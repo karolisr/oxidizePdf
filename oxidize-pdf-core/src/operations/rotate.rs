@@ -146,7 +146,7 @@ impl PageRotator {
     ) -> OperationResult<Page> {
         // Calculate the effective rotation
         let current_rotation = parsed_page.rotation;
-        let new_rotation = ((current_rotation + angle.to_degrees()) % 360) as i32;
+        let _new_rotation = (current_rotation + angle.to_degrees()) % 360;
 
         // Get original dimensions
         let orig_width = parsed_page.media_box[2] - parsed_page.media_box[0];
@@ -210,7 +210,7 @@ impl PageRotator {
                     has_content = true;
                 }
                 Err(e) => {
-                    eprintln!("Warning: Failed to parse content stream: {}", e);
+                    eprintln!("Warning: Failed to parse content stream: {e}");
                 }
             }
         }
@@ -224,7 +224,7 @@ impl PageRotator {
                     "[Page rotated {} degrees - content reconstruction in progress]",
                     angle.to_degrees()
                 ))
-                .map_err(|e| OperationError::PdfError(e))?;
+                .map_err(OperationError::PdfError)?;
         }
 
         // Restore graphics state if we transformed
@@ -256,7 +256,7 @@ impl PageRotator {
                     has_content = true;
                 }
                 Err(e) => {
-                    eprintln!("Warning: Failed to parse content stream: {}", e);
+                    eprintln!("Warning: Failed to parse content stream: {e}");
                 }
             }
         }
@@ -267,7 +267,7 @@ impl PageRotator {
                 .set_font(crate::text::Font::Helvetica, 10.0)
                 .at(50.0, height - 50.0)
                 .write("[Page copied - content reconstruction in progress]")
-                .map_err(|e| OperationError::PdfError(e))?;
+                .map_err(OperationError::PdfError)?;
         }
 
         Ok(page)
@@ -323,7 +323,7 @@ impl PageRotator {
                                 .set_font(current_font, current_font_size as f64)
                                 .at(current_x as f64, current_y as f64)
                                 .write(&text)
-                                .map_err(|e| OperationError::PdfError(e))?;
+                                .map_err(OperationError::PdfError)?;
                         }
                     }
                 }

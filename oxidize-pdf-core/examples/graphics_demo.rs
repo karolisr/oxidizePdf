@@ -1,4 +1,4 @@
-use oxidize_pdf_core::{Color, Document, Page};
+use oxidize_pdf::{Color, Document, Page};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut doc = Document::new();

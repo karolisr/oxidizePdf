@@ -272,7 +272,7 @@ proptest! {
     fn content_tokenizer_handles_random_input(
         random_bytes in prop::collection::vec(any::<u8>(), 0..1000)
     ) {
-        use oxidize_pdf_core::parser::content::ContentParser;
+        use oxidize_pdf::parser::content::ContentParser;
 
         // Parser should not panic on random input
         let result = ContentParser::parse(&random_bytes);

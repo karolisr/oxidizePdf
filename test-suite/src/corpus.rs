@@ -275,7 +275,7 @@ impl TestCorpus {
 
         let metadata = TestMetadata {
             name: file_name.to_string(),
-            description: format!("Test PDF: {}", file_name),
+            description: format!("Test PDF: {file_name}"),
             pdf_version: "1.4".to_string(),
             features: Vec::new(),
             compliance: Vec::new(),
@@ -334,7 +334,7 @@ impl ExternalTestSuite {
     /// Load an external test suite
     pub fn load<P: AsRef<Path>>(suite_type: ExternalSuite, root_dir: P) -> Result<Self> {
         let root_dir = root_dir.as_ref().to_path_buf();
-        let name = format!("{:?}", suite_type);
+        let name = format!("{suite_type:?}");
 
         let mut suite = Self {
             name,

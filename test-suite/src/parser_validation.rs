@@ -4,9 +4,8 @@
 //! by comparing its output with reference implementations and testing
 //! round-trip conversion.
 
-use anyhow::{Context, Result};
-use oxidize_pdf_core::parser::{PdfDictionary, PdfObject, PdfReader};
-use oxidize_pdf_core::{Document, Page};
+use anyhow::Result;
+use oxidize_pdf::{Document, Page};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Cursor;
@@ -137,7 +136,7 @@ impl ParserValidator {
                 differences.push(Difference {
                     path: "parse".to_string(),
                     expected: "successful parse".to_string(),
-                    actual: format!("parse error: {}", e),
+                    actual: format!("parse error: {e}"),
                     severity: DifferenceSeverity::Critical,
                 });
 
@@ -340,7 +339,7 @@ impl ParserValidator {
             // Compare media box
             if actual_page.media_box != expected_page.media_box {
                 differences.push(Difference {
-                    path: format!("pages[{}].media_box", i),
+                    path: format!("pages[{i}].media_box"),
                     expected: format!("{:?}", expected_page.media_box),
                     actual: format!("{:?}", actual_page.media_box),
                     severity: DifferenceSeverity::Important,
@@ -350,7 +349,7 @@ impl ParserValidator {
             // Compare rotation
             if actual_page.rotation != expected_page.rotation {
                 differences.push(Difference {
-                    path: format!("pages[{}].rotation", i),
+                    path: format!("pages[{i}].rotation"),
                     expected: expected_page.rotation.to_string(),
                     actual: actual_page.rotation.to_string(),
                     severity: DifferenceSeverity::Important,

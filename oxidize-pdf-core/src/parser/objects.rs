@@ -71,13 +71,13 @@ impl PdfObject {
             Token::Boolean(b) => Ok(PdfObject::Boolean(b)),
             Token::Integer(i) => {
                 // For negative numbers or large values, don't check for references
-                if i < 0 || i > 9999999 {
+                if !(0..=9999999).contains(&i) {
                     return Ok(PdfObject::Integer(i));
                 }
 
                 // Check if this is part of a reference (e.g., "1 0 R")
                 match lexer.next_token()? {
-                    Token::Integer(gen) if gen >= 0 && gen <= 65535 => {
+                    Token::Integer(gen) if (0..=65535).contains(&gen) => {
                         // Might be a reference, check for 'R'
                         match lexer.next_token()? {
                             Token::Name(s) if s == "R" => {
@@ -120,7 +120,7 @@ impl PdfObject {
             }),
             _ => Err(ParseError::UnexpectedToken {
                 expected: "PDF object".to_string(),
-                found: format!("{:?}", token),
+                found: format!("{token:?}"),
             }),
         }
     }
@@ -199,7 +199,7 @@ impl PdfObject {
                 _ => {
                     return Err(ParseError::UnexpectedToken {
                         expected: "dictionary key (name) or >>".to_string(),
-                        found: format!("{:?}", token),
+                        found: format!("{token:?}"),
                     });
                 }
             }
@@ -252,7 +252,7 @@ impl PdfObject {
             Token::EndStream => Ok(stream_data),
             _ => Err(ParseError::UnexpectedToken {
                 expected: "endstream".to_string(),
-                found: format!("{:?}", token),
+                found: format!("{token:?}"),
             }),
         }
     }
@@ -337,6 +337,12 @@ impl PdfObject {
     }
 }
 
+impl Default for PdfDictionary {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PdfDictionary {
     /// Create a new empty dictionary
     pub fn new() -> Self {
@@ -363,6 +369,12 @@ impl PdfDictionary {
         self.get("Type")
             .and_then(|obj| obj.as_name())
             .map(|n| n.0.as_str())
+    }
+}
+
+impl Default for PdfArray {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

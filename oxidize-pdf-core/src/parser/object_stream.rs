@@ -3,7 +3,7 @@
 //! Handles compressed objects stored in object streams (PDF 1.5+)
 
 use super::lexer::Lexer;
-use super::objects::{PdfDictionary, PdfObject, PdfStream};
+use super::objects::{PdfObject, PdfStream};
 use super::xref::XRefEntry;
 use super::{ParseError, ParseResult};
 use std::collections::HashMap;
@@ -89,7 +89,7 @@ impl ObjectStream {
         }
 
         // Parse each object
-        for (i, (obj_num, offset)) in offsets.iter().enumerate() {
+        for (obj_num, offset) in offsets.iter() {
             // Calculate absolute offset
             let abs_offset = self.first + offset;
 

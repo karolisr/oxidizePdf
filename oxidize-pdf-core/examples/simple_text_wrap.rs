@@ -1,4 +1,4 @@
-use oxidize_pdf_core::{Document, Font, Page, TextAlign};
+use oxidize_pdf::{Document, Font, Page, TextAlign};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut doc = Document::new();

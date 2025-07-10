@@ -194,8 +194,7 @@ fn parse_jpeg_header(data: &[u8]) -> Result<(u32, u32, ColorSpace, u8)> {
         4 => ColorSpace::DeviceCMYK,
         _ => {
             return Err(PdfError::InvalidImage(format!(
-                "Unsupported number of components: {}",
-                components
+                "Unsupported number of components: {components}"
             )))
         }
     };

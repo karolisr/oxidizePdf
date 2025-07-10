@@ -175,14 +175,12 @@ pub fn split_into_words(text: &str) -> Vec<&str> {
                 start = i;
                 in_space = true;
             }
-        } else {
-            if in_space {
-                if i > start {
-                    words.push(&text[start..i]);
-                }
-                start = i;
-                in_space = false;
+        } else if in_space {
+            if i > start {
+                words.push(&text[start..i]);
             }
+            start = i;
+            in_space = false;
         }
     }
 

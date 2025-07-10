@@ -21,6 +21,12 @@ pub struct TextContext {
     text_matrix: [f64; 6],
 }
 
+impl Default for TextContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TextContext {
     pub fn new() -> Self {
         Self {
@@ -48,18 +54,18 @@ impl TextContext {
         self.operations.push_str("BT\n");
 
         // Set font
-        write!(
+        writeln!(
             &mut self.operations,
-            "/{} {} Tf\n",
+            "/{} {} Tf",
             self.current_font.pdf_name(),
             self.font_size
         )
         .unwrap();
 
         // Set text position
-        write!(
+        writeln!(
             &mut self.operations,
-            "{:.2} {:.2} Td\n",
+            "{:.2} {:.2} Td",
             self.text_matrix[4], self.text_matrix[5]
         )
         .unwrap();
@@ -81,7 +87,7 @@ impl TextContext {
                 // For bytes in the printable ASCII range, write as is
                 0x20..=0x7E => self.operations.push(byte as char),
                 // For other bytes, write as octal escape sequences
-                _ => write!(&mut self.operations, "\\{:03o}", byte).unwrap(),
+                _ => write!(&mut self.operations, "\\{byte:03o}").unwrap(),
             }
         }
         self.operations.push_str(") Tj\n");
@@ -99,27 +105,27 @@ impl TextContext {
     }
 
     pub fn set_character_spacing(&mut self, spacing: f64) -> &mut Self {
-        write!(&mut self.operations, "{:.2} Tc\n", spacing).unwrap();
+        writeln!(&mut self.operations, "{spacing:.2} Tc").unwrap();
         self
     }
 
     pub fn set_word_spacing(&mut self, spacing: f64) -> &mut Self {
-        write!(&mut self.operations, "{:.2} Tw\n", spacing).unwrap();
+        writeln!(&mut self.operations, "{spacing:.2} Tw").unwrap();
         self
     }
 
     pub fn set_horizontal_scaling(&mut self, scale: f64) -> &mut Self {
-        write!(&mut self.operations, "{:.2} Tz\n", scale * 100.0).unwrap();
+        writeln!(&mut self.operations, "{:.2} Tz", scale * 100.0).unwrap();
         self
     }
 
     pub fn set_leading(&mut self, leading: f64) -> &mut Self {
-        write!(&mut self.operations, "{:.2} TL\n", leading).unwrap();
+        writeln!(&mut self.operations, "{leading:.2} TL").unwrap();
         self
     }
 
     pub fn set_text_rise(&mut self, rise: f64) -> &mut Self {
-        write!(&mut self.operations, "{:.2} Ts\n", rise).unwrap();
+        writeln!(&mut self.operations, "{rise:.2} Ts").unwrap();
         self
     }
 

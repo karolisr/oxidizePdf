@@ -80,7 +80,7 @@ fn generate_version_variants(output_dir: &Path) -> Result<()> {
     for (version, version_str) in versions {
         let pdf = TestPdfBuilder::minimal()
             .with_version(version)
-            .with_title(&format!("PDF Version {} Test", version_str))
+            .with_title(&format!("PDF Version {version_str} Test"))
             .build();
 
         let filename = format!("minimal_v{}.pdf", version_str.replace('.', "_"));

@@ -163,8 +163,7 @@ impl Page {
             Ok(())
         } else {
             Err(crate::PdfError::InvalidReference(format!(
-                "Image '{}' not found",
-                name
+                "Image '{name}' not found"
             )))
         }
     }

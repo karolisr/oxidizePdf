@@ -22,7 +22,9 @@ use std::collections::HashMap;
 /// ```
 pub struct Document {
     pub(crate) pages: Vec<Page>,
+    #[allow(dead_code)]
     pub(crate) objects: HashMap<ObjectId, Object>,
+    #[allow(dead_code)]
     pub(crate) next_object_id: u32,
     pub(crate) metadata: DocumentMetadata,
 }
@@ -115,12 +117,14 @@ impl Document {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub(crate) fn allocate_object_id(&mut self) -> ObjectId {
         let id = ObjectId::new(self.next_object_id, 0);
         self.next_object_id += 1;
         id
     }
 
+    #[allow(dead_code)]
     pub(crate) fn add_object(&mut self, obj: Object) -> ObjectId {
         let id = self.allocate_object_id();
         self.objects.insert(id, obj);

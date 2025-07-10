@@ -245,7 +245,7 @@ impl PdfMerger {
                     "[Page from document {} - content reconstruction in progress]",
                     input_idx + 1
                 ))
-                .map_err(|e| OperationError::PdfError(e))?;
+                .map_err(OperationError::PdfError)?;
         }
 
         Ok(page)
@@ -303,7 +303,7 @@ impl PdfMerger {
                                 .set_font(current_font, current_font_size as f64)
                                 .at(current_x as f64, current_y as f64)
                                 .write(&text)
-                                .map_err(|e| OperationError::PdfError(e))?;
+                                .map_err(OperationError::PdfError)?;
                         }
                     }
                 }

@@ -115,7 +115,7 @@ pub enum TextElement {
 
 /// Token types in content streams
 #[derive(Debug, Clone, PartialEq)]
-enum Token {
+pub(super) enum Token {
     Number(f32),
     Integer(i32),
     String(Vec<u8>),
@@ -141,7 +141,7 @@ impl<'a> ContentTokenizer<'a> {
     }
 
     /// Get the next token from the stream
-    pub fn next_token(&mut self) -> ParseResult<Option<Token>> {
+    pub(super) fn next_token(&mut self) -> ParseResult<Option<Token>> {
         self.skip_whitespace();
 
         if self.position >= self.input.len() {
@@ -815,7 +815,7 @@ impl ContentParser {
             _ => {
                 return Err(ParseError::SyntaxError {
                     position: self.position,
-                    message: format!("Unknown operator: {}", op),
+                    message: format!("Unknown operator: {op}"),
                 });
             }
         };

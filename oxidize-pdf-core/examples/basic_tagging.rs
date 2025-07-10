@@ -3,7 +3,7 @@
 //! This shows the foundational tagging capabilities that prepare
 //! documents for AI processing without requiring PRO features.
 
-use oxidize_pdf_core::{Color, Document, Font, Page};
+use oxidize_pdf::{Color, Document, Font, Page};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut doc = Document::new();

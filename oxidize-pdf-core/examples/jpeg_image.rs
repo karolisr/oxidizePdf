@@ -1,4 +1,4 @@
-use oxidize_pdf_core::{Document, Font, Image, Page, Result};
+use oxidize_pdf::{Document, Font, Image, Page, Result};
 
 fn main() -> Result<()> {
     // Create a test JPEG in memory (minimal JPEG structure for testing)

@@ -3,8 +3,6 @@
 //! This module provides traits and implementations for testing PDF compliance
 //! with various versions of the PDF specification (ISO 32000).
 
-use anyhow::Result;
-use oxidize_pdf_core::parser::{ParseError, PdfReader};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -109,12 +107,12 @@ impl SpecificationTest for Pdf17ComplianceTester {
         // Extract version
         let version_str = std::str::from_utf8(&header[5..8]).unwrap_or("");
         if let Ok(version) = version_str.trim().parse::<f32>() {
-            result.add_detail("version", &format!("{:.1}", version));
+            result.add_detail("version", &format!("{version:.1}"));
 
             // Check if version is valid for PDF 1.7
             if version > 1.7 {
                 result.passed = false;
-                result.add_message(&format!("PDF version {} is newer than 1.7", version));
+                result.add_message(&format!("PDF version {version} is newer than 1.7"));
             }
         } else {
             return TestResult::fail(
@@ -210,7 +208,7 @@ impl SpecificationTest for Pdf17ComplianceTester {
             result.add_detail("valid_entries", &valid_entries.to_string());
             if invalid_entries > 0 {
                 result.passed = false;
-                result.add_message(&format!("{} invalid xref entries found", invalid_entries));
+                result.add_message(&format!("{invalid_entries} invalid xref entries found"));
             }
         }
 
@@ -265,8 +263,7 @@ impl SpecificationTest for Pdf17ComplianceTester {
         if obj_count != endobj_count {
             result.passed = false;
             result.add_message(&format!(
-                "Unbalanced obj/endobj: {} obj, {} endobj",
-                obj_count, endobj_count
+                "Unbalanced obj/endobj: {obj_count} obj, {endobj_count} endobj"
             ));
         }
 
@@ -288,8 +285,7 @@ impl SpecificationTest for Pdf17ComplianceTester {
         if stream_count != endstream_count {
             result.passed = false;
             result.add_message(&format!(
-                "Unbalanced stream/endstream: {} stream, {} endstream",
-                stream_count, endstream_count
+                "Unbalanced stream/endstream: {stream_count} stream, {endstream_count} endstream"
             ));
         }
 
@@ -298,7 +294,7 @@ impl SpecificationTest for Pdf17ComplianceTester {
         let mut found_operators = Vec::new();
 
         for op in operators {
-            if pdf_str.contains(&format!(" {}", op)) || pdf_str.contains(&format!("\n{}", op)) {
+            if pdf_str.contains(&format!(" {op}")) || pdf_str.contains(&format!("\n{op}")) {
                 found_operators.push(op);
             }
         }
@@ -461,10 +457,9 @@ impl SpecificationTest for Pdf20ComplianceTester {
         let deprecated_ops = vec!["BX", "EX"];
 
         for op in deprecated_ops {
-            if pdf_str.contains(&format!(" {}", op)) || pdf_str.contains(&format!("\n{}", op)) {
+            if pdf_str.contains(&format!(" {op}")) || pdf_str.contains(&format!("\n{op}")) {
                 result.add_message(&format!(
-                    "Warning: Uses deprecated operator '{}' in PDF 2.0",
-                    op
+                    "Warning: Uses deprecated operator '{op}' in PDF 2.0"
                 ));
             }
         }

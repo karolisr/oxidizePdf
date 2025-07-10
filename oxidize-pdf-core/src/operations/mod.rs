@@ -92,13 +92,14 @@ impl PageRange {
 
         // Try range (e.g., "1-5")
         if let Some((start, end)) = s.split_once('-') {
-            let start = start.trim().parse::<usize>().map_err(|_| {
-                OperationError::InvalidPageRange(format!("Invalid start: {}", start))
-            })?;
+            let start = start
+                .trim()
+                .parse::<usize>()
+                .map_err(|_| OperationError::InvalidPageRange(format!("Invalid start: {start}")))?;
             let end = end
                 .trim()
                 .parse::<usize>()
-                .map_err(|_| OperationError::InvalidPageRange(format!("Invalid end: {}", end)))?;
+                .map_err(|_| OperationError::InvalidPageRange(format!("Invalid end: {end}")))?;
 
             if start == 0 || end == 0 {
                 return Err(OperationError::InvalidPageRange(
@@ -108,8 +109,7 @@ impl PageRange {
 
             if start > end {
                 return Err(OperationError::InvalidPageRange(format!(
-                    "Start {} is greater than end {}",
-                    start, end
+                    "Start {start} is greater than end {end}"
                 )));
             }
 
@@ -122,7 +122,7 @@ impl PageRange {
                 .split(',')
                 .map(|p| {
                     let page = p.trim().parse::<usize>().map_err(|_| {
-                        OperationError::InvalidPageRange(format!("Invalid page: {}", p))
+                        OperationError::InvalidPageRange(format!("Invalid page: {p}"))
                     })?;
                     if page == 0 {
                         return Err(OperationError::InvalidPageRange(
@@ -137,8 +137,7 @@ impl PageRange {
         }
 
         Err(OperationError::InvalidPageRange(format!(
-            "Invalid format: {}",
-            s
+            "Invalid format: {s}"
         )))
     }
 

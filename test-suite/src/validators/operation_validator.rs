@@ -2,10 +2,9 @@
 //!
 //! Validates PDF operations (split, merge, rotate) for correctness.
 
-use anyhow::{Context, Result};
-use oxidize_pdf_core::operations::{
-    merge_pdf_files, rotate_all_pages, split_pdf, RotateOptions, RotationAngle, SplitMode,
-    SplitOptions,
+use anyhow::Result;
+use oxidize_pdf::operations::{
+    merge_pdf_files, rotate_all_pages, split_pdf, RotationAngle, SplitMode, SplitOptions,
 };
 use std::path::Path;
 use tempfile::TempDir;
@@ -49,14 +48,12 @@ impl OperationValidator {
                     if !file.exists() {
                         report
                             .errors
-                            .push(format!("Output file does not exist: {:?}", file));
+                            .push(format!("Output file does not exist: {file:?}"));
                     }
                 }
             }
             Err(e) => {
-                report
-                    .errors
-                    .push(format!("Single page split failed: {}", e));
+                report.errors.push(format!("Single page split failed: {e}"));
             }
         }
 
@@ -91,7 +88,7 @@ impl OperationValidator {
                 // TODO: Verify content preservation
             }
             Err(e) => {
-                report.errors.push(format!("Merge failed: {}", e));
+                report.errors.push(format!("Merge failed: {e}"));
             }
         }
 
@@ -161,7 +158,7 @@ impl OperationValidator {
         let split_files = match split_pdf(pdf_path, split_options) {
             Ok(files) => files,
             Err(e) => {
-                report.errors.push(format!("Split failed: {}", e));
+                report.errors.push(format!("Split failed: {e}"));
                 return Ok(report);
             }
         };
@@ -183,7 +180,7 @@ impl OperationValidator {
                 // - Content preserved
             }
             Err(e) => {
-                report.errors.push(format!("Merge failed: {}", e));
+                report.errors.push(format!("Merge failed: {e}"));
             }
         }
 

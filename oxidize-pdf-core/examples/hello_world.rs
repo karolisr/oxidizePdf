@@ -1,4 +1,4 @@
-use oxidize_pdf_core::{Color, Document, Font, Page};
+use oxidize_pdf::{Color, Document, Font, Page};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a new document

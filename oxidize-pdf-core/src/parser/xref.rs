@@ -37,6 +37,12 @@ pub struct XRefTable {
     trailer: Option<super::objects::PdfDictionary>,
 }
 
+impl Default for XRefTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl XRefTable {
     /// Create a new empty xref table
     pub fn new() -> Self {
@@ -71,7 +77,7 @@ impl XRefTable {
             let mut lexer = super::lexer::Lexer::new(reader);
 
             // Read object header
-            let obj_num = match lexer.next_token()? {
+            let _obj_num = match lexer.next_token()? {
                 super::lexer::Token::Integer(n) => n as u32,
                 _ => return Err(ParseError::InvalidXRef),
             };
@@ -102,7 +108,7 @@ impl XRefTable {
 
                     // Copy entries from xref stream
                     for (obj_num, entry) in &xref_stream.entries {
-                        table.entries.insert(*obj_num, entry.clone());
+                        table.entries.insert(*obj_num, *entry);
                     }
 
                     // Copy extended entries for compressed objects

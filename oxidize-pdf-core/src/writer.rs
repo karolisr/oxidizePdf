@@ -245,7 +245,7 @@ impl<W: Write> PdfWriter<W> {
             Object::Boolean(b) => self.write_bytes(if *b { b"true" } else { b"false" })?,
             Object::Integer(i) => self.write_bytes(i.to_string().as_bytes())?,
             Object::Real(f) => self.write_bytes(
-                format!("{:.6}", f)
+                format!("{f:.6}")
                     .trim_end_matches('0')
                     .trim_end_matches('.')
                     .as_bytes(),
@@ -319,7 +319,7 @@ impl<W: Write> PdfWriter<W> {
         // Write entries for all object numbers from 1 to max
         // Fill in gaps with free entries
         for obj_num in 1..=max_obj_num {
-            let obj_id = ObjectId::new(obj_num, 0);
+            let _obj_id = ObjectId::new(obj_num, 0);
             if let Some((_, position)) = entries.iter().find(|(id, _)| id.number() == obj_num) {
                 let entry = format!("{:010} {:05} n \n", position, 0);
                 self.write_bytes(entry.as_bytes())?;

@@ -1,7 +1,6 @@
-use oxidize_pdf_core::parser::PdfReader;
+use oxidize_pdf::parser::PdfReader;
 use std::env;
 use std::fs;
-use std::path::Path;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -9,13 +8,13 @@ fn main() {
     if args.len() > 1 {
         // Test single file
         let file = &args[1];
-        println!("Testing: {}", file);
+        println!("Testing: {file}");
 
         match PdfReader::open(file) {
             Ok(_) => println!("Success!"),
             Err(e) => {
-                println!("Error: {:?}", e);
-                eprintln!("\nDetailed error: {:#?}", e);
+                println!("Error: {e:?}");
+                eprintln!("\nDetailed error: {e:#?}");
             }
         }
     } else {
@@ -41,7 +40,7 @@ fn main() {
                             match PdfReader::open(&path) {
                                 Ok(_) => success += 1,
                                 Err(e) => {
-                                    if format!("{:?}", e).contains("InvalidXRef") {
+                                    if format!("{e:?}").contains("InvalidXRef") {
                                         invalid_xref_count += 1;
                                     }
                                 }
@@ -53,7 +52,7 @@ fn main() {
         }
 
         println!("\nSummary:");
-        println!("Total PDFs tested: {}", total);
+        println!("Total PDFs tested: {total}");
         println!(
             "Success: {} ({:.1}%)",
             success,
