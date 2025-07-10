@@ -8,13 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+## [0.1.1] - 2025-01-10
+
 ### Added
 - Automated versioning system with cargo-release
-- Release workflow scripts
+- Release workflow scripts (release.sh, bump-version.sh, commit-helper.sh)
+- GitHub Actions workflows for CI/CD
 - Conventional commit support
 
 ### Changed
 - Updated CHANGELOG format for automated releases
+
+### Security
+- Removed internal project files from public repository
+- Enhanced .gitignore to prevent accidental exposure of sensitive files
 
 ## [0.1.0] - 2025-01-10
 
