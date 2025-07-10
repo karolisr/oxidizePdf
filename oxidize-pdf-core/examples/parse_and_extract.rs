@@ -1,9 +1,9 @@
 //! Example of parsing existing PDFs and extracting information
 
-use oxidize_pdf::{PdfReader, Result};
+use oxidize_pdf::PdfReader;
 use std::env;
 
-fn main() -> Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
@@ -59,23 +59,23 @@ fn main() -> Result<()> {
                 println!("\nPage {} text:", page_num + 1);
                 println!("{}", "-".repeat(20));
 
-                if text.content.is_empty() {
+                if text.text.is_empty() {
                     println!("[No text content found]");
                 } else {
                     // Print first 500 characters of each page
-                    let preview = if text.content.len() > 500 {
-                        format!("{}...", &text.content[..500])
+                    let preview = if text.text.len() > 500 {
+                        format!("{}...", &text.text[..500])
                     } else {
-                        text.content.clone()
+                        text.text.clone()
                     };
                     println!("{}", preview);
                 }
 
                 // Show text statistics
                 println!("\nPage {} statistics:", page_num + 1);
-                println!("  Characters: {}", text.content.len());
-                println!("  Lines: {}", text.content.lines().count());
-                println!("  Words: {}", text.content.split_whitespace().count());
+                println!("  Characters: {}", text.text.len());
+                println!("  Lines: {}", text.text.lines().count());
+                println!("  Words: {}", text.text.split_whitespace().count());
             }
         }
         Err(e) => {
