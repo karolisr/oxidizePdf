@@ -2,9 +2,7 @@
 
 #[cfg(test)]
 mod tests {
-    use oxidize_pdf::parser::{
-        header::*, lexer::*, objects::*, trailer::*, xref::*, PdfReader,
-    };
+    use oxidize_pdf::parser::{header::*, lexer::*, objects::*, trailer::*, xref::*, PdfReader};
     use std::io::Cursor;
 
     /// Create a minimal valid PDF for testing
