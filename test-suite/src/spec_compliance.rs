@@ -153,23 +153,11 @@ impl SpecificationTest for Pdf17ComplianceTester {
         }
 
         // Find xref table
-        let xref_pos = pdf_str.find("xref");
-        if xref_pos.is_none() {
-            // Check for cross-reference stream (PDF 1.5+)
-            if pdf_str.contains("/Type /XRef") || pdf_str.contains("/Type/XRef") {
-                result.add_detail("xref_type", "stream");
-                result.add_message("Uses cross-reference stream (PDF 1.5+ feature)");
-            } else {
-                return TestResult::fail(
-                    "PDF 1.7 Cross-Reference Table Compliance",
-                    "No cross-reference table found",
-                );
-            }
-        } else {
+        if let Some(xref_pos) = pdf_str.find("xref") {
             result.add_detail("xref_type", "table");
 
             // Basic xref table format validation
-            let xref_section = &pdf_str[xref_pos.unwrap()..];
+            let xref_section = &pdf_str[xref_pos..];
             let lines: Vec<&str> = xref_section.lines().collect();
 
             if lines.len() < 2 {
@@ -209,6 +197,17 @@ impl SpecificationTest for Pdf17ComplianceTester {
             if invalid_entries > 0 {
                 result.passed = false;
                 result.add_message(&format!("{invalid_entries} invalid xref entries found"));
+            }
+        } else {
+            // Check for cross-reference stream (PDF 1.5+)
+            if pdf_str.contains("/Type /XRef") || pdf_str.contains("/Type/XRef") {
+                result.add_detail("xref_type", "stream");
+                result.add_message("Uses cross-reference stream (PDF 1.5+ feature)");
+            } else {
+                return TestResult::fail(
+                    "PDF 1.7 Cross-Reference Table Compliance",
+                    "No cross-reference table found",
+                );
             }
         }
 
