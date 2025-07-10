@@ -62,7 +62,7 @@ impl TextEncoding {
             }
         }
     }
-    
+
     pub fn decode(&self, data: &[u8]) -> String {
         match self {
             TextEncoding::StandardEncoding | TextEncoding::PdfDocEncoding => {

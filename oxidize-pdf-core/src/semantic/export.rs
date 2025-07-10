@@ -1,7 +1,7 @@
 //! Export functionality for semantic entities
 
 use super::Entity;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Map of entities organized by page
@@ -23,7 +23,7 @@ impl EntityMap {
             schemas: Vec::new(),
         }
     }
-    
+
     /// Add an entity to the map
     pub fn add_entity(&mut self, entity: Entity) {
         self.pages
@@ -31,17 +31,17 @@ impl EntityMap {
             .or_insert_with(Vec::new)
             .push(entity);
     }
-    
+
     /// Export to JSON string
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(self)
     }
-    
+
     /// Export to JSON with custom options
     pub fn to_json_compact(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
     }
-    
+
     /// Get all entities of a specific type
     pub fn entities_by_type(&self, entity_type: super::EntityType) -> Vec<&Entity> {
         self.pages
@@ -50,7 +50,7 @@ impl EntityMap {
             .filter(|e| e.entity_type == entity_type)
             .collect()
     }
-    
+
     /// Get all entities on a specific page
     pub fn entities_on_page(&self, page: usize) -> Option<&Vec<Entity>> {
         self.pages.get(&page)
@@ -83,13 +83,13 @@ impl EntityMap {
             "@type": "DigitalDocument",
             "hasPart": []
         });
-        
+
         // Add custom logic for JSON-LD export
         // This is a simplified version
-        
+
         serde_json::to_string_pretty(&jsonld)
     }
-    
+
     /// Export to XML format
     pub fn to_xml(&self) -> Result<String, Box<dyn std::error::Error>> {
         // XML export would be implemented here

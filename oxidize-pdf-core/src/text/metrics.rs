@@ -15,14 +15,14 @@ impl FontMetrics {
             default_width,
         }
     }
-    
+
     fn with_widths(mut self, widths: &[(char, u16)]) -> Self {
         for &(ch, width) in widths {
             self.widths.insert(ch, width);
         }
         self
     }
-    
+
     pub fn char_width(&self, ch: char) -> u16 {
         self.widths.get(&ch).copied().unwrap_or(self.default_width)
     }
@@ -31,7 +31,7 @@ impl FontMetrics {
 lazy_static::lazy_static! {
     static ref FONT_METRICS: HashMap<Font, FontMetrics> = {
         let mut metrics = HashMap::new();
-        
+
         // Helvetica
         metrics.insert(Font::Helvetica, FontMetrics::new(556).with_widths(&[
             (' ', 278), ('!', 278), ('"', 355), ('#', 556), ('$', 556), ('%', 889),
@@ -51,7 +51,7 @@ lazy_static::lazy_static! {
             ('t', 278), ('u', 556), ('v', 500), ('w', 722), ('x', 500), ('y', 500),
             ('z', 500), ('{', 334), ('|', 260), ('}', 334), ('~', 584),
         ]));
-        
+
         // Helvetica Bold
         metrics.insert(Font::HelveticaBold, FontMetrics::new(611).with_widths(&[
             (' ', 278), ('!', 333), ('"', 474), ('#', 556), ('$', 556), ('%', 889),
@@ -71,7 +71,7 @@ lazy_static::lazy_static! {
             ('t', 333), ('u', 611), ('v', 556), ('w', 778), ('x', 556), ('y', 556),
             ('z', 500), ('{', 389), ('|', 280), ('}', 389), ('~', 584),
         ]));
-        
+
         // Times Roman
         metrics.insert(Font::TimesRoman, FontMetrics::new(500).with_widths(&[
             (' ', 250), ('!', 333), ('"', 408), ('#', 500), ('$', 500), ('%', 833),
@@ -91,7 +91,7 @@ lazy_static::lazy_static! {
             ('t', 278), ('u', 500), ('v', 500), ('w', 722), ('x', 500), ('y', 500),
             ('z', 444), ('{', 480), ('|', 200), ('}', 480), ('~', 541),
         ]));
-        
+
         // Courier (all characters have the same width)
         metrics.insert(Font::Courier, FontMetrics::new(600).with_widths(&[
             (' ', 600), ('!', 600), ('"', 600), ('#', 600), ('$', 600), ('%', 600),
@@ -111,7 +111,7 @@ lazy_static::lazy_static! {
             ('t', 600), ('u', 600), ('v', 600), ('w', 600), ('x', 600), ('y', 600),
             ('z', 600), ('{', 600), ('|', 600), ('}', 600), ('~', 600),
         ]));
-        
+
         // For now, use the same metrics for variations
         metrics.insert(Font::HelveticaOblique, metrics[&Font::Helvetica].clone());
         metrics.insert(Font::HelveticaBoldOblique, metrics[&Font::HelveticaBold].clone());
@@ -121,7 +121,7 @@ lazy_static::lazy_static! {
         metrics.insert(Font::CourierBold, metrics[&Font::Courier].clone());
         metrics.insert(Font::CourierOblique, metrics[&Font::Courier].clone());
         metrics.insert(Font::CourierBoldOblique, metrics[&Font::Courier].clone());
-        
+
         metrics
     };
 }
@@ -141,14 +141,11 @@ pub fn measure_text(text: &str, font: Font, font_size: f64) -> f64 {
         // Symbol and ZapfDingbats need special handling
         return text.len() as f64 * font_size * 0.6;
     }
-    
-    let metrics = FONT_METRICS.get(&font)
-        .expect("Font metrics not found");
-    
-    let width_units: u32 = text.chars()
-        .map(|ch| metrics.char_width(ch) as u32)
-        .sum();
-    
+
+    let metrics = FONT_METRICS.get(&font).expect("Font metrics not found");
+
+    let width_units: u32 = text.chars().map(|ch| metrics.char_width(ch) as u32).sum();
+
     (width_units as f64 / 1000.0) * font_size
 }
 
@@ -157,10 +154,9 @@ pub fn measure_char(ch: char, font: Font, font_size: f64) -> f64 {
     if font.is_symbolic() {
         return font_size * 0.6;
     }
-    
-    let metrics = FONT_METRICS.get(&font)
-        .expect("Font metrics not found");
-    
+
+    let metrics = FONT_METRICS.get(&font).expect("Font metrics not found");
+
     (metrics.char_width(ch) as f64 / 1000.0) * font_size
 }
 
@@ -169,7 +165,7 @@ pub fn split_into_words(text: &str) -> Vec<&str> {
     let mut words = Vec::new();
     let mut start = 0;
     let mut in_space = false;
-    
+
     for (i, ch) in text.char_indices() {
         if ch.is_whitespace() {
             if !in_space {
@@ -189,10 +185,10 @@ pub fn split_into_words(text: &str) -> Vec<&str> {
             }
         }
     }
-    
+
     if start < text.len() {
         words.push(&text[start..]);
     }
-    
+
     words
 }

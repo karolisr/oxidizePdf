@@ -1,9 +1,9 @@
 //! Test PDF Builder
-//! 
+//!
 //! A builder for creating test PDFs with specific characteristics.
 
-use std::collections::HashMap;
 use anyhow::Result;
+use std::collections::HashMap;
 
 /// PDF version to generate
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -31,7 +31,8 @@ impl PdfVersion {
             PdfVersion::V1_6 => "1.6",
             PdfVersion::V1_7 => "1.7",
             PdfVersion::V2_0 => "2.0",
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -76,46 +77,46 @@ impl TestPdfBuilder {
             linearized: false,
         }
     }
-    
+
     /// Create a minimal valid PDF
     pub fn minimal() -> Self {
         let mut builder = Self::new();
         builder.add_empty_page(612.0, 792.0);
         builder
     }
-    
+
     /// Set PDF version
     pub fn with_version(mut self, version: PdfVersion) -> Self {
         self.version = version;
         self
     }
-    
+
     /// Add document info
     pub fn with_info(mut self, key: &str, value: &str) -> Self {
         self.info.insert(key.to_string(), value.to_string());
         self
     }
-    
+
     /// Add title
     pub fn with_title(self, title: &str) -> Self {
         self.with_info("Title", title)
     }
-    
+
     /// Add author
     pub fn with_author(self, author: &str) -> Self {
         self.with_info("Author", author)
     }
-    
+
     /// Add creator
     pub fn with_creator(self, creator: &str) -> Self {
         self.with_info("Creator", creator)
     }
-    
+
     /// Add producer
     pub fn with_producer(self, producer: &str) -> Self {
         self.with_info("Producer", producer)
     }
-    
+
     /// Add an empty page
     pub fn add_empty_page(&mut self, width: f32, height: f32) -> &mut Self {
         self.pages.push(PageContent {
@@ -126,7 +127,7 @@ impl TestPdfBuilder {
         });
         self
     }
-    
+
     /// Add a page with text
     pub fn add_text_page(&mut self, text: &str, font_size: f32) -> &mut Self {
         let content = format!(
@@ -134,10 +135,13 @@ impl TestPdfBuilder {
             font_size,
             escape_pdf_string(text)
         );
-        
+
         let mut resources = HashMap::new();
-        resources.insert("Font".to_string(), "<< /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>".to_string());
-        
+        resources.insert(
+            "Font".to_string(),
+            "<< /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>".to_string(),
+        );
+
         self.pages.push(PageContent {
             width: 612.0,
             height: 792.0,
@@ -146,7 +150,7 @@ impl TestPdfBuilder {
         });
         self
     }
-    
+
     /// Add a page with graphics
     pub fn add_graphics_page(&mut self) -> &mut Self {
         let content = "q\n\
@@ -157,8 +161,9 @@ impl TestPdfBuilder {
                       0 0 1 RG\n\
                       200 200 200 200 re\n\
                       f\n\
-                      Q".to_string();
-        
+                      Q"
+        .to_string();
+
         self.pages.push(PageContent {
             width: 612.0,
             height: 792.0,
@@ -167,13 +172,13 @@ impl TestPdfBuilder {
         });
         self
     }
-    
+
     /// Enable stream compression
     pub fn with_compression(mut self, compress: bool) -> Self {
         self.compress_streams = compress;
         self
     }
-    
+
     /// Use cross-reference streams (PDF 1.5+)
     pub fn with_xref_stream(mut self, use_xref: bool) -> Self {
         self.use_xref_stream = use_xref;
@@ -182,13 +187,13 @@ impl TestPdfBuilder {
         }
         self
     }
-    
+
     /// Create invalid xref table
     pub fn with_invalid_xref(self) -> Self {
         // This will be handled in the build phase
         self
     }
-    
+
     /// Create circular reference
     pub fn with_circular_reference(mut self) -> Self {
         // Add objects that reference each other
@@ -204,57 +209,63 @@ impl TestPdfBuilder {
         });
         self
     }
-    
+
     /// Build the PDF
     pub fn build(&self) -> Vec<u8> {
         let mut pdf = Vec::new();
         let mut xref_positions = Vec::new();
-        
+
         // Header
         pdf.extend_from_slice(format!("%PDF-{}\n", self.version.to_string()).as_bytes());
-        
+
         // Binary marker
         if self.include_binary_marker {
             pdf.extend_from_slice(b"%\xE2\xE3\xCF\xD3\n");
         }
-        
+
         // Build objects
         let mut object_num = 1;
         let catalog_obj = object_num;
         let pages_obj = object_num + 1;
         let mut info_obj = 0;
-        
+
         // Catalog object
         xref_positions.push(pdf.len());
-        pdf.extend_from_slice(format!(
-            "{} 0 obj\n<< /Type /Catalog /Pages {} 0 R >>\nendobj\n",
-            catalog_obj, pages_obj
-        ).as_bytes());
+        pdf.extend_from_slice(
+            format!(
+                "{} 0 obj\n<< /Type /Catalog /Pages {} 0 R >>\nendobj\n",
+                catalog_obj, pages_obj
+            )
+            .as_bytes(),
+        );
         object_num += 1;
-        
+
         // Pages object
         let page_refs: Vec<String> = (0..self.pages.len())
             .map(|i| format!("{} 0 R", pages_obj + 1 + i as u32))
             .collect();
-        
+
         xref_positions.push(pdf.len());
-        pdf.extend_from_slice(format!(
-            "{} 0 obj\n<< /Type /Pages /Kids [{}] /Count {} >>\nendobj\n",
-            pages_obj,
-            page_refs.join(" "),
-            self.pages.len()
-        ).as_bytes());
+        pdf.extend_from_slice(
+            format!(
+                "{} 0 obj\n<< /Type /Pages /Kids [{}] /Count {} >>\nendobj\n",
+                pages_obj,
+                page_refs.join(" "),
+                self.pages.len()
+            )
+            .as_bytes(),
+        );
         object_num += 1;
-        
+
         // Individual pages
         for (i, page) in self.pages.iter().enumerate() {
             xref_positions.push(pdf.len());
-            
+
             let mut page_dict = format!(
                 "<< /Type /Page /Parent {} 0 R /MediaBox [0 0 {} {}]",
                 pages_obj, page.width, page.height
             );
-            
+
             // Add resources if any
             if !page.resources.is_empty() {
                 page_dict.push_str(" /Resources <<");
@@ -263,104 +274,111 @@ impl TestPdfBuilder {
                 }
                 page_dict.push_str(" >>");
             }
-            
+
             // Add content stream reference if there's content
             if !page.content_stream.is_empty() {
                 let content_obj = object_num + self.pages.len() as u32 + 1 + i as u32;
                 page_dict.push_str(&format!(" /Contents {} 0 R", content_obj));
             }
-            
+
             page_dict.push_str(" >>");
-            
-            pdf.extend_from_slice(format!(
-                "{} 0 obj\n{}\nendobj\n",
-                object_num, page_dict
-            ).as_bytes());
+
+            pdf.extend_from_slice(
+                format!("{} 0 obj\n{}\nendobj\n", object_num, page_dict).as_bytes(),
+            );
             object_num += 1;
         }
-        
+
         // Content streams
         for page in &self.pages {
             if !page.content_stream.is_empty() {
                 xref_positions.push(pdf.len());
-                
+
                 let content = if self.compress_streams {
                     // TODO: Implement compression
                     page.content_stream.clone()
                 } else {
                     page.content_stream.clone()
                 };
-                
-                pdf.extend_from_slice(format!(
-                    "{} 0 obj\n<< /Length {} >>\nstream\n{}\nendstream\nendobj\n",
-                    object_num,
-                    content.len(),
-                    content
-                ).as_bytes());
+
+                pdf.extend_from_slice(
+                    format!(
+                        "{} 0 obj\n<< /Length {} >>\nstream\n{}\nendstream\nendobj\n",
+                        object_num,
+                        content.len(),
+                        content
+                    )
+                    .as_bytes(),
+                );
                 object_num += 1;
             }
         }
-        
+
         // Info dictionary
         if !self.info.is_empty() {
             info_obj = object_num;
             xref_positions.push(pdf.len());
-            
+
             let mut info_dict = "<< ".to_string();
             for (key, value) in &self.info {
                 info_dict.push_str(&format!("/{} ({}) ", key, escape_pdf_string(value)));
             }
             info_dict.push_str(">>");
-            
-            pdf.extend_from_slice(format!(
-                "{} 0 obj\n{}\nendobj\n",
-                info_obj, info_dict
-            ).as_bytes());
+
+            pdf.extend_from_slice(
+                format!("{} 0 obj\n{}\nendobj\n", info_obj, info_dict).as_bytes(),
+            );
             object_num += 1;
         }
-        
+
         // Additional objects
         for obj in &self.objects {
             xref_positions.push(pdf.len());
-            pdf.extend_from_slice(format!(
-                "{} {} obj\n{}\nendobj\n",
-                obj.number, obj.generation, obj.content
-            ).as_bytes());
+            pdf.extend_from_slice(
+                format!(
+                    "{} {} obj\n{}\nendobj\n",
+                    obj.number, obj.generation, obj.content
+                )
+                .as_bytes(),
+            );
         }
-        
+
         // Cross-reference table
         let xref_offset = pdf.len();
-        
+
         if self.use_xref_stream {
             // TODO: Implement xref stream
             self.write_traditional_xref(&mut pdf, &xref_positions, object_num);
         } else {
             self.write_traditional_xref(&mut pdf, &xref_positions, object_num);
         }
-        
+
         // Trailer
         let mut trailer_dict = format!("<< /Size {} /Root {} 0 R", object_num, catalog_obj);
         if info_obj > 0 {
             trailer_dict.push_str(&format!(" /Info {} 0 R", info_obj));
         }
         trailer_dict.push_str(" >>");
-        
-        pdf.extend_from_slice(format!(
-            "trailer\n{}\nstartxref\n{}\n%%EOF",
-            trailer_dict, xref_offset
-        ).as_bytes());
-        
+
+        pdf.extend_from_slice(
+            format!(
+                "trailer\n{}\nstartxref\n{}\n%%EOF",
+                trailer_dict, xref_offset
+            )
+            .as_bytes(),
+        );
+
         pdf
     }
-    
+
     /// Write traditional cross-reference table
     fn write_traditional_xref(&self, pdf: &mut Vec<u8>, positions: &[usize], num_objects: u32) {
         pdf.extend_from_slice(b"xref\n");
         pdf.extend_from_slice(format!("0 {}\n", num_objects).as_bytes());
-        
+
         // Entry for object 0 (always free)
         pdf.extend_from_slice(b"0000000000 65535 f \n");
-        
+
         // Entries for actual objects
         for &pos in positions {
             pdf.extend_from_slice(format!("{:010} 00000 n \n", pos).as_bytes());
@@ -392,21 +410,21 @@ impl Default for TestPdfBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_minimal_pdf_generation() {
         let pdf = TestPdfBuilder::minimal().build();
         assert!(pdf.starts_with(b"%PDF-1.4"));
         assert!(pdf.ends_with(b"%%EOF"));
     }
-    
+
     #[test]
     fn test_pdf_with_info() {
         let pdf = TestPdfBuilder::minimal()
             .with_title("Test PDF")
             .with_author("oxidizePdf Test Suite")
             .build();
-        
+
         let pdf_str = String::from_utf8_lossy(&pdf);
         assert!(pdf_str.contains("(Test PDF)"));
         assert!(pdf_str.contains("(oxidizePdf Test Suite)"));

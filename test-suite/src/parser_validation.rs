@@ -1,15 +1,15 @@
 //! Parser Validation Framework
-//! 
+//!
 //! This module provides tools for validating the PDF parser implementation
 //! by comparing its output with reference implementations and testing
 //! round-trip conversion.
 
-use oxidize_pdf_core::parser::{PdfReader, PdfObject, PdfDictionary};
+use anyhow::{Context, Result};
+use oxidize_pdf_core::parser::{PdfDictionary, PdfObject, PdfReader};
 use oxidize_pdf_core::{Document, Page};
-use std::io::Cursor;
-use std::collections::HashMap;
-use anyhow::{Result, Context};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::io::Cursor;
 
 /// Result of parser validation
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -114,13 +114,13 @@ impl ParserValidator {
             use_external_tools: false,
         }
     }
-    
+
     /// Enable external tool comparison (qpdf, mutool, etc.)
     pub fn with_external_tools(mut self) -> Self {
         self.use_external_tools = true;
         self
     }
-    
+
     /// Validate parser output against a reference parse
     pub fn validate_against_reference(
         &self,
@@ -129,7 +129,7 @@ impl ParserValidator {
     ) -> ValidationResult {
         let start_time = std::time::Instant::now();
         let mut differences = Vec::new();
-        
+
         // Parse the PDF
         let parsed = match self.parse_pdf(pdf) {
             Ok(p) => p,
@@ -140,7 +140,7 @@ impl ParserValidator {
                     actual: format!("parse error: {}", e),
                     severity: DifferenceSeverity::Critical,
                 });
-                
+
                 return ValidationResult {
                     success: false,
                     test_name: "Parser Validation".to_string(),
@@ -154,15 +154,17 @@ impl ParserValidator {
                 };
             }
         };
-        
+
         let parse_time = start_time.elapsed();
-        
+
         // Compare results
         self.compare_parse_results(&parsed, reference, &mut differences);
-        
+
         ValidationResult {
-            success: differences.is_empty() || 
-                     differences.iter().all(|d| d.severity == DifferenceSeverity::Info),
+            success: differences.is_empty()
+                || differences
+                    .iter()
+                    .all(|d| d.severity == DifferenceSeverity::Info),
             test_name: "Parser Validation".to_string(),
             differences,
             metrics: PerformanceMetrics {
@@ -173,31 +175,31 @@ impl ParserValidator {
             },
         }
     }
-    
+
     /// Compare with qpdf output
     pub fn compare_with_qpdf(&self, pdf: &[u8]) -> Result<ComparisonResult> {
         if !self.use_external_tools {
             anyhow::bail!("External tools not enabled");
         }
-        
+
         // TODO: Implement qpdf comparison
         // This would:
         // 1. Save PDF to temp file
         // 2. Run qpdf --show-all-pages --show-object=n
         // 3. Parse qpdf output
         // 4. Compare with our parser output
-        
+
         Ok(ComparisonResult {
             tool: "qpdf".to_string(),
             matches: true,
             differences: Vec::new(),
         })
     }
-    
+
     /// Test round-trip conversion (parse and regenerate)
     pub fn round_trip_test(&self, pdf: &[u8]) -> RoundTripResult {
         let start_time = std::time::Instant::now();
-        
+
         // Parse the original PDF
         let parsed = match self.parse_pdf(pdf) {
             Ok(p) => p,
@@ -212,10 +214,10 @@ impl ParserValidator {
                 };
             }
         };
-        
+
         let parse_time = start_time.elapsed();
         let generate_start = std::time::Instant::now();
-        
+
         // Generate new PDF from parsed data
         let regenerated = match self.generate_from_parse(&parsed) {
             Ok(data) => data,
@@ -230,12 +232,12 @@ impl ParserValidator {
                 };
             }
         };
-        
+
         let generate_time = generate_start.elapsed();
-        
+
         // Compare the PDFs
         let differences = self.compare_pdfs(pdf, &regenerated);
-        
+
         RoundTripResult {
             success: differences.is_empty(),
             parse_time_ms: parse_time.as_millis() as u64,
@@ -245,16 +247,16 @@ impl ParserValidator {
             differences,
         }
     }
-    
+
     /// Parse a PDF and extract information
     fn parse_pdf(&self, pdf: &[u8]) -> Result<ParsedPdfInfo> {
         let cursor = Cursor::new(pdf);
         // Note: This would require fixing the compilation errors in PdfReader
         // For now, we'll create a mock response
-        
+
         // TODO: Once PdfReader is fixed, use:
         // let reader = PdfReader::new(cursor)?;
-        
+
         Ok(ParsedPdfInfo {
             version: "1.4".to_string(),
             page_count: 1,
@@ -273,11 +275,11 @@ impl ParserValidator {
             encryption: None,
         })
     }
-    
+
     /// Generate PDF from parsed information
     fn generate_from_parse(&self, parsed: &ParsedPdfInfo) -> Result<Vec<u8>> {
         let mut doc = Document::new();
-        
+
         // Set metadata
         for (key, value) in &parsed.info {
             match key.as_str() {
@@ -285,10 +287,10 @@ impl ParserValidator {
                 "Author" => doc.set_author(value),
                 "Subject" => doc.set_subject(value),
                 "Keywords" => doc.set_keywords(value),
-                _ => {},
+                _ => {}
             }
         }
-        
+
         // Add pages
         for page_info in &parsed.pages {
             let page = Page::new(
@@ -297,13 +299,13 @@ impl ParserValidator {
             );
             doc.add_page(page);
         }
-        
+
         // Generate PDF bytes
         let mut buffer = Vec::new();
         doc.write(&mut buffer)?;
         Ok(buffer)
     }
-    
+
     /// Compare parse results
     fn compare_parse_results(
         &self,
@@ -320,7 +322,7 @@ impl ParserValidator {
                 severity: DifferenceSeverity::Important,
             });
         }
-        
+
         // Compare page count
         if actual.page_count != expected.page_count {
             differences.push(Difference {
@@ -330,10 +332,10 @@ impl ParserValidator {
                 severity: DifferenceSeverity::Critical,
             });
         }
-        
+
         // Compare pages
-        for (i, (actual_page, expected_page)) in 
-            actual.pages.iter().zip(expected.pages.iter()).enumerate() 
+        for (i, (actual_page, expected_page)) in
+            actual.pages.iter().zip(expected.pages.iter()).enumerate()
         {
             // Compare media box
             if actual_page.media_box != expected_page.media_box {
@@ -344,7 +346,7 @@ impl ParserValidator {
                     severity: DifferenceSeverity::Important,
                 });
             }
-            
+
             // Compare rotation
             if actual_page.rotation != expected_page.rotation {
                 differences.push(Difference {
@@ -356,11 +358,11 @@ impl ParserValidator {
             }
         }
     }
-    
+
     /// Compare two PDFs byte by byte
     fn compare_pdfs(&self, original: &[u8], regenerated: &[u8]) -> Vec<String> {
         let mut differences = Vec::new();
-        
+
         // For now, just compare sizes
         // A more sophisticated comparison would parse both and compare structure
         if original.len() != regenerated.len() {
@@ -370,7 +372,7 @@ impl ParserValidator {
                 regenerated.len()
             ));
         }
-        
+
         differences
     }
 }
@@ -424,16 +426,16 @@ impl Default for ParserValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_validator_creation() {
         let validator = ParserValidator::new();
         assert!(!validator.use_external_tools);
-        
+
         let validator = ParserValidator::new().with_external_tools();
         assert!(validator.use_external_tools);
     }
-    
+
     #[test]
     fn test_difference_severity() {
         let diff = Difference {
@@ -442,7 +444,7 @@ mod tests {
             actual: "b".to_string(),
             severity: DifferenceSeverity::Critical,
         };
-        
+
         assert_eq!(diff.severity, DifferenceSeverity::Critical);
     }
 }

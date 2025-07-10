@@ -1,6 +1,6 @@
 //! Marking API for semantic regions
 
-use super::{Entity, EntityType, EntityMetadata};
+use super::{Entity, EntityMetadata, EntityType};
 use crate::graphics::Rectangle;
 use crate::page::Page;
 
@@ -21,25 +21,25 @@ impl<'a> EntityBuilder<'a> {
             metadata: EntityMetadata::new(),
         }
     }
-    
+
     /// Add a metadata property
     pub fn with_metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.metadata = self.metadata.with_property(key, value);
         self
     }
-    
+
     /// Set confidence score
     pub fn with_confidence(mut self, confidence: f32) -> Self {
         self.metadata = self.metadata.with_confidence(confidence);
         self
     }
-    
+
     /// Set schema URL
     pub fn with_schema(mut self, schema: impl Into<String>) -> Self {
         self.metadata = self.metadata.with_schema(schema);
         self
     }
-    
+
     /// Finalize the entity marking
     pub fn build(self) -> String {
         let id = format!("entity_{}", uuid_simple());
@@ -55,10 +55,10 @@ impl<'a> EntityBuilder<'a> {
             page: 0, // Will be set by page
             metadata: self.metadata,
         };
-        
+
         // Store entity in page (implementation detail)
         // self.page.add_entity(entity);
-        
+
         id
     }
 }
@@ -72,22 +72,22 @@ impl<'a> SemanticMarker<'a> {
     pub fn new(page: &'a mut Page) -> Self {
         Self { page }
     }
-    
+
     /// Mark a region as a specific entity type
     pub fn mark(&mut self, entity_type: EntityType, bounds: Rectangle) -> EntityBuilder {
         EntityBuilder::new(self.page, entity_type, bounds)
     }
-    
+
     /// Mark text region
     pub fn mark_text(&mut self, bounds: Rectangle) -> EntityBuilder {
         self.mark(EntityType::Text, bounds)
     }
-    
+
     /// Mark image region
     pub fn mark_image(&mut self, bounds: Rectangle) -> EntityBuilder {
         self.mark(EntityType::Image, bounds)
     }
-    
+
     /// Mark table region
     pub fn mark_table(&mut self, bounds: Rectangle) -> EntityBuilder {
         self.mark(EntityType::Table, bounds)

@@ -1,14 +1,14 @@
 //! PDF merging functionality
-//! 
+//!
 //! This module provides functionality to merge multiple PDF documents into a single file.
 
-use crate::parser::{PdfReader, PdfDocument, ContentParser, ContentOperation};
-use crate::parser::page_tree::ParsedPage;
-use crate::{Document, Page};
 use super::{OperationError, OperationResult, PageRange};
-use std::path::{Path, PathBuf};
-use std::fs::File;
+use crate::parser::page_tree::ParsedPage;
+use crate::parser::{ContentOperation, ContentParser, PdfDocument, PdfReader};
+use crate::{Document, Page};
 use std::collections::HashMap;
+use std::fs::File;
+use std::path::{Path, PathBuf};
 
 /// Options for PDF merging
 #[derive(Debug, Clone)]
@@ -72,7 +72,7 @@ impl MergeInput {
             pages: None,
         }
     }
-    
+
     /// Create a merge input with specific pages
     pub fn with_pages<P: Into<PathBuf>>(path: P, pages: PageRange) -> Self {
         Self {
@@ -102,53 +102,58 @@ impl PdfMerger {
             next_object_num: 1,
         }
     }
-    
+
     /// Add an input file to merge
     pub fn add_input(&mut self, input: MergeInput) {
         self.inputs.push(input);
     }
-    
+
     /// Add multiple input files
     pub fn add_inputs(&mut self, inputs: impl IntoIterator<Item = MergeInput>) {
         self.inputs.extend(inputs);
     }
-    
+
     /// Merge all input files into a single document
     pub fn merge(&mut self) -> OperationResult<Document> {
         if self.inputs.is_empty() {
             return Err(OperationError::NoPagesToProcess);
         }
-        
+
         let mut output_doc = Document::new();
-        
+
         // Process each input file
         for (input_idx, input) in self.inputs.iter().enumerate() {
-            let document = PdfReader::open_document(&input.path)
-                .map_err(|e| OperationError::ParseError(
-                    format!("Failed to open {}: {}", input.path.display(), e)
-                ))?;
-            
+            let document = PdfReader::open_document(&input.path).map_err(|e| {
+                OperationError::ParseError(format!(
+                    "Failed to open {}: {}",
+                    input.path.display(),
+                    e
+                ))
+            })?;
+
             // Initialize object mapping for this document
             self.object_mappings.push(HashMap::new());
-            
+
             // Get page range
-            let total_pages = document.page_count()
-                .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
-            
-            let page_range = input.pages.as_ref()
-                .unwrap_or(&PageRange::All);
-            
+            let total_pages = document
+                .page_count()
+                .map_err(|e| OperationError::ParseError(e.to_string()))?
+                as usize;
+
+            let page_range = input.pages.as_ref().unwrap_or(&PageRange::All);
+
             let page_indices = page_range.get_indices(total_pages)?;
-            
+
             // Extract and add pages
             for page_idx in page_indices {
-                let parsed_page = document.get_page(page_idx as u32)
+                let parsed_page = document
+                    .get_page(page_idx as u32)
                     .map_err(|e| OperationError::ParseError(e.to_string()))?;
-                
+
                 let page = self.convert_page_for_merge(&parsed_page, &document, input_idx)?;
                 output_doc.add_page(page);
             }
-            
+
             // Handle metadata for the first document or specified document
             match &self.options.metadata_mode {
                 MetadataMode::FromFirst if input_idx == 0 => {
@@ -160,9 +165,15 @@ impl PdfMerger {
                 _ => {}
             }
         }
-        
+
         // Apply custom metadata if specified
-        if let MetadataMode::Custom { title, author, subject, keywords } = &self.options.metadata_mode {
+        if let MetadataMode::Custom {
+            title,
+            author,
+            subject,
+            keywords,
+        } = &self.options.metadata_mode
+        {
             if let Some(title) = title {
                 output_doc.set_title(title);
             }
@@ -176,17 +187,17 @@ impl PdfMerger {
                 output_doc.set_keywords(keywords);
             }
         }
-        
+
         Ok(output_doc)
     }
-    
+
     /// Merge files and save to output path
     pub fn merge_to_file<P: AsRef<Path>>(&mut self, output_path: P) -> OperationResult<()> {
         let mut doc = self.merge()?;
         doc.save(output_path)?;
         Ok(())
     }
-    
+
     /// Convert a page for merging, handling object renumbering
     fn convert_page_for_merge(
         &self,
@@ -198,11 +209,12 @@ impl PdfMerger {
         let width = parsed_page.width();
         let height = parsed_page.height();
         let mut page = Page::new(width, height);
-        
+
         // Get content streams
-        let content_streams = document.get_page_content_streams(parsed_page)
+        let content_streams = document
+            .get_page_content_streams(parsed_page)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
-        
+
         // Parse and process content streams
         let mut has_content = false;
         for stream_data in &content_streams {
@@ -215,24 +227,30 @@ impl PdfMerger {
                     has_content = true;
                 }
                 Err(e) => {
-                    eprintln!("Warning: Failed to parse content stream from document {}: {}", 
-                             input_idx + 1, e);
+                    eprintln!(
+                        "Warning: Failed to parse content stream from document {}: {}",
+                        input_idx + 1,
+                        e
+                    );
                 }
             }
         }
-        
+
         // If no content was successfully processed, add a placeholder
         if !has_content {
             page.text()
                 .set_font(crate::text::Font::Helvetica, 10.0)
                 .at(50.0, height - 50.0)
-                .write(&format!("[Page from document {} - content reconstruction in progress]", input_idx + 1))
+                .write(&format!(
+                    "[Page from document {} - content reconstruction in progress]",
+                    input_idx + 1
+                ))
                 .map_err(|e| OperationError::PdfError(e))?;
         }
-        
+
         Ok(page)
     }
-    
+
     /// Process content operators for merge, handling resource remapping
     fn process_operators_for_merge(
         &self,
@@ -246,7 +264,7 @@ impl PdfMerger {
         let mut current_font_size = 12.0;
         let mut current_x = 0.0;
         let mut current_y = 0.0;
-        
+
         for operator in operators {
             match operator {
                 ContentOperation::BeginText => {
@@ -306,14 +324,15 @@ impl PdfMerger {
                     page.graphics().fill();
                 }
                 ContentOperation::SetNonStrokingRGB(r, g, b) => {
-                    page.graphics().set_fill_color(
-                        crate::graphics::Color::Rgb(*r as f64, *g as f64, *b as f64)
-                    );
+                    page.graphics().set_fill_color(crate::graphics::Color::Rgb(
+                        *r as f64, *g as f64, *b as f64,
+                    ));
                 }
                 ContentOperation::SetStrokingRGB(r, g, b) => {
-                    page.graphics().set_stroke_color(
-                        crate::graphics::Color::Rgb(*r as f64, *g as f64, *b as f64)
-                    );
+                    page.graphics()
+                        .set_stroke_color(crate::graphics::Color::Rgb(
+                            *r as f64, *g as f64, *b as f64,
+                        ));
                 }
                 ContentOperation::SetLineWidth(width) => {
                     page.graphics().set_line_width(*width as f64);
@@ -327,10 +346,10 @@ impl PdfMerger {
                 }
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Copy metadata from source to destination document
     fn copy_metadata(
         &self,
@@ -353,21 +372,21 @@ impl PdfMerger {
         }
         Ok(())
     }
-    
+
     /// Get the next available object number and increment
     fn allocate_object_number(&mut self) -> u32 {
         let num = self.next_object_num;
         self.next_object_num += 1;
         num
     }
-    
+
     /// Map an object number from an input document to the merged document
     fn map_object_number(&mut self, input_idx: usize, old_num: u32) -> u32 {
         // Check if already mapped
         if let Some(&new_num) = self.object_mappings[input_idx].get(&old_num) {
             return new_num;
         }
-        
+
         // Allocate new number
         let new_num = self.allocate_object_number();
         self.object_mappings[input_idx].insert(old_num, new_num);
@@ -391,17 +410,18 @@ pub fn merge_pdf_files<P: AsRef<Path>, Q: AsRef<Path>>(
     input_paths: &[P],
     output_path: Q,
 ) -> OperationResult<()> {
-    let inputs: Vec<MergeInput> = input_paths.iter()
+    let inputs: Vec<MergeInput> = input_paths
+        .iter()
         .map(|p| MergeInput::new(p.as_ref()))
         .collect();
-    
+
     merge_pdfs(inputs, output_path, MergeOptions::default())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_merge_options_default() {
         let options = MergeOptions::default();
@@ -411,17 +431,14 @@ mod tests {
         assert!(!options.optimize);
         assert!(matches!(options.metadata_mode, MetadataMode::FromFirst));
     }
-    
+
     #[test]
     fn test_merge_input_creation() {
         let input = MergeInput::new("test.pdf");
         assert_eq!(input.path, PathBuf::from("test.pdf"));
         assert!(input.pages.is_none());
-        
-        let input_with_pages = MergeInput::with_pages(
-            "test.pdf",
-            PageRange::Range(0, 4)
-        );
+
+        let input_with_pages = MergeInput::with_pages("test.pdf", PageRange::Range(0, 4));
         assert!(input_with_pages.pages.is_some());
     }
 }

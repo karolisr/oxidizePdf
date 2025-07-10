@@ -1,7 +1,7 @@
 //! Entity types and metadata for semantic marking
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 
 /// Standard entity types available in all editions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,17 +46,17 @@ impl EntityMetadata {
             schema: None,
         }
     }
-    
+
     pub fn with_property(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.properties.insert(key.into(), value.into());
         self
     }
-    
+
     pub fn with_confidence(mut self, confidence: f32) -> Self {
         self.confidence = Some(confidence.clamp(0.0, 1.0));
         self
     }
-    
+
     pub fn with_schema(mut self, schema: impl Into<String>) -> Self {
         self.schema = Some(schema.into());
         self

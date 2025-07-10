@@ -1,26 +1,29 @@
 //! Parser Benchmarks
-//! 
+//!
 //! Performance benchmarks for the PDF parser.
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-use oxidize_pdf_test_suite::generators::test_pdf_builder::{TestPdfBuilder, PdfVersion};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use oxidize_pdf_core::parser::PdfReader;
+use oxidize_pdf_test_suite::generators::test_pdf_builder::{PdfVersion, TestPdfBuilder};
 use std::io::Cursor;
 
 /// Generate test PDFs of various sizes for benchmarking
 fn generate_test_pdfs() -> Vec<(String, Vec<u8>)> {
     let mut pdfs = Vec::new();
-    
+
     // Minimal PDF
     let minimal = TestPdfBuilder::minimal().build();
     pdfs.push(("minimal".to_string(), minimal));
-    
+
     // PDF with text
     let mut text_builder = TestPdfBuilder::new();
-    text_builder.add_text_page("Hello, World! This is a test PDF with some text content.", 12.0);
+    text_builder.add_text_page(
+        "Hello, World! This is a test PDF with some text content.",
+        12.0,
+    );
     let text_pdf = text_builder.build();
     pdfs.push(("text".to_string(), text_pdf));
-    
+
     // PDF with multiple pages
     let mut multi_page = TestPdfBuilder::new();
     for i in 0..10 {
@@ -28,13 +31,13 @@ fn generate_test_pdfs() -> Vec<(String, Vec<u8>)> {
     }
     let multi_pdf = multi_page.build();
     pdfs.push(("10_pages".to_string(), multi_pdf));
-    
+
     // PDF with graphics
     let mut graphics = TestPdfBuilder::new();
     graphics.add_graphics_page();
     let graphics_pdf = graphics.build();
     pdfs.push(("graphics".to_string(), graphics_pdf));
-    
+
     // Large PDF (100 pages)
     let mut large = TestPdfBuilder::new();
     for i in 0..100 {
@@ -46,7 +49,7 @@ fn generate_test_pdfs() -> Vec<(String, Vec<u8>)> {
     }
     let large_pdf = large.build();
     pdfs.push(("100_pages".to_string(), large_pdf));
-    
+
     pdfs
 }
 
@@ -54,42 +57,36 @@ fn generate_test_pdfs() -> Vec<(String, Vec<u8>)> {
 fn benchmark_parsing(c: &mut Criterion) {
     let test_pdfs = generate_test_pdfs();
     let mut group = c.benchmark_group("pdf_parsing");
-    
+
     for (name, pdf_data) in test_pdfs {
-        group.bench_with_input(
-            BenchmarkId::new("parse", &name),
-            &pdf_data,
-            |b, pdf| {
-                b.iter(|| {
-                    let cursor = Cursor::new(black_box(pdf));
-                    // Note: This will currently fail due to PdfReader compilation issues
-                    // Once fixed, uncomment:
-                    // let _reader = PdfReader::new(cursor);
-                    
-                    // For now, just measure cursor creation
-                    let _cursor = cursor;
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("parse", &name), &pdf_data, |b, pdf| {
+            b.iter(|| {
+                let cursor = Cursor::new(black_box(pdf));
+                // Note: This will currently fail due to PdfReader compilation issues
+                // Once fixed, uncomment:
+                // let _reader = PdfReader::new(cursor);
+
+                // For now, just measure cursor creation
+                let _cursor = cursor;
+            });
+        });
     }
-    
+
     group.finish();
 }
 
 /// Benchmark content stream parsing
 fn benchmark_content_parsing(c: &mut Criterion) {
     use oxidize_pdf_core::parser::content::ContentParser;
-    
+
     let mut group = c.benchmark_group("content_parsing");
-    
+
     // Simple content stream
     let simple_content = b"BT /F1 12 Tf 100 700 Td (Hello World) Tj ET";
     group.bench_function("simple", |b| {
-        b.iter(|| {
-            ContentParser::parse(black_box(simple_content))
-        });
+        b.iter(|| ContentParser::parse(black_box(simple_content)));
     });
-    
+
     // Complex content stream with graphics
     let complex_content = b"q\n\
         1 0 0 1 50 50 cm\n\
@@ -109,13 +106,11 @@ fn benchmark_content_parsing(c: &mut Criterion) {
         0 100 l\n\
         h\n\
         f";
-    
+
     group.bench_function("complex", |b| {
-        b.iter(|| {
-            ContentParser::parse(black_box(complex_content))
-        });
+        b.iter(|| ContentParser::parse(black_box(complex_content)));
     });
-    
+
     // Large content stream (1000 operations)
     let mut large_content = Vec::new();
     for i in 0..1000 {
@@ -127,26 +122,22 @@ fn benchmark_content_parsing(c: &mut Criterion) {
             large_content.extend_from_slice(b"Q ");
         }
     }
-    
+
     group.bench_function("large_1000_ops", |b| {
-        b.iter(|| {
-            ContentParser::parse(black_box(&large_content))
-        });
+        b.iter(|| ContentParser::parse(black_box(&large_content)));
     });
-    
+
     group.finish();
 }
 
 /// Benchmark PDF generation
 fn benchmark_generation(c: &mut Criterion) {
     let mut group = c.benchmark_group("pdf_generation");
-    
+
     group.bench_function("minimal", |b| {
-        b.iter(|| {
-            TestPdfBuilder::minimal().build()
-        });
+        b.iter(|| TestPdfBuilder::minimal().build());
     });
-    
+
     group.bench_function("10_pages", |b| {
         b.iter(|| {
             let mut builder = TestPdfBuilder::new();
@@ -156,7 +147,7 @@ fn benchmark_generation(c: &mut Criterion) {
             builder.build()
         });
     });
-    
+
     group.bench_function("with_graphics", |b| {
         b.iter(|| {
             let mut builder = TestPdfBuilder::new();
@@ -164,73 +155,54 @@ fn benchmark_generation(c: &mut Criterion) {
             builder.build()
         });
     });
-    
+
     // Benchmark different PDF versions
-    let versions = vec![
-        PdfVersion::V1_4,
-        PdfVersion::V1_7,
-        PdfVersion::V2_0,
-    ];
-    
+    let versions = vec![PdfVersion::V1_4, PdfVersion::V1_7, PdfVersion::V2_0];
+
     for version in versions {
         group.bench_with_input(
             BenchmarkId::new("version", format!("{:?}", version)),
             &version,
             |b, &version| {
-                b.iter(|| {
-                    TestPdfBuilder::minimal()
-                        .with_version(version)
-                        .build()
-                });
+                b.iter(|| TestPdfBuilder::minimal().with_version(version).build());
             },
         );
     }
-    
+
     group.finish();
 }
 
 /// Benchmark validation operations
 fn benchmark_validation(c: &mut Criterion) {
-    use oxidize_pdf_test_suite::spec_compliance::{SpecificationTest, Pdf17ComplianceTester};
-    
+    use oxidize_pdf_test_suite::spec_compliance::{Pdf17ComplianceTester, SpecificationTest};
+
     let test_pdfs = generate_test_pdfs();
     let mut group = c.benchmark_group("pdf_validation");
-    
+
     let tester = Pdf17ComplianceTester;
-    
-    for (name, pdf_data) in test_pdfs.iter().take(3) { // Only test first 3 for speed
-        group.bench_with_input(
-            BenchmarkId::new("compliance", name),
-            pdf_data,
-            |b, pdf| {
-                b.iter(|| {
-                    tester.test_all(black_box(pdf))
-                });
-            },
-        );
+
+    for (name, pdf_data) in test_pdfs.iter().take(3) {
+        // Only test first 3 for speed
+        group.bench_with_input(BenchmarkId::new("compliance", name), pdf_data, |b, pdf| {
+            b.iter(|| tester.test_all(black_box(pdf)));
+        });
     }
-    
+
     // Benchmark individual compliance tests
     let minimal_pdf = &test_pdfs[0].1;
-    
+
     group.bench_function("header_compliance", |b| {
-        b.iter(|| {
-            tester.test_header_compliance(black_box(minimal_pdf))
-        });
+        b.iter(|| tester.test_header_compliance(black_box(minimal_pdf)));
     });
-    
+
     group.bench_function("xref_compliance", |b| {
-        b.iter(|| {
-            tester.test_xref_compliance(black_box(minimal_pdf))
-        });
+        b.iter(|| tester.test_xref_compliance(black_box(minimal_pdf)));
     });
-    
+
     group.bench_function("object_compliance", |b| {
-        b.iter(|| {
-            tester.test_object_compliance(black_box(minimal_pdf))
-        });
+        b.iter(|| tester.test_object_compliance(black_box(minimal_pdf)));
     });
-    
+
     group.finish();
 }
 

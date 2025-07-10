@@ -1,5 +1,5 @@
 /// Standard PDF fonts (Type 1 base 14 fonts).
-/// 
+///
 /// These fonts are guaranteed to be available in all PDF readers
 /// and don't need to be embedded in the document.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -54,7 +54,7 @@ impl Font {
             Font::ZapfDingbats => "ZapfDingbats",
         }
     }
-    
+
     pub fn is_symbolic(&self) -> bool {
         matches!(self, Font::Symbol | Font::ZapfDingbats)
     }
@@ -75,7 +75,7 @@ impl FontFamily {
             FontFamily::Courier => Font::Courier,
         }
     }
-    
+
     pub fn bold(self) -> Font {
         match self {
             FontFamily::Helvetica => Font::HelveticaBold,
@@ -83,7 +83,7 @@ impl FontFamily {
             FontFamily::Courier => Font::CourierBold,
         }
     }
-    
+
     pub fn italic(self) -> Font {
         match self {
             FontFamily::Helvetica => Font::HelveticaOblique,
@@ -91,7 +91,7 @@ impl FontFamily {
             FontFamily::Courier => Font::CourierOblique,
         }
     }
-    
+
     pub fn bold_italic(self) -> Font {
         match self {
             FontFamily::Helvetica => Font::HelveticaBoldOblique,

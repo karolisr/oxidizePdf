@@ -2,7 +2,7 @@
 //!
 //! This example tests our parser against real-world PDFs
 
-use oxidize_pdf_core::parser::{PdfReader, document::PdfDocument};
+use oxidize_pdf_core::parser::{document::PdfDocument, PdfReader};
 use oxidize_pdf_core::text::TextExtractor;
 use std::env;
 use std::fs;
@@ -10,14 +10,14 @@ use std::path::Path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() < 2 {
         eprintln!("Usage: {} <pdf_file_or_directory>", args[0]);
         std::process::exit(1);
     }
-    
+
     let path = Path::new(&args[1]);
-    
+
     if path.is_file() {
         test_single_pdf(path)?;
     } else if path.is_dir() {
@@ -26,21 +26,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("Path does not exist: {}", path.display());
         std::process::exit(1);
     }
-    
+
     Ok(())
 }
 
 fn test_single_pdf(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     println!("\nTesting PDF: {}", path.display());
     println!("{}", "=".repeat(80));
-    
+
     match PdfReader::open(path) {
         Ok(mut reader) => {
             println!("✓ PDF parsed successfully!");
-            
+
             // Get basic info
             println!("  Version: {}", reader.version().to_string());
-            
+
             // Try to get metadata
             match reader.metadata() {
                 Ok(metadata) => {
@@ -58,15 +58,15 @@ fn test_single_pdf(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
                     println!("  ⚠ Warning: Could not read metadata: {:?}", e);
                 }
             }
-            
+
             // Create document and test operations
             let document = PdfDocument::new(reader);
-            
+
             // Try to get page count
             match document.page_count() {
                 Ok(count) => {
                     println!("  Page count: {}", count);
-                    
+
                     // Try to access first page
                     if count > 0 {
                         match document.get_page(0) {
@@ -83,15 +83,17 @@ fn test_single_pdf(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
                     println!("  ✗ Could not get page count: {:?}", e);
                 }
             }
-            
+
             // Try text extraction on first page
             let extractor = TextExtractor::new();
             match extractor.extract_from_page(&document, 0) {
                 Ok(extracted) => {
                     println!("  ✓ Text extraction succeeded");
                     if !extracted.text.is_empty() {
-                        println!("  First 100 chars: {}", 
-                            extracted.text.chars().take(100).collect::<String>());
+                        println!(
+                            "  First 100 chars: {}",
+                            extracted.text.chars().take(100).collect::<String>()
+                        );
                     }
                 }
                 Err(e) => {
@@ -101,7 +103,7 @@ fn test_single_pdf(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => {
             println!("✗ Failed to parse PDF: {:?}", e);
-            
+
             // Try to identify the specific issue
             let error_str = format!("{:?}", e);
             if error_str.contains("InvalidHeader") {
@@ -115,24 +117,24 @@ fn test_single_pdf(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    
+
     Ok(())
 }
 
 fn test_directory(dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     println!("\nTesting PDFs in directory: {}", dir.display());
-    
+
     let mut total = 0;
     let mut passed = 0;
     let mut failed = 0;
-    
+
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
-        
+
         if path.extension().and_then(|s| s.to_str()) == Some("pdf") {
             total += 1;
-            
+
             // Just test if we can parse it
             match PdfReader::open(&path) {
                 Ok(_) => {
@@ -141,18 +143,28 @@ fn test_directory(dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
                 }
                 Err(e) => {
                     failed += 1;
-                    println!("✗ {} - {:?}", 
+                    println!(
+                        "✗ {} - {:?}",
                         path.file_name().unwrap().to_string_lossy(),
-                        e);
+                        e
+                    );
                 }
             }
         }
     }
-    
+
     println!("\nSummary:");
     println!("  Total PDFs: {}", total);
-    println!("  Passed: {} ({:.1}%)", passed, (passed as f64 / total as f64) * 100.0);
-    println!("  Failed: {} ({:.1}%)", failed, (failed as f64 / total as f64) * 100.0);
-    
+    println!(
+        "  Passed: {} ({:.1}%)",
+        passed,
+        (passed as f64 / total as f64) * 100.0
+    );
+    println!(
+        "  Failed: {} ({:.1}%)",
+        failed,
+        (failed as f64 / total as f64) * 100.0
+    );
+
     Ok(())
 }

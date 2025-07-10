@@ -1,35 +1,35 @@
 //! Minimal PDF Generators
-//! 
+//!
 //! Generates minimal valid PDFs according to PDF specification.
 
-use super::test_pdf_builder::{TestPdfBuilder, PdfVersion};
-use std::path::Path;
-use std::fs;
+use super::test_pdf_builder::{PdfVersion, TestPdfBuilder};
 use anyhow::Result;
+use std::fs;
+use std::path::Path;
 
 /// Generate all minimal test PDFs
 pub fn generate_all<P: AsRef<Path>>(output_dir: P) -> Result<()> {
     let output_dir = output_dir.as_ref();
     fs::create_dir_all(output_dir)?;
-    
+
     // Minimal PDF with just one empty page
     generate_minimal_empty(output_dir)?;
-    
+
     // Minimal PDF with different versions
     generate_version_variants(output_dir)?;
-    
+
     // Minimal PDF with single text
     generate_minimal_text(output_dir)?;
-    
+
     // Minimal PDF with basic graphics
     generate_minimal_graphics(output_dir)?;
-    
+
     // Minimal PDF with metadata
     generate_minimal_with_info(output_dir)?;
-    
+
     // Minimal multi-page PDF
     generate_minimal_multipage(output_dir)?;
-    
+
     Ok(())
 }
 
@@ -39,10 +39,10 @@ fn generate_minimal_empty(output_dir: &Path) -> Result<()> {
         .with_title("Minimal Empty PDF")
         .with_creator("oxidizePdf Test Suite")
         .build();
-    
+
     let path = output_dir.join("minimal_empty.pdf");
     fs::write(&path, pdf)?;
-    
+
     // Write metadata
     let metadata = r#"{
     "metadata": {
@@ -58,7 +58,7 @@ fn generate_minimal_empty(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -76,18 +76,19 @@ fn generate_version_variants(output_dir: &Path) -> Result<()> {
         (PdfVersion::V1_7, "1.7"),
         (PdfVersion::V2_0, "2.0"),
     ];
-    
+
     for (version, version_str) in versions {
         let pdf = TestPdfBuilder::minimal()
             .with_version(version)
             .with_title(&format!("PDF Version {} Test", version_str))
             .build();
-        
+
         let filename = format!("minimal_v{}.pdf", version_str.replace('.', "_"));
         let path = output_dir.join(&filename);
         fs::write(&path, pdf)?;
-        
-        let metadata = format!(r#"{{
+
+        let metadata = format!(
+            r#"{{
     "metadata": {{
         "name": "minimal_v{}",
         "description": "Minimal PDF with version {}",
@@ -100,11 +101,15 @@ fn generate_version_variants(output_dir: &Path) -> Result<()> {
             "page_count": 1
         }}
     }}
-}}"#, version_str.replace('.', "_"), version_str, version_str);
-        
+}}"#,
+            version_str.replace('.', "_"),
+            version_str,
+            version_str
+        );
+
         fs::write(path.with_extension("json"), metadata)?;
     }
-    
+
     Ok(())
 }
 
@@ -113,13 +118,13 @@ fn generate_minimal_text(output_dir: &Path) -> Result<()> {
     let mut builder = TestPdfBuilder::new()
         .with_title("Minimal Text PDF")
         .with_creator("oxidizePdf Test Suite");
-    
+
     builder.add_text_page("Hello, World!", 12.0);
-    
+
     let pdf = builder.build();
     let path = output_dir.join("minimal_text.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "minimal_text",
@@ -134,7 +139,7 @@ fn generate_minimal_text(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -144,13 +149,13 @@ fn generate_minimal_graphics(output_dir: &Path) -> Result<()> {
     let mut builder = TestPdfBuilder::new()
         .with_title("Minimal Graphics PDF")
         .with_creator("oxidizePdf Test Suite");
-    
+
     builder.add_graphics_page();
-    
+
     let pdf = builder.build();
     let path = output_dir.join("minimal_graphics.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "minimal_graphics",
@@ -165,7 +170,7 @@ fn generate_minimal_graphics(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -180,10 +185,10 @@ fn generate_minimal_with_info(output_dir: &Path) -> Result<()> {
         .with_info("Subject", "PDF Testing")
         .with_info("Keywords", "test, pdf, minimal")
         .build();
-    
+
     let path = output_dir.join("minimal_with_info.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "minimal_with_info",
@@ -206,7 +211,7 @@ fn generate_minimal_with_info(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -216,16 +221,16 @@ fn generate_minimal_multipage(output_dir: &Path) -> Result<()> {
     let mut builder = TestPdfBuilder::new()
         .with_title("Minimal Multi-page PDF")
         .with_creator("oxidizePdf Test Suite");
-    
+
     // Add 3 pages
     builder.add_empty_page(612.0, 792.0);
     builder.add_text_page("Page 2", 14.0);
     builder.add_graphics_page();
-    
+
     let pdf = builder.build();
     let path = output_dir.join("minimal_multipage.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "minimal_multipage",
@@ -240,7 +245,7 @@ fn generate_minimal_multipage(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -249,12 +254,12 @@ fn generate_minimal_multipage(output_dir: &Path) -> Result<()> {
 mod tests {
     use super::*;
     use tempfile;
-    
+
     #[test]
     fn test_generate_minimal_pdfs() {
         let temp_dir = tempfile::tempdir().unwrap();
         generate_all(temp_dir.path()).unwrap();
-        
+
         // Check that files were created
         assert!(temp_dir.path().join("minimal_empty.pdf").exists());
         assert!(temp_dir.path().join("minimal_empty.json").exists());

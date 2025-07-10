@@ -1,13 +1,13 @@
 //! PDF Page Tree Parser
-//! 
+//!
 //! Handles navigation and extraction of pages from the PDF page tree structure
 
-use super::{ParseError, ParseResult};
-use super::objects::{PdfObject, PdfDictionary, PdfStream};
-use super::reader::PdfReader;
 use super::document::PdfDocument;
-use std::io::{Read, Seek};
+use super::objects::{PdfDictionary, PdfObject, PdfStream};
+use super::reader::PdfReader;
+use super::{ParseError, ParseResult};
 use std::collections::HashMap;
+use std::io::{Read, Seek};
 
 /// Represents a single page in the PDF
 #[derive(Debug, Clone)]
@@ -45,7 +45,7 @@ impl PageTree {
             pages_dict: None,
         }
     }
-    
+
     /// Create a new page tree navigator with pages dictionary
     pub fn new_with_pages_dict(page_count: u32, pages_dict: PdfDictionary) -> Self {
         Self {
@@ -54,22 +54,22 @@ impl PageTree {
             pages_dict: Some(pages_dict),
         }
     }
-    
+
     /// Get a cached page by index (0-based)
     pub fn get_cached_page(&self, index: u32) -> Option<&ParsedPage> {
         self.pages.get(&index)
     }
-    
+
     /// Cache a page
     pub fn cache_page(&mut self, index: u32, page: ParsedPage) {
         self.pages.insert(index, page);
     }
-    
+
     /// Get the total page count
     pub fn page_count(&self) -> u32 {
         self.page_count
     }
-    
+
     /// Load a specific page by traversing the page tree
     fn load_page_at_index<R: Read + Seek>(
         &self,
@@ -78,19 +78,21 @@ impl PageTree {
         target_index: u32,
         inherited: Option<&PdfDictionary>,
     ) -> ParseResult<ParsedPage> {
-        let node_type = node.get_type()
+        let node_type = node
+            .get_type()
             .ok_or_else(|| ParseError::MissingKey("Type".to_string()))?;
-        
+
         match node_type {
             "Pages" => {
                 // This is a page tree node
-                let kids = node.get("Kids")
+                let kids = node
+                    .get("Kids")
                     .and_then(|obj| obj.as_array())
                     .ok_or_else(|| ParseError::MissingKey("Kids".to_string()))?;
-                
+
                 // Merge inherited attributes
                 let mut merged_inherited = inherited.cloned().unwrap_or_else(PdfDictionary::new);
-                
+
                 // Inheritable attributes: Resources, MediaBox, CropBox, Rotate
                 if let Some(resources) = node.get("Resources") {
                     if !merged_inherited.contains_key("Resources") {
@@ -112,48 +114,53 @@ impl PageTree {
                         merged_inherited.insert("Rotate".to_string(), rotate.clone());
                     }
                 }
-                
+
                 // Find which kid contains our target page
                 let mut current_index = 0;
                 for kid_ref in &kids.0 {
-                    let kid_ref = kid_ref.as_reference()
-                        .ok_or_else(|| ParseError::SyntaxError {
-                            position: 0,
-                            message: "Kids array must contain references".to_string(),
-                        })?;
-                    
+                    let kid_ref =
+                        kid_ref
+                            .as_reference()
+                            .ok_or_else(|| ParseError::SyntaxError {
+                                position: 0,
+                                message: "Kids array must contain references".to_string(),
+                            })?;
+
                     // Get the kid object info first
                     let (kid_type, count, is_target) = {
                         let kid_obj = reader.get_object(kid_ref.0, kid_ref.1)?;
-                        let kid_dict = kid_obj.as_dict()
-                            .ok_or_else(|| ParseError::SyntaxError {
+                        let kid_dict =
+                            kid_obj.as_dict().ok_or_else(|| ParseError::SyntaxError {
                                 position: 0,
                                 message: "Page tree node must be a dictionary".to_string(),
                             })?;
-                        
-                        let kid_type = kid_dict.get_type()
+
+                        let kid_type = kid_dict
+                            .get_type()
                             .ok_or_else(|| ParseError::MissingKey("Type".to_string()))?;
-                        
+
                         let count = if kid_type == "Pages" {
                             // This is another page tree node
-                            kid_dict.get("Count")
+                            kid_dict
+                                .get("Count")
                                 .and_then(|obj| obj.as_integer())
-                                .ok_or_else(|| ParseError::MissingKey("Count".to_string()))? as u32
+                                .ok_or_else(|| ParseError::MissingKey("Count".to_string()))?
+                                as u32
                         } else {
                             // This is a page
                             1
                         };
-                        
+
                         let is_target = target_index < current_index + count;
                         (kid_type.to_string(), count, is_target)
                     };
-                    
+
                     if is_target {
                         // Found the right subtree/page
                         // Get the kid dict again
                         let kid_obj = reader.get_object(kid_ref.0, kid_ref.1)?;
                         let kid_dict = kid_obj.as_dict().unwrap();
-                        
+
                         // TODO: Fix borrow checker issue with recursive calls
                         // For now, return a placeholder
                         return Ok(ParsedPage {
@@ -165,10 +172,10 @@ impl PageTree {
                             rotation: 0,
                         });
                     }
-                    
+
                     current_index += count;
                 }
-                
+
                 Err(ParseError::SyntaxError {
                     position: 0,
                     message: "Page not found in tree".to_string(),
@@ -182,26 +189,29 @@ impl PageTree {
                         message: "Page index mismatch".to_string(),
                     });
                 }
-                
+
                 // Get page reference (we need to track back from the current node)
                 // For now, use a placeholder
                 let obj_ref = (0, 0); // TODO: Get actual reference
-                
+
                 // Extract page attributes
                 let media_box = Self::get_rectangle(node, inherited, "MediaBox")?
                     .ok_or_else(|| ParseError::MissingKey("MediaBox".to_string()))?;
-                
+
                 let crop_box = Self::get_rectangle(node, inherited, "CropBox")?;
-                
+
                 let rotation = Self::get_integer(node, inherited, "Rotate")?.unwrap_or(0) as i32;
-                
+
                 // Get resources
                 let inherited_resources = if let Some(inherited) = inherited {
-                    inherited.get("Resources").and_then(|r| r.as_dict()).cloned()
+                    inherited
+                        .get("Resources")
+                        .and_then(|r| r.as_dict())
+                        .cloned()
                 } else {
                     None
                 };
-                
+
                 Ok(ParsedPage {
                     obj_ref,
                     dict: node.clone(),
@@ -217,16 +227,15 @@ impl PageTree {
             }),
         }
     }
-    
+
     /// Get a rectangle value, checking both node and inherited dictionaries
     fn get_rectangle(
         node: &PdfDictionary,
         inherited: Option<&PdfDictionary>,
         key: &str,
     ) -> ParseResult<Option<[f64; 4]>> {
-        let array = node.get(key)
-            .or_else(|| inherited.and_then(|i| i.get(key)));
-        
+        let array = node.get(key).or_else(|| inherited.and_then(|i| i.get(key)));
+
         if let Some(array) = array.and_then(|obj| obj.as_array()) {
             if array.len() != 4 {
                 return Err(ParseError::SyntaxError {
@@ -234,29 +243,28 @@ impl PageTree {
                     message: format!("{} must have 4 elements", key),
                 });
             }
-            
+
             let rect = [
                 array.get(0).unwrap().as_real().unwrap_or(0.0),
                 array.get(1).unwrap().as_real().unwrap_or(0.0),
                 array.get(2).unwrap().as_real().unwrap_or(0.0),
                 array.get(3).unwrap().as_real().unwrap_or(0.0),
             ];
-            
+
             Ok(Some(rect))
         } else {
             Ok(None)
         }
     }
-    
+
     /// Get an integer value, checking both node and inherited dictionaries
     fn get_integer(
         node: &PdfDictionary,
         inherited: Option<&PdfDictionary>,
         key: &str,
     ) -> ParseResult<Option<i64>> {
-        let value = node.get(key)
-            .or_else(|| inherited.and_then(|i| i.get(key)));
-        
+        let value = node.get(key).or_else(|| inherited.and_then(|i| i.get(key)));
+
         Ok(value.and_then(|obj| obj.as_integer()))
     }
 }
@@ -269,7 +277,7 @@ impl ParsedPage {
             _ => self.media_box[2] - self.media_box[0],
         }
     }
-    
+
     /// Get the page height
     pub fn height(&self) -> f64 {
         match self.rotation {
@@ -277,14 +285,14 @@ impl ParsedPage {
             _ => self.media_box[3] - self.media_box[1],
         }
     }
-    
+
     /// Get the content streams for this page
     pub fn content_streams<R: Read + Seek>(
         &self,
         reader: &mut PdfReader<R>,
     ) -> ParseResult<Vec<Vec<u8>>> {
         let mut streams = Vec::new();
-        
+
         if let Some(contents) = self.dict.get("Contents") {
             // First resolve contents to check its type
             let contents_type = match contents {
@@ -300,7 +308,7 @@ impl ParsedPage {
                 PdfObject::Array(_) => "array",
                 _ => "other",
             };
-            
+
             match contents_type {
                 "stream" => {
                     let resolved = reader.resolve(contents)?;
@@ -313,7 +321,9 @@ impl ParsedPage {
                     let refs: Vec<(u32, u16)> = {
                         let resolved = reader.resolve(contents)?;
                         if let PdfObject::Array(array) = resolved {
-                            array.0.iter()
+                            array
+                                .0
+                                .iter()
                                 .filter_map(|obj| {
                                     if let PdfObject::Reference(num, gen) = obj {
                                         Some((*num, *gen))
@@ -326,7 +336,7 @@ impl ParsedPage {
                             Vec::new()
                         }
                     };
-                    
+
                     // Now resolve each reference
                     for (obj_num, gen_num) in refs {
                         let obj = reader.get_object(obj_num, gen_num)?;
@@ -335,16 +345,18 @@ impl ParsedPage {
                         }
                     }
                 }
-                _ => return Err(ParseError::SyntaxError {
-                    position: 0,
-                    message: "Contents must be a stream or array of streams".to_string(),
-                }),
+                _ => {
+                    return Err(ParseError::SyntaxError {
+                        position: 0,
+                        message: "Contents must be a stream or array of streams".to_string(),
+                    })
+                }
             }
         }
-        
+
         Ok(streams)
     }
-    
+
     /// Get content streams using PdfDocument
     pub fn content_streams_with_document<R: Read + Seek>(
         &self,
@@ -352,29 +364,32 @@ impl ParsedPage {
     ) -> ParseResult<Vec<Vec<u8>>> {
         document.get_page_content_streams(self)
     }
-    
+
     /// Get the effective resources for this page (including inherited)
     pub fn get_resources(&self) -> Option<&PdfDictionary> {
-        self.dict.get("Resources")
+        self.dict
+            .get("Resources")
             .and_then(|r| r.as_dict())
             .or(self.inherited_resources.as_ref())
     }
-    
+
     /// Clone this page with all its resources
     pub fn clone_with_resources(&self) -> Self {
         let mut cloned = self.clone();
-        
+
         // Merge inherited resources into the page dictionary if needed
         if let Some(inherited) = &self.inherited_resources {
             if !cloned.dict.contains_key("Resources") {
-                cloned.dict.insert("Resources".to_string(), 
-                    PdfObject::Dictionary(inherited.clone()));
+                cloned.dict.insert(
+                    "Resources".to_string(),
+                    PdfObject::Dictionary(inherited.clone()),
+                );
             }
         }
-        
+
         cloned
     }
-    
+
     /// Get all referenced objects from this page (for extraction)
     pub fn get_referenced_objects<R: Read + Seek>(
         &self,
@@ -382,34 +397,34 @@ impl ParsedPage {
     ) -> ParseResult<HashMap<(u32, u16), PdfObject>> {
         let mut objects = HashMap::new();
         let mut to_process = Vec::new();
-        
+
         // Start with Contents
         if let Some(contents) = self.dict.get("Contents") {
             Self::collect_references(contents, &mut to_process);
         }
-        
+
         // Add Resources
         if let Some(resources) = self.get_resources() {
             for (_, value) in &resources.0 {
                 Self::collect_references(value, &mut to_process);
             }
         }
-        
+
         // Process all references
         while let Some((obj_num, gen_num)) = to_process.pop() {
             if !objects.contains_key(&(obj_num, gen_num)) {
                 let obj = reader.get_object(obj_num, gen_num)?;
-                
+
                 // Collect nested references
                 Self::collect_references_from_object(obj, &mut to_process);
-                
+
                 objects.insert((obj_num, gen_num), obj.clone());
             }
         }
-        
+
         Ok(objects)
     }
-    
+
     /// Collect object references from a PDF object
     fn collect_references(obj: &PdfObject, refs: &mut Vec<(u32, u16)>) {
         match obj {
@@ -429,7 +444,7 @@ impl ParsedPage {
             _ => {}
         }
     }
-    
+
     /// Collect references from an object (after resolution)
     fn collect_references_from_object(obj: &PdfObject, refs: &mut Vec<(u32, u16)>) {
         match obj {

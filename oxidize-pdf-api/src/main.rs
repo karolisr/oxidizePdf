@@ -5,7 +5,7 @@ use axum::{
     routing::post,
     Router,
 };
-use oxidize_pdf::{Document, Page, Font, Color};
+use oxidize_pdf::{Color, Document, Font, Page};
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
 use tower_http::cors::CorsLayer;
@@ -40,28 +40,26 @@ async fn main() {
         .route("/api/health", axum::routing::get(health_check))
         .layer(CorsLayer::permissive());
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
-        .await
-        .unwrap();
-    
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+
     info!("oxidizePdf API listening on http://0.0.0.0:3000");
-    
+
     axum::serve(listener, app).await.unwrap();
 }
 
 async fn create_pdf(Json(payload): Json<CreatePdfRequest>) -> Result<Response, AppError> {
     let mut doc = Document::new();
     let mut page = Page::a4();
-    
+
     let font_size = payload.font_size.unwrap_or(24.0);
-    
+
     page.text()
         .set_font(Font::Helvetica, font_size)
         .at(50.0, 750.0)
         .write(&payload.text)?;
-    
+
     doc.add_page(page);
-    
+
     // Generate PDF to temporary file (until we implement write to buffer)
     use std::time::{SystemTime, UNIX_EPOCH};
     let timestamp = SystemTime::now()
@@ -72,15 +70,19 @@ async fn create_pdf(Json(payload): Json<CreatePdfRequest>) -> Result<Response, A
     doc.save(&temp_path)?;
     let pdf_bytes = std::fs::read(&temp_path)?;
     let _ = std::fs::remove_file(&temp_path);
-    
+
     Ok((
         StatusCode::OK,
         [
             ("Content-Type", "application/pdf"),
-            ("Content-Disposition", "attachment; filename=\"generated.pdf\""),
+            (
+                "Content-Disposition",
+                "attachment; filename=\"generated.pdf\"",
+            ),
         ],
         pdf_bytes,
-    ).into_response())
+    )
+        .into_response())
 }
 
 async fn health_check() -> impl IntoResponse {
@@ -103,11 +105,9 @@ impl IntoResponse for AppError {
             AppError::Pdf(e) => e.to_string(),
             AppError::Io(e) => e.to_string(),
         };
-        
-        let error_response = ErrorResponse {
-            error: error_msg,
-        };
-        
+
+        let error_response = ErrorResponse { error: error_msg };
+
         (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response()
     }
 }

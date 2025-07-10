@@ -1,9 +1,9 @@
-mod dictionary;
 mod array;
-mod stream;
+mod dictionary;
 mod primitive;
+mod stream;
 
-pub use dictionary::Dictionary;
 pub use array::Array;
+pub use dictionary::Dictionary;
+pub use primitive::{Object, ObjectId};
 pub use stream::Stream;
-pub use primitive::{ObjectId, Object};

@@ -1,7 +1,7 @@
 //! Simple test to verify text extraction functionality
 
 use oxidize_pdf_core::parser::PdfReader;
-use oxidize_pdf_core::text::{TextExtractor, ExtractionOptions};
+use oxidize_pdf_core::text::{ExtractionOptions, TextExtractor};
 use std::io::Write;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -47,14 +47,14 @@ startxref
     let mut file = std::fs::File::create("test_manual.pdf")?;
     file.write_all(pdf_content)?;
     drop(file);
-    
+
     println!("Created test_manual.pdf");
-    
+
     // Try to parse it
     match PdfReader::open_document("test_manual.pdf") {
         Ok(document) => {
             println!("✓ PDF parsed successfully!");
-            
+
             // Try to extract text
             let extractor = TextExtractor::new();
             match extractor.extract_from_document(&document) {
@@ -74,6 +74,6 @@ startxref
             println!("\nThis indicates an issue with the PDF parser xref handling.");
         }
     }
-    
+
     Ok(())
 }

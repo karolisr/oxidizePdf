@@ -1,30 +1,30 @@
 //! Invalid PDF Generators
-//! 
+//!
 //! Generates deliberately invalid PDFs for error handling tests.
 
-use std::path::Path;
-use std::fs;
 use anyhow::Result;
+use std::fs;
+use std::path::Path;
 
 /// Generate all invalid test PDFs
 pub fn generate_all<P: AsRef<Path>>(output_dir: P) -> Result<()> {
     let output_dir = output_dir.as_ref();
-    
+
     // Corrupted PDFs
     let corrupted_dir = output_dir.join("corrupted");
     fs::create_dir_all(&corrupted_dir)?;
     generate_corrupted_pdfs(&corrupted_dir)?;
-    
+
     // Malformed PDFs
     let malformed_dir = output_dir.join("malformed");
     fs::create_dir_all(&malformed_dir)?;
     generate_malformed_pdfs(&malformed_dir)?;
-    
+
     // Security issue PDFs
     let security_dir = output_dir.join("security");
     fs::create_dir_all(&security_dir)?;
     generate_security_pdfs(&security_dir)?;
-    
+
     Ok(())
 }
 
@@ -32,13 +32,13 @@ pub fn generate_all<P: AsRef<Path>>(output_dir: P) -> Result<()> {
 fn generate_corrupted_pdfs(output_dir: &Path) -> Result<()> {
     // Truncated PDF
     generate_truncated_pdf(output_dir)?;
-    
+
     // PDF with corrupted xref
     generate_corrupted_xref(output_dir)?;
-    
+
     // PDF with invalid stream
     generate_corrupted_stream(output_dir)?;
-    
+
     Ok(())
 }
 
@@ -46,16 +46,16 @@ fn generate_corrupted_pdfs(output_dir: &Path) -> Result<()> {
 fn generate_malformed_pdfs(output_dir: &Path) -> Result<()> {
     // Missing header
     generate_no_header(output_dir)?;
-    
+
     // Invalid header
     generate_invalid_header(output_dir)?;
-    
+
     // Missing EOF marker
     generate_no_eof(output_dir)?;
-    
+
     // Circular references
     generate_circular_reference(output_dir)?;
-    
+
     Ok(())
 }
 
@@ -63,10 +63,10 @@ fn generate_malformed_pdfs(output_dir: &Path) -> Result<()> {
 fn generate_security_pdfs(output_dir: &Path) -> Result<()> {
     // JavaScript injection attempt
     generate_javascript_injection(output_dir)?;
-    
+
     // Excessive nesting
     generate_excessive_nesting(output_dir)?;
-    
+
     Ok(())
 }
 
@@ -85,11 +85,11 @@ fn generate_truncated_pdf(output_dir: &Path) -> Result<()> {
                 endobj\n\
                 xref\n\
                 0 4\n\
-                0000000000 655";  // Truncated here
-    
+                0000000000 655"; // Truncated here
+
     let path = output_dir.join("truncated.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "truncated",
@@ -105,7 +105,7 @@ fn generate_truncated_pdf(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -134,10 +134,10 @@ fn generate_corrupted_xref(output_dir: &Path) -> Result<()> {
                 startxref\n\
                 229\n\
                 %%EOF";
-    
+
     let path = output_dir.join("corrupted_xref.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "corrupted_xref",
@@ -153,7 +153,7 @@ fn generate_corrupted_xref(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -188,10 +188,10 @@ fn generate_corrupted_stream(output_dir: &Path) -> Result<()> {
                 startxref\n\
                 337\n\
                 %%EOF";
-    
+
     let path = output_dir.join("corrupted_stream.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "corrupted_stream",
@@ -207,7 +207,7 @@ fn generate_corrupted_stream(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -230,10 +230,10 @@ fn generate_no_header(output_dir: &Path) -> Result<()> {
                 startxref\n\
                 108\n\
                 %%EOF";
-    
+
     let path = output_dir.join("no_header.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "no_header",
@@ -249,7 +249,7 @@ fn generate_no_header(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -261,10 +261,10 @@ fn generate_invalid_header(output_dir: &Path) -> Result<()> {
                 << /Type /Catalog /Pages 2 0 R >>\n\
                 endobj\n\
                 %%EOF";
-    
+
     let path = output_dir.join("invalid_header.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "invalid_header",
@@ -280,7 +280,7 @@ fn generate_invalid_header(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -302,11 +302,11 @@ fn generate_no_eof(output_dir: &Path) -> Result<()> {
                 trailer\n\
                 << /Size 3 /Root 1 0 R >>\n\
                 startxref\n\
-                117";  // Missing %%EOF
-    
+                117"; // Missing %%EOF
+
     let path = output_dir.join("no_eof.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "no_eof",
@@ -321,7 +321,7 @@ fn generate_no_eof(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -349,10 +349,10 @@ fn generate_circular_reference(output_dir: &Path) -> Result<()> {
                 startxref\n\
                 232\n\
                 %%EOF";
-    
+
     let path = output_dir.join("circular_reference.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "circular_reference",
@@ -368,7 +368,7 @@ fn generate_circular_reference(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -400,10 +400,10 @@ fn generate_javascript_injection(output_dir: &Path) -> Result<()> {
                 startxref\n\
                 243\n\
                 %%EOF";
-    
+
     let path = output_dir.join("javascript_injection.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "javascript_injection",
@@ -418,7 +418,7 @@ fn generate_javascript_injection(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }
@@ -426,7 +426,7 @@ fn generate_javascript_injection(output_dir: &Path) -> Result<()> {
 /// Generate PDF with excessive nesting
 fn generate_excessive_nesting(output_dir: &Path) -> Result<()> {
     let mut pdf = b"%PDF-1.4\n1 0 obj\n<<".to_vec();
-    
+
     // Create deeply nested dictionaries
     for _ in 0..100 {
         pdf.extend_from_slice(b" /Dict <<");
@@ -435,16 +435,18 @@ fn generate_excessive_nesting(output_dir: &Path) -> Result<()> {
     for _ in 0..100 {
         pdf.extend_from_slice(b" >>");
     }
-    
-    pdf.extend_from_slice(b">>\nendobj\nxref\n0 2\n\
+
+    pdf.extend_from_slice(
+        b">>\nendobj\nxref\n0 2\n\
                             0000000000 65535 f \n\
                             0000000009 00000 n \n\
                             trailer\n<< /Size 2 /Root 1 0 R >>\n\
-                            startxref\n420\n%%EOF");
-    
+                            startxref\n420\n%%EOF",
+    );
+
     let path = output_dir.join("excessive_nesting.pdf");
     fs::write(&path, pdf)?;
-    
+
     let metadata = r#"{
     "metadata": {
         "name": "excessive_nesting",
@@ -460,7 +462,7 @@ fn generate_excessive_nesting(output_dir: &Path) -> Result<()> {
         }
     }
 }"#;
-    
+
     fs::write(path.with_extension("json"), metadata)?;
     Ok(())
 }

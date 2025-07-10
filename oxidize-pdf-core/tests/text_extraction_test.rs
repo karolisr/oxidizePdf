@@ -1,8 +1,8 @@
 //! Tests for text extraction functionality
 
-use oxidize_pdf_core::{Document, Page, Font};
 use oxidize_pdf_core::parser::PdfReader;
-use oxidize_pdf_core::text::{TextExtractor, ExtractionOptions};
+use oxidize_pdf_core::text::{ExtractionOptions, TextExtractor};
+use oxidize_pdf_core::{Document, Font, Page};
 use tempfile::TempDir;
 
 #[test]
@@ -10,7 +10,7 @@ fn test_extract_text_from_generated_pdf() {
     // Create a simple PDF with text
     let mut doc = Document::new();
     let mut page = Page::a4();
-    
+
     // Add some text
     page.text()
         .set_font(Font::Helvetica, 12.0)
@@ -23,20 +23,20 @@ fn test_extract_text_from_generated_pdf() {
         .at(100.0, 660.0)
         .write("Testing text extraction.")
         .unwrap();
-    
+
     doc.add_page(page);
-    
+
     // Save to temporary file
     let temp_dir = TempDir::new().unwrap();
     let pdf_path = temp_dir.path().join("test.pdf");
     doc.save(&pdf_path).unwrap();
-    
+
     // Open and extract text
     let pdf_doc = PdfReader::open_document(&pdf_path).unwrap();
-    
+
     let extractor = TextExtractor::new();
     let extracted = extractor.extract_from_page(&pdf_doc, 0).unwrap();
-    
+
     // Verify extracted text contains what we wrote
     assert!(extracted.text.contains("Hello, World!"));
     assert!(extracted.text.contains("This is a test PDF."));
@@ -47,7 +47,7 @@ fn test_extract_text_from_generated_pdf() {
 fn test_extract_with_layout_preservation() {
     let mut doc = Document::new();
     let mut page = Page::a4();
-    
+
     // Add text at different positions
     page.text()
         .set_font(Font::Helvetica, 14.0)
@@ -60,34 +60,31 @@ fn test_extract_with_layout_preservation() {
         .at(50.0, 600.0)
         .write("Lower text")
         .unwrap();
-    
+
     doc.add_page(page);
-    
+
     // Save and reopen
     let temp_dir = TempDir::new().unwrap();
     let pdf_path = temp_dir.path().join("layout_test.pdf");
     doc.save(&pdf_path).unwrap();
-    
+
     let pdf_doc = PdfReader::open_document(&pdf_path).unwrap();
-    
+
     // Extract with layout preservation
     let options = ExtractionOptions {
         preserve_layout: true,
         ..Default::default()
     };
-    
+
     let extractor = TextExtractor::with_options(options);
     let extracted = extractor.extract_from_page(&pdf_doc, 0).unwrap();
-    
+
     // Should have fragments with position info
     assert!(!extracted.fragments.is_empty());
-    
+
     // Check that fragments are at different positions
-    let positions: Vec<(f64, f64)> = extracted.fragments
-        .iter()
-        .map(|f| (f.x, f.y))
-        .collect();
-    
+    let positions: Vec<(f64, f64)> = extracted.fragments.iter().map(|f| (f.x, f.y)).collect();
+
     // Verify we have multiple fragments
     assert!(positions.len() >= 3, "Expected at least 3 text fragments");
 }
@@ -95,7 +92,7 @@ fn test_extract_with_layout_preservation() {
 #[test]
 fn test_extract_multiple_pages() {
     let mut doc = Document::new();
-    
+
     // Create 3 pages with different text
     for i in 0..3 {
         let mut page = Page::a4();
@@ -106,21 +103,21 @@ fn test_extract_multiple_pages() {
             .unwrap();
         doc.add_page(page);
     }
-    
+
     // Save and reopen
     let temp_dir = TempDir::new().unwrap();
     let pdf_path = temp_dir.path().join("multipage_test.pdf");
     doc.save(&pdf_path).unwrap();
-    
+
     let pdf_doc = PdfReader::open_document(&pdf_path).unwrap();
-    
+
     // Extract all pages
     let extractor = TextExtractor::new();
     let all_pages = extractor.extract_from_document(&pdf_doc).unwrap();
-    
+
     // Should have 3 pages
     assert_eq!(all_pages.len(), 3);
-    
+
     // Each page should have correct text
     for (i, extracted) in all_pages.iter().enumerate() {
         assert!(extracted.text.contains(&format!("This is page {}", i + 1)));
@@ -132,18 +129,18 @@ fn test_extract_empty_page() {
     let mut doc = Document::new();
     let page = Page::a4(); // Empty page
     doc.add_page(page);
-    
+
     // Save and reopen
     let temp_dir = TempDir::new().unwrap();
     let pdf_path = temp_dir.path().join("empty_test.pdf");
     doc.save(&pdf_path).unwrap();
-    
+
     let pdf_doc = PdfReader::open_document(&pdf_path).unwrap();
-    
+
     // Extract from empty page
     let extractor = TextExtractor::new();
     let extracted = extractor.extract_from_page(&pdf_doc, 0).unwrap();
-    
+
     // Should be empty
     assert!(extracted.text.is_empty());
     assert!(extracted.fragments.is_empty());
@@ -193,14 +190,14 @@ startxref
     let temp_dir = TempDir::new().unwrap();
     let pdf_path = temp_dir.path().join("manual_test.pdf");
     std::fs::write(&pdf_path, pdf_content).unwrap();
-    
+
     // Parse the PDF
     let document = PdfReader::open_document(&pdf_path).unwrap();
-    
+
     // Extract text
     let extractor = TextExtractor::new();
     let extracted_text = extractor.extract_from_document(&document).unwrap();
-    
+
     // Verify extraction
     assert_eq!(extracted_text.len(), 1);
     assert_eq!(extracted_text[0].text.trim(), "Hello World");
@@ -253,10 +250,10 @@ startxref
     let temp_dir = TempDir::new().unwrap();
     let pdf_path = temp_dir.path().join("multi_text.pdf");
     std::fs::write(&pdf_path, pdf_content).unwrap();
-    
+
     // Parse the PDF
     let document = PdfReader::open_document(&pdf_path).unwrap();
-    
+
     // Extract with preserve layout option
     let options = ExtractionOptions {
         preserve_layout: true,
@@ -264,16 +261,16 @@ startxref
     };
     let extractor = TextExtractor::with_options(options);
     let extracted_text = extractor.extract_from_document(&document).unwrap();
-    
+
     // Verify extraction
     assert_eq!(extracted_text.len(), 1);
     let page_text = &extracted_text[0];
-    
+
     // Check text content
     assert!(page_text.text.contains("First line"));
     assert!(page_text.text.contains("Second line"));
     assert!(page_text.text.contains("Third line"));
-    
+
     // Should have fragments for layout
     assert!(page_text.fragments.len() >= 3);
 }

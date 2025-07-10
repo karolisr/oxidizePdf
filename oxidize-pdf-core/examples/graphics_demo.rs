@@ -1,28 +1,28 @@
-use oxidize_pdf_core::{Document, Page, Color};
+use oxidize_pdf_core::{Color, Document, Page};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut doc = Document::new();
     let mut page = Page::a4();
-    
+
     let graphics = page.graphics();
-    
+
     // Draw a grid
     graphics
         .set_stroke_color(Color::gray(0.8))
         .set_line_width(0.5);
-    
+
     // Vertical lines
     for i in 0..12 {
         let x = 50.0 + i as f64 * 50.0;
         graphics.move_to(x, 50.0).line_to(x, 750.0).stroke();
     }
-    
+
     // Horizontal lines
     for i in 0..15 {
         let y = 50.0 + i as f64 * 50.0;
         graphics.move_to(50.0, y).line_to(550.0, y).stroke();
     }
-    
+
     // Draw shapes with different colors
     graphics
         .save_state()
@@ -30,14 +30,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .rect(100.0, 100.0, 100.0, 100.0)
         .fill()
         .restore_state();
-    
+
     graphics
         .save_state()
         .set_fill_color(Color::green())
         .circle(350.0, 150.0, 50.0)
         .fill()
         .restore_state();
-    
+
     // Draw a triangle
     graphics
         .save_state()
@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .close_path()
         .fill()
         .restore_state();
-    
+
     // Draw lines with different widths
     graphics.set_stroke_color(Color::black());
     for i in 0..5 {
@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .line_to(400.0, y)
             .stroke();
     }
-    
+
     // Transformations demo
     graphics
         .save_state()
@@ -70,11 +70,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .rect(-40.0, -40.0, 80.0, 80.0)
         .fill()
         .restore_state();
-    
+
     doc.add_page(page);
     doc.save("graphics_demo.pdf")?;
-    
+
     println!("Graphics demo PDF created: graphics_demo.pdf");
-    
+
     Ok(())
 }

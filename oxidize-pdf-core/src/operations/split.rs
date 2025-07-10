@@ -1,14 +1,14 @@
 //! PDF splitting functionality
-//! 
+//!
 //! This module provides functionality to split PDF documents into multiple files
 //! based on page ranges or other criteria.
 
-use crate::parser::{PdfReader, PdfDocument, ContentParser, ContentOperation};
-use crate::parser::page_tree::ParsedPage;
-use crate::{Document, Page};
 use super::{OperationError, OperationResult, PageRange};
-use std::path::{Path, PathBuf};
+use crate::parser::page_tree::ParsedPage;
+use crate::parser::{ContentOperation, ContentParser, PdfDocument, PdfReader};
+use crate::{Document, Page};
 use std::fs::File;
+use std::path::{Path, PathBuf};
 
 /// Options for PDF splitting
 #[derive(Debug, Clone)]
@@ -58,16 +58,18 @@ impl PdfSplitter {
     pub fn new(document: PdfDocument<File>, options: SplitOptions) -> Self {
         Self { document, options }
     }
-    
+
     /// Split the PDF according to the options
     pub fn split(&mut self) -> OperationResult<Vec<PathBuf>> {
-        let total_pages = self.document.page_count()
-            .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
-        
+        let total_pages =
+            self.document
+                .page_count()
+                .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
+
         if total_pages == 0 {
             return Err(OperationError::NoPagesToProcess);
         }
-        
+
         let ranges = match &self.options.mode {
             SplitMode::SinglePages => {
                 // Create a range for each page
@@ -89,48 +91,50 @@ impl PdfSplitter {
                 // Create ranges between split points
                 let mut ranges = Vec::new();
                 let mut start = 0;
-                
+
                 for &split_point in split_points {
                     if split_point > 0 && split_point < total_pages {
                         ranges.push(PageRange::Range(start, split_point - 1));
                         start = split_point;
                     }
                 }
-                
+
                 // Add the last range
                 if start < total_pages {
                     ranges.push(PageRange::Range(start, total_pages - 1));
                 }
-                
+
                 ranges
             }
         };
-        
+
         // Process each range
         let mut output_files = Vec::new();
-        
+
         for (index, range) in ranges.iter().enumerate() {
             let output_path = self.format_output_path(index, &range);
             self.extract_range(range, &output_path)?;
             output_files.push(output_path);
         }
-        
+
         Ok(output_files)
     }
-    
+
     /// Extract a page range to a new PDF file
     fn extract_range(&mut self, range: &PageRange, output_path: &Path) -> OperationResult<()> {
-        let total_pages = self.document.page_count()
-            .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
-        
+        let total_pages =
+            self.document
+                .page_count()
+                .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
+
         let indices = range.get_indices(total_pages)?;
         if indices.is_empty() {
             return Err(OperationError::NoPagesToProcess);
         }
-        
+
         // Create new document
         let mut doc = Document::new();
-        
+
         // Copy metadata if requested
         if self.options.preserve_metadata {
             if let Ok(metadata) = self.document.metadata() {
@@ -148,39 +152,43 @@ impl PdfSplitter {
                 }
             }
         }
-        
+
         // Extract and add pages
         for &page_idx in &indices {
-            let parsed_page = self.document.get_page(page_idx as u32)
+            let parsed_page = self
+                .document
+                .get_page(page_idx as u32)
                 .map_err(|e| OperationError::ParseError(e.to_string()))?;
-            
+
             let page = self.convert_page(&parsed_page)?;
             doc.add_page(page);
         }
-        
+
         // Save the document
         doc.save(output_path)?;
-        
+
         Ok(())
     }
-    
+
     /// Convert a parsed page to a new page
     fn convert_page(&mut self, parsed_page: &ParsedPage) -> OperationResult<Page> {
         // Create new page with same dimensions
         let width = parsed_page.width();
         let height = parsed_page.height();
         let mut page = Page::new(width, height);
-        
+
         // Set rotation if needed
         if parsed_page.rotation != 0 {
             // TODO: Implement rotation in Page
             // For now, we'll handle this when we implement the rotation feature
         }
-        
+
         // Get content streams
-        let content_streams = self.document.get_page_content_streams(parsed_page)
+        let content_streams = self
+            .document
+            .get_page_content_streams(parsed_page)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
-        
+
         // Parse and process content streams
         let mut has_content = false;
         for stream_data in &content_streams {
@@ -196,7 +204,7 @@ impl PdfSplitter {
                 }
             }
         }
-        
+
         // If no content was successfully processed, add a placeholder
         if !has_content {
             page.text()
@@ -205,19 +213,23 @@ impl PdfSplitter {
                 .write("[Page extracted - content reconstruction in progress]")
                 .map_err(|e| OperationError::PdfError(e))?;
         }
-        
+
         Ok(page)
     }
-    
+
     /// Process content operators to recreate page content
-    fn process_operators(&self, page: &mut Page, operators: &[ContentOperation]) -> OperationResult<()> {
+    fn process_operators(
+        &self,
+        page: &mut Page,
+        operators: &[ContentOperation],
+    ) -> OperationResult<()> {
         // Track graphics state
         let mut text_object = false;
         let mut current_font = crate::text::Font::Helvetica;
         let mut current_font_size = 12.0;
         let mut current_x = 0.0;
         let mut current_y = 0.0;
-        
+
         for operator in operators {
             match operator {
                 ContentOperation::BeginText => {
@@ -277,14 +289,15 @@ impl PdfSplitter {
                     page.graphics().fill();
                 }
                 ContentOperation::SetNonStrokingRGB(r, g, b) => {
-                    page.graphics().set_fill_color(
-                        crate::graphics::Color::Rgb(*r as f64, *g as f64, *b as f64)
-                    );
+                    page.graphics().set_fill_color(crate::graphics::Color::Rgb(
+                        *r as f64, *g as f64, *b as f64,
+                    ));
                 }
                 ContentOperation::SetStrokingRGB(r, g, b) => {
-                    page.graphics().set_stroke_color(
-                        crate::graphics::Color::Rgb(*r as f64, *g as f64, *b as f64)
-                    );
+                    page.graphics()
+                        .set_stroke_color(crate::graphics::Color::Rgb(
+                            *r as f64, *g as f64, *b as f64,
+                        ));
                 }
                 ContentOperation::SetLineWidth(width) => {
                     page.graphics().set_line_width(*width as f64);
@@ -295,33 +308,33 @@ impl PdfSplitter {
                 }
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Format the output path based on the pattern
     fn format_output_path(&self, index: usize, range: &PageRange) -> PathBuf {
         let filename = match range {
-            PageRange::Single(page) => {
-                self.options.output_pattern
-                    .replace("{}", &(page + 1).to_string())
-                    .replace("{n}", &(index + 1).to_string())
-                    .replace("{page}", &(page + 1).to_string())
-            }
-            PageRange::Range(start, end) => {
-                self.options.output_pattern
-                    .replace("{}", &format!("{}-{}", start + 1, end + 1))
-                    .replace("{n}", &(index + 1).to_string())
-                    .replace("{start}", &(start + 1).to_string())
-                    .replace("{end}", &(end + 1).to_string())
-            }
-            _ => {
-                self.options.output_pattern
-                    .replace("{}", &(index + 1).to_string())
-                    .replace("{n}", &(index + 1).to_string())
-            }
+            PageRange::Single(page) => self
+                .options
+                .output_pattern
+                .replace("{}", &(page + 1).to_string())
+                .replace("{n}", &(index + 1).to_string())
+                .replace("{page}", &(page + 1).to_string()),
+            PageRange::Range(start, end) => self
+                .options
+                .output_pattern
+                .replace("{}", &format!("{}-{}", start + 1, end + 1))
+                .replace("{n}", &(index + 1).to_string())
+                .replace("{start}", &(start + 1).to_string())
+                .replace("{end}", &(end + 1).to_string()),
+            _ => self
+                .options
+                .output_pattern
+                .replace("{}", &(index + 1).to_string())
+                .replace("{n}", &(index + 1).to_string()),
         };
-        
+
         PathBuf::from(filename)
     }
 }
@@ -333,7 +346,7 @@ pub fn split_pdf<P: AsRef<Path>>(
 ) -> OperationResult<Vec<PathBuf>> {
     let document = PdfReader::open_document(input_path)
         .map_err(|e| OperationError::ParseError(e.to_string()))?;
-    
+
     let mut splitter = PdfSplitter::new(document, options);
     splitter.split()
 }
@@ -348,14 +361,14 @@ pub fn split_into_pages<P: AsRef<Path>>(
         output_pattern: output_pattern.to_string(),
         ..Default::default()
     };
-    
+
     split_pdf(input_path, options)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_split_options_default() {
         let options = SplitOptions::default();
@@ -364,14 +377,14 @@ mod tests {
         assert!(options.preserve_metadata);
         assert!(!options.optimize);
     }
-    
+
     #[test]
     fn test_format_output_path() {
         let options = SplitOptions {
             output_pattern: "output_page_{}.pdf".to_string(),
             ..Default::default()
         };
-        
+
         let reader = PdfReader::open("test.pdf");
         // Note: This test would need a valid PDF file to work properly
         // For now, we're just testing the logic
