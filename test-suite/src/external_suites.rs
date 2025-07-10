@@ -482,40 +482,96 @@ impl ExternalSuiteRunner {
     
     /// Run a single test
     fn run_single_test(&self, pdf: &TestPdf) -> Result<(), String> {
-        use oxidize_pdf_core::parser::PdfReader;
+        use oxidize_pdf_core::parser::{PdfReader, document::PdfDocument};
+        use std::fs::File;
         
-        // Load PDF content
-        let content = pdf.load()
-            .map_err(|e| format!("Failed to load PDF: {}", e))?;
+        // Open the PDF file
+        let file = File::open(&pdf.path)
+            .map_err(|e| format!("Failed to open PDF file: {}", e))?;
         
         // Try to parse with our parser
-        let cursor = std::io::Cursor::new(content);
-        
-        // Note: This will currently fail due to compilation issues
-        // Once fixed, implement actual parsing and validation
+        let reader_result = PdfReader::new(file);
         
         match &pdf.expected_behavior {
-            ExpectedBehavior::ParseSuccess { .. } => {
+            ExpectedBehavior::ParseSuccess { page_count, .. } => {
                 // Should parse successfully
-                // let reader = PdfReader::new(cursor).map_err(|e| format!("Parse failed: {}", e))?;
+                let reader = reader_result
+                    .map_err(|e| format!("Parse failed: {:?}", e))?;
+                
+                // Create PdfDocument for higher-level operations
+                let document = PdfDocument::new(reader);
+                
+                // Verify page count if specified
+                if let Some(expected_pages) = page_count {
+                    let actual_pages = document.page_count()
+                        .map_err(|e| format!("Failed to get page count: {:?}", e))?;
+                    if actual_pages != *expected_pages as u32 {
+                        return Err(format!("Expected {} pages, got {}", expected_pages, actual_pages));
+                    }
+                }
+                
+                // Try to access first page to ensure basic functionality
+                if document.page_count().unwrap_or(0) > 0 {
+                    let _page = document.get_page(0)
+                        .map_err(|e| format!("Failed to get first page: {:?}", e))?;
+                }
+                
                 Ok(())
             }
-            ExpectedBehavior::ParseError { error_type, .. } => {
+            ExpectedBehavior::ParseError { error_type, error_pattern } => {
                 // Should fail with specific error
-                // let result = PdfReader::new(cursor);
-                // if result.is_ok() {
-                //     return Err("Expected parse error but succeeded".to_string());
-                // }
-                Ok(())
+                match reader_result {
+                    Ok(_) => Err("Expected parse error but succeeded".to_string()),
+                    Err(e) => {
+                        let error_str = format!("{:?}", e);
+                        
+                        // Check if error matches expected pattern
+                        if let Some(pattern) = error_pattern {
+                            if !error_str.contains(pattern) {
+                                return Err(format!("Error doesn't match pattern '{}': {}", pattern, error_str));
+                            }
+                        }
+                        
+                        // Basic error type checking
+                        if !error_str.to_lowercase().contains(&error_type.to_lowercase()) {
+                            return Err(format!("Expected error type '{}', got: {}", error_type, error_str));
+                        }
+                        
+                        Ok(())
+                    }
+                }
             }
-            ExpectedBehavior::ParseWarning { .. } => {
+            ExpectedBehavior::ParseWarning { warning_patterns } => {
                 // Should parse with warnings
+                let reader = reader_result
+                    .map_err(|e| format!("Parse failed when warnings expected: {:?}", e))?;
+                
+                // Create PdfDocument
+                let document = PdfDocument::new(reader);
+                
+                // Verify document is readable despite warnings
+                let _ = document.page_count()
+                    .map_err(|e| format!("Failed to get page count: {:?}", e))?;
+                
+                // TODO: Implement warning collection and validation
+                
                 Ok(())
             }
             ExpectedBehavior::CustomValidation(validator) => {
-                // Run custom validation
-                // TODO: Implement custom validators
-                Ok(())
+                // Run custom validation based on validator name
+                match validator.as_str() {
+                    "vera_pdf_pdf_a-1a_fail" | "vera_pdf_pdf_a-1b_fail" => {
+                        // For PDF/A compliance failures, we expect parsing to work
+                        // but the PDF doesn't meet PDF/A requirements
+                        let reader = reader_result
+                            .map_err(|e| format!("Parse failed: {:?}", e))?;
+                        let document = PdfDocument::new(reader);
+                        let _ = document.page_count()
+                            .map_err(|e| format!("Failed to get page count: {:?}", e))?;
+                        Ok(())
+                    }
+                    _ => Ok(()) // Unknown validators pass by default
+                }
             }
         }
     }

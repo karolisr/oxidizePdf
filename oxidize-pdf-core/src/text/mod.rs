@@ -55,17 +55,24 @@ impl TextContext {
         write!(&mut self.operations, "{:.2} {:.2} Td\n", 
                self.text_matrix[4], self.text_matrix[5]).unwrap();
         
-        // Show text
+        // Encode text using WinAnsiEncoding
+        let encoding = TextEncoding::WinAnsiEncoding;
+        let encoded_bytes = encoding.encode(text);
+        
+        // Show text as a literal string
         self.operations.push('(');
-        for ch in text.chars() {
-            match ch {
-                '(' => self.operations.push_str("\\("),
-                ')' => self.operations.push_str("\\)"),
-                '\\' => self.operations.push_str("\\\\"),
-                '\n' => self.operations.push_str("\\n"),
-                '\r' => self.operations.push_str("\\r"),
-                '\t' => self.operations.push_str("\\t"),
-                _ => self.operations.push(ch),
+        for &byte in &encoded_bytes {
+            match byte {
+                b'(' => self.operations.push_str("\\("),
+                b')' => self.operations.push_str("\\)"),
+                b'\\' => self.operations.push_str("\\\\"),
+                b'\n' => self.operations.push_str("\\n"),
+                b'\r' => self.operations.push_str("\\r"),
+                b'\t' => self.operations.push_str("\\t"),
+                // For bytes in the printable ASCII range, write as is
+                0x20..=0x7E => self.operations.push(byte as char),
+                // For other bytes, write as octal escape sequences
+                _ => write!(&mut self.operations, "\\{:03o}", byte).unwrap(),
             }
         }
         self.operations.push_str(") Tj\n");

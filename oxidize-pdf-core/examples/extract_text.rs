@@ -1,6 +1,6 @@
 //! Example of text extraction from PDF files
 
-use oxidize_pdf_core::parser::document::PdfDocument;
+use oxidize_pdf_core::parser::{PdfReader, document::PdfDocument};
 use oxidize_pdf_core::text::{TextExtractor, ExtractionOptions};
 use std::env;
 use std::fs::File;
@@ -20,8 +20,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Open the PDF file
     println!("Opening PDF file: {}", pdf_path);
-    let file = File::open(pdf_path)?;
-    let document = PdfDocument::open(file)?;
+    let reader = PdfReader::open(pdf_path)?;
+    let document = PdfDocument::new(reader);
     
     println!("PDF opened successfully!");
     println!("Total pages: {}", document.page_count()?);
@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(page_num) = page_number {
         // Extract from specific page
         println!("Extracting text from page {}...", page_num);
-        println!("=" .repeat(50));
+        println!("{}", "=".repeat(50));
         
         match extractor.extract_from_page(&document, page_num) {
             Ok(extracted) => {
@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 
                 if !extracted.fragments.is_empty() {
                     println!("\n\nText fragments with positions:");
-                    println!("-" .repeat(50));
+                    println!("{}", "-".repeat(50));
                     for (i, fragment) in extracted.fragments.iter().enumerate() {
                         println!(
                             "Fragment {}: x={:.2}, y={:.2}, size={:.2}",
@@ -74,7 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok(all_pages) => {
                 for (i, extracted) in all_pages.iter().enumerate() {
                     println!("\n\n=== Page {} ===", i);
-                    println!("{}", "=" .repeat(50));
+                    println!("{}", "=".repeat(50));
                     println!("{}", extracted.text);
                 }
             }

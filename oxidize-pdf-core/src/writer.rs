@@ -126,10 +126,27 @@ impl<W: Write> PdfWriter<W> {
         let mut page_copy = page.clone();
         let content = page_copy.generate_content()?;
         
-        let mut stream_dict = Dictionary::new();
-        stream_dict.set("Length", Object::Integer(content.len() as i64));
+        // Create stream with compression if enabled
+        #[cfg(feature = "compression")]
+        {
+            use crate::objects::Stream;
+            let mut stream = Stream::new(content);
+            stream.compress_flate()?;
+            
+            self.write_object(content_id, Object::Stream(
+                stream.dictionary().clone(),
+                stream.data().to_vec()
+            ))?;
+        }
         
-        self.write_object(content_id, Object::Stream(stream_dict, content))?;
+        #[cfg(not(feature = "compression"))]
+        {
+            let mut stream_dict = Dictionary::new();
+            stream_dict.set("Length", Object::Integer(content.len() as i64));
+            
+            self.write_object(content_id, Object::Stream(stream_dict, content))?;
+        }
+        
         Ok(())
     }
     

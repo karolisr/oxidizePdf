@@ -1,3 +1,6 @@
 /target
 *.pdf
 test_*.pdf
+
+# PDF samples for testing
+PDF_Samples/

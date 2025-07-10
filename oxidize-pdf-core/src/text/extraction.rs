@@ -314,42 +314,12 @@ impl TextExtractor {
     
     /// Decode text using the current font encoding
     fn decode_text(&self, text: &[u8], _state: &TextState) -> ParseResult<String> {
-        // TODO: Implement proper font encoding support
-        // For now, assume Windows-1252 encoding for simplicity
+        // TODO: Get actual font encoding from state
+        // For now, assume WinAnsiEncoding which is the default for most PDFs
+        use crate::text::encoding::TextEncoding;
         
-        let mut decoded = String::new();
-        
-        for &byte in text {
-            match byte {
-                // ASCII range
-                0x20..=0x7E => decoded.push(byte as char),
-                // Common Windows-1252 mappings
-                0xA0 => decoded.push('\u{00A0}'), // Non-breaking space
-                0xA9 => decoded.push('©'),
-                0xAE => decoded.push('®'),
-                0xB0 => decoded.push('°'),
-                0xB1 => decoded.push('±'),
-                0xB2 => decoded.push('²'),
-                0xB3 => decoded.push('³'),
-                0xB5 => decoded.push('µ'),
-                0xB6 => decoded.push('¶'),
-                0xB7 => decoded.push('·'),
-                0xBC => decoded.push('¼'),
-                0xBD => decoded.push('½'),
-                0xBE => decoded.push('¾'),
-                // Default: try as extended ASCII
-                _ => {
-                    if byte >= 0x80 {
-                        // Extended ASCII - try Windows-1252
-                        decoded.push(char::from_u32(byte as u32).unwrap_or('?'));
-                    } else {
-                        decoded.push('?');
-                    }
-                }
-            }
-        }
-        
-        Ok(decoded)
+        let encoding = TextEncoding::WinAnsiEncoding;
+        Ok(encoding.decode(text))
     }
 }
 

@@ -55,19 +55,54 @@ impl PdfHeader {
     
     /// Parse the PDF version line
     fn parse_version_line<R: BufRead>(reader: &mut R) -> ParseResult<Self> {
-        let mut line = String::new();
-        reader.read_line(&mut line)?;
+        // Read bytes until we find a newline, avoiding UTF-8 conversion
+        let mut line_bytes = Vec::new();
         
-        // Remove newline characters
-        let line = line.trim_end();
+        loop {
+            let mut byte = [0u8; 1];
+            match reader.read_exact(&mut byte) {
+                Ok(_) => {
+                    if byte[0] == b'\n' || byte[0] == b'\r' {
+                        // Handle CRLF
+                        if byte[0] == b'\r' {
+                            // Peek at next byte
+                            let mut next_byte = [0u8; 1];
+                            if reader.read_exact(&mut next_byte).is_ok() && next_byte[0] != b'\n' {
+                                // Not CRLF, put it back by seeking -1
+                                // Since we can't seek in BufRead, we'll just include it
+                                line_bytes.push(byte[0]);
+                            }
+                        }
+                        break;
+                    }
+                    line_bytes.push(byte[0]);
+                    // Limit line length
+                    if line_bytes.len() > 100 {
+                        return Err(ParseError::InvalidHeader);
+                    }
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                    if line_bytes.is_empty() {
+                        return Err(ParseError::InvalidHeader);
+                    }
+                    break;
+                }
+                Err(e) => return Err(e.into()),
+            }
+        }
+        
+        // Convert to string for parsing
+        // PDF headers should be ASCII, but be lenient about it
+        let line = String::from_utf8_lossy(&line_bytes).into_owned();
+        
         
         // PDF header must start with %PDF-
         if !line.starts_with("%PDF-") {
             return Err(ParseError::InvalidHeader);
         }
         
-        // Extract version
-        let version_str = &line[5..];
+        // Extract version (trim any trailing whitespace/newlines)
+        let version_str = line[5..].trim();
         let parts: Vec<&str> = version_str.split('.').collect();
         
         if parts.len() != 2 {
