@@ -183,7 +183,7 @@ xref
 trailer
 << /Size 6 /Root 1 0 R >>
 startxref
-405
+404
 %%EOF";
 
     // Write to a temporary file
@@ -217,7 +217,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
 endobj
 4 0 obj
-<< /Length 88 >>
+<< /Length 93 >>
 stream
 BT
 /F1 12 Tf
@@ -244,7 +244,7 @@ xref
 trailer
 << /Size 6 /Root 1 0 R >>
 startxref
-455
+454
 %%EOF";
 
     let temp_dir = TempDir::new().unwrap();

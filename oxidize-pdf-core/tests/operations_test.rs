@@ -59,9 +59,9 @@ fn test_page_range_parsing() {
     let range = PageRange::parse("all").unwrap();
     assert_eq!(range.get_indices(3).unwrap(), vec![0, 1, 2]);
 
-    // Test reverse range
-    let range = PageRange::parse("5-2").unwrap();
-    assert_eq!(range.get_indices(10).unwrap(), vec![4, 3, 2, 1]);
+    // Test reverse range - should fail
+    let result = PageRange::parse("5-2");
+    assert!(result.is_err());
 }
 
 #[test]

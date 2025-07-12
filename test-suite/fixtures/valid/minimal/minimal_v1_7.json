@@ -1,9 +1,9 @@
 {
     "metadata": {
-        "name": "minimal_text",
-        "description": "Minimal PDF with simple text content",
-        "pdf_version": "1.4",
-        "features": ["Text"],
+        "name": "minimal_v1_7",
+        "description": "Minimal PDF with version 1.7",
+        "pdf_version": "1.7",
+        "features": [],
         "compliance": ["Pdf17"]
     },
     "expected_behavior": {

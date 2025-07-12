@@ -30,23 +30,23 @@ fn document_info_strategy() -> impl Strategy<Value = Vec<(String, String)>> {
     prop::collection::vec(
         prop_oneof![
             (
-                "Title".to_string(),
+                Just("Title".to_string()),
                 any::<String>().prop_filter("valid string", |s| s.len() < 100)
             ),
             (
-                "Author".to_string(),
+                Just("Author".to_string()),
                 any::<String>().prop_filter("valid string", |s| s.len() < 100)
             ),
             (
-                "Subject".to_string(),
+                Just("Subject".to_string()),
                 any::<String>().prop_filter("valid string", |s| s.len() < 100)
             ),
             (
-                "Creator".to_string(),
+                Just("Creator".to_string()),
                 any::<String>().prop_filter("valid string", |s| s.len() < 100)
             ),
             (
-                "Producer".to_string(),
+                Just("Producer".to_string()),
                 any::<String>().prop_filter("valid string", |s| s.len() < 100)
             ),
         ],
@@ -162,7 +162,7 @@ proptest! {
     fn unbalanced_operators_detected(
         extra_saves in 1usize..5,
         extra_restores in 1usize..5,
-        unclosed_text in bool,
+        unclosed_text in any::<bool>(),
     ) {
         let mut content = Vec::new();
 

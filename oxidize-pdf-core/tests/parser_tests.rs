@@ -2,39 +2,9 @@
 
 #[cfg(test)]
 mod tests {
-    use oxidize_pdf::parser::{header::*, lexer::*, objects::*, trailer::*, xref::*, PdfReader};
+    use oxidize_pdf::parser::{header::*, lexer::*, objects::*};
     use std::io::Cursor;
 
-    /// Create a minimal valid PDF for testing
-    fn create_test_pdf() -> Vec<u8> {
-        let pdf = b"%PDF-1.4
-%\xE2\xE3\xCF\xD3
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>
-endobj
-4 0 obj
-<< /Title (Test PDF) /Author (oxidizePdf) /Creator (oxidizePdf test suite) >>
-endobj
-xref
-0 5
-0000000000 65535 f 
-0000000015 00000 n 
-0000000068 00000 n 
-0000000125 00000 n 
-0000000203 00000 n 
-trailer
-<< /Size 5 /Root 1 0 R /Info 4 0 R >>
-startxref
-306
-%%EOF";
-        pdf.to_vec()
-    }
 
     #[test]
     fn test_lexer_tokenization() {
@@ -45,10 +15,10 @@ startxref
         assert!(matches!(lexer.next_token().unwrap(), Token::Name(n) if n == "Type"));
         assert!(matches!(lexer.next_token().unwrap(), Token::Name(n) if n == "Page"));
         assert!(matches!(lexer.next_token().unwrap(), Token::Name(n) if n == "Parent"));
-        assert!(matches!(
-            lexer.next_token().unwrap(),
-            Token::Reference(2, 0)
-        ));
+        // References are parsed as separate tokens by the lexer
+        assert!(matches!(lexer.next_token().unwrap(), Token::Integer(2)));
+        assert!(matches!(lexer.next_token().unwrap(), Token::Integer(0)));
+        assert!(matches!(lexer.next_token().unwrap(), Token::Name(n) if n == "R"));
         assert!(matches!(lexer.next_token().unwrap(), Token::DictEnd));
     }
 

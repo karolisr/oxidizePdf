@@ -43,7 +43,7 @@ impl Stream {
     }
     
     pub fn set_filter(&mut self, filter: &str) {
-        self.dictionary.set("Filter", format!("/{}", filter));
+        self.dictionary.set("Filter", crate::objects::Object::Name(filter.to_string()));
     }
     
     pub fn set_decode_params(&mut self, params: Dictionary) {
