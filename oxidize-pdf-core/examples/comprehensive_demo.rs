@@ -1,4 +1,4 @@
-use oxidize_pdf::{Color, Document, Font, Image, Page, Result, TextAlign, TextFlowContext};
+use oxidize_pdf::{Color, Document, Font, Image, Page, Result, TextAlign};
 
 fn main() -> Result<()> {
     println!("Creating comprehensive PDF demo...");

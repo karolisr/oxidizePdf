@@ -86,7 +86,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("\nExtracting content from first page...");
         println!("{}", "-".repeat(50));
 
-        if let Ok(page) = reader.get_page(0) {
+        if let Ok(_page) = reader.get_page(0) {
             // Note: Content stream extraction requires restructuring due to borrow checker
             // See parse_and_extract.rs example for content extraction
             println!("(Content stream extraction commented out - see parse_and_extract.rs)");

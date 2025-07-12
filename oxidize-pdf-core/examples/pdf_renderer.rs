@@ -5,7 +5,6 @@
 //! rendering information.
 
 use oxidize_pdf::parser::content::{ContentOperation, ContentParser, TextElement};
-use oxidize_pdf::parser::objects::PdfObject;
 use oxidize_pdf::parser::{PdfDocument, PdfReader};
 
 /// Graphics state for rendering
@@ -48,6 +47,7 @@ struct PdfRenderer {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 enum PathCommand {
     MoveTo(f64, f64),
     LineTo(f64, f64),

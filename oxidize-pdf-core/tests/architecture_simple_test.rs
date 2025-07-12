@@ -2,7 +2,7 @@
 
 use oxidize_pdf::parser::objects::PdfDictionary;
 use oxidize_pdf::parser::page_tree::{PageTree, ParsedPage};
-use oxidize_pdf::parser::{PdfDocument, ResourceManager};
+use oxidize_pdf::parser::ResourceManager;
 
 #[test]
 fn test_resource_manager() {

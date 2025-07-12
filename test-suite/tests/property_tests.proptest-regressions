@@ -7,3 +7,4 @@
 cc 33edaf44dd8a8eb6736b6136ac2be73b3848f5f481fbd89f778c04cd33d90022 # shrinks to version = V1_0, info = []
 cc ac460a53d1cc2af1c47be98c493adac188374475264007c75c29e4d1d11a0041 # shrinks to version = V1_0, page_count = 0
 cc 3c5c2b75708a0fc55adeda03cd16ce704a724ee88e0c2b78c396f42c2cac1a32 # shrinks to pdf = ArbitraryPdf { version: V1_0, pages: [], metadata: [], compress: false }
+cc 0eb0296fcf4ba1851f216f6f2f6935758a41e0653e5fdc3a964d0d684b9b8199 # shrinks to version = V2_0, page_count = 0

@@ -398,7 +398,7 @@ mod tests {
     #[test]
     fn test_reader_construction() {
         // This is a minimal valid PDF for testing
-        let pdf_data = b"%PDF-1.4
+        let _pdf_data = b"%PDF-1.4
 1 0 obj
 << /Type /Catalog /Pages 2 0 R >>
 endobj

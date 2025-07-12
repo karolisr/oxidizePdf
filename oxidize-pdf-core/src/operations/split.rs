@@ -380,12 +380,12 @@ mod tests {
 
     #[test]
     fn test_format_output_path() {
-        let options = SplitOptions {
+        let _options = SplitOptions {
             output_pattern: "output_page_{}.pdf".to_string(),
             ..Default::default()
         };
 
-        let reader = PdfReader::open("test.pdf");
+        let _reader = PdfReader::open("test.pdf");
         // Note: This test would need a valid PDF file to work properly
         // For now, we're just testing the logic
     }

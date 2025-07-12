@@ -3,7 +3,6 @@
 use oxidize_pdf::parser::{document::PdfDocument, PdfReader};
 use oxidize_pdf::text::{ExtractionOptions, TextExtractor};
 use std::env;
-use std::fs::File;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();

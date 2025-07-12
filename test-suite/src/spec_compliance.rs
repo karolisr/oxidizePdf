@@ -353,7 +353,7 @@ impl SpecificationTest for Pdf17ComplianceTester {
         let header_pos = pdf_str.find("%PDF-");
         let body_pos = pdf_str.find(" obj");
         let xref_pos = pdf_str
-            .rfind("xref")
+            .find("xref\n")
             .or_else(|| pdf_str.find("/Type /XRef"));
         let trailer_pos = pdf_str.rfind("trailer");
         let startxref_pos = pdf_str.rfind("startxref");
@@ -402,13 +402,52 @@ pub struct Pdf20ComplianceTester;
 
 impl SpecificationTest for Pdf20ComplianceTester {
     fn test_header_compliance(&self, pdf: &[u8]) -> TestResult {
-        let mut result = Pdf17ComplianceTester.test_header_compliance(pdf);
-        result.test_name = "PDF 2.0 Header Compliance".to_string();
+        let mut result = TestResult::pass("PDF 2.0 Header Compliance");
 
-        // Additional PDF 2.0 specific checks
-        let header = std::str::from_utf8(&pdf[0..8]).unwrap_or("");
-        if header.contains("2.0") {
-            result.add_detail("pdf_2_0", "true");
+        // Check for %PDF-x.x header
+        if pdf.len() < 8 {
+            return TestResult::fail(
+                "PDF 2.0 Header Compliance",
+                "File too small to contain valid header",
+            );
+        }
+
+        let header = &pdf[0..8];
+        if !header.starts_with(b"%PDF-") {
+            return TestResult::fail("PDF 2.0 Header Compliance", "Missing %PDF- header");
+        }
+
+        // Extract version
+        let version_str = std::str::from_utf8(&header[5..8]).unwrap_or("");
+        if let Ok(version) = version_str.trim().parse::<f32>() {
+            result.add_detail("version", &format!("{version:.1}"));
+
+            // Check if version is valid for PDF 2.0
+            if version == 2.0 {
+                result.add_detail("pdf_2_0", "true");
+            } else if version < 2.0 {
+                result.add_message(&format!("PDF version {version} is older than 2.0"));
+            }
+        } else {
+            return TestResult::fail(
+                "PDF 2.0 Header Compliance",
+                "Invalid version number in header",
+            );
+        }
+
+        // Check for binary marker (recommended)
+        let mut found_binary_marker = false;
+        for &byte in pdf.iter().take(pdf.len().min(1024)).skip(8) {
+            if byte > 127 {
+                found_binary_marker = true;
+                break;
+            }
+        }
+
+        if found_binary_marker {
+            result.add_detail("binary_marker", "present");
+        } else {
+            result.add_message("Binary marker not found (recommended for PDF 2.0)");
         }
 
         result

@@ -6,7 +6,6 @@ use oxidize_pdf::operations::{
     RotationAngle, SplitMode, SplitOptions,
 };
 use oxidize_pdf::{Color, Document, Font, Page, Result};
-use std::path::Path;
 
 fn main() -> Result<()> {
     // First, create some sample PDFs to work with
