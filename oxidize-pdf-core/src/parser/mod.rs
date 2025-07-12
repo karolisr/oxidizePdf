@@ -1,7 +1,135 @@
-//! PDF Parser Module
+//! PDF Parser Module - Complete PDF parsing and rendering support
 //!
-//! This module implements a native PDF parser for reading and parsing PDF files
+//! This module provides a comprehensive, 100% native Rust implementation for parsing PDF files
 //! according to the ISO 32000-1 (PDF 1.7) and ISO 32000-2 (PDF 2.0) specifications.
+//!
+//! # Overview
+//!
+//! The parser is designed to support building PDF renderers, content extractors, and analysis tools.
+//! It provides multiple levels of API access:
+//!
+//! - **High-level**: `PdfDocument` for easy document manipulation
+//! - **Mid-level**: `ParsedPage`, content streams, and resources
+//! - **Low-level**: Direct access to PDF objects and streams
+//!
+//! # Quick Start
+//!
+//! ```rust,no_run
+//! use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+//! use oxidize_pdf_core::parser::content::ContentParser;
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! // Open a PDF document
+//! let reader = PdfReader::open("document.pdf")?;
+//! let document = PdfDocument::new(reader);
+//!
+//! // Get document information
+//! println!("Pages: {}", document.page_count()?);
+//! println!("Version: {}", document.version()?);
+//!
+//! // Process first page
+//! let page = document.get_page(0)?;
+//! println!("Page size: {}x{} points", page.width(), page.height());
+//!
+//! // Parse content streams
+//! let streams = page.content_streams_with_document(&document)?;
+//! for stream in streams {
+//!     let operations = ContentParser::parse(&stream)?;
+//!     println!("Operations: {}", operations.len());
+//! }
+//!
+//! // Extract text
+//! let text = document.extract_text_from_page(0)?;
+//! println!("Text: {}", text.text);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Architecture
+//!
+//! ```text
+//! ┌─────────────────────────────────────────────────┐
+//! │                 PdfDocument                     │ ← High-level API
+//! │  ┌──────────┐ ┌──────────┐ ┌────────────────┐  │
+//! │  │PdfReader │ │PageTree  │ │ResourceManager │  │
+//! │  └──────────┘ └──────────┘ └────────────────┘  │
+//! └─────────────────────────────────────────────────┘
+//!            │              │              │
+//!            ↓              ↓              ↓
+//! ┌─────────────────────────────────────────────────┐
+//! │              ParsedPage                         │ ← Page API
+//! │  ┌──────────┐ ┌──────────┐ ┌────────────────┐  │
+//! │  │Properties│ │Resources │ │Content Streams │  │
+//! │  └──────────┘ └──────────┘ └────────────────┘  │
+//! └─────────────────────────────────────────────────┘
+//!            │              │              │
+//!            ↓              ↓              ↓
+//! ┌─────────────────────────────────────────────────┐
+//! │         ContentParser & PdfObject               │ ← Low-level API
+//! │  ┌──────────┐ ┌──────────┐ ┌────────────────┐  │
+//! │  │Tokenizer │ │Operators │ │Object Types    │  │
+//! │  └──────────┘ └──────────┘ └────────────────┘  │
+//! └─────────────────────────────────────────────────┘
+//! ```
+//!
+//! # Features
+//!
+//! - **Complete PDF Object Model**: All PDF object types supported
+//! - **Content Stream Parsing**: Full operator support for rendering
+//! - **Resource Management**: Fonts, images, color spaces, patterns
+//! - **Text Extraction**: With position and formatting information
+//! - **Page Navigation**: Efficient page tree traversal
+//! - **Stream Filters**: Decompression support (FlateDecode, ASCIIHex, etc.)
+//! - **Reference Resolution**: Automatic handling of indirect objects
+//!
+//! # Example: Building a Simple Renderer
+//!
+//! ```rust,no_run
+//! use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+//! use oxidize_pdf_core::parser::content::{ContentParser, ContentOperation};
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! struct SimpleRenderer {
+//!     current_path: Vec<(f32, f32)>,
+//! }
+//!
+//! impl SimpleRenderer {
+//!     fn render_page(document: &PdfDocument<std::fs::File>, page_idx: u32) -> Result<(), Box<dyn std::error::Error>> {
+//!         let page = document.get_page(page_idx)?;
+//!         let streams = page.content_streams_with_document(&document)?;
+//!         
+//!         let mut renderer = SimpleRenderer {
+//!             current_path: Vec::new(),
+//!         };
+//!         
+//!         for stream in streams {
+//!             let operations = ContentParser::parse(&stream)?;
+//!             for op in operations {
+//!                 match op {
+//!                     ContentOperation::MoveTo(x, y) => {
+//!                         renderer.current_path.clear();
+//!                         renderer.current_path.push((x, y));
+//!                     }
+//!                     ContentOperation::LineTo(x, y) => {
+//!                         renderer.current_path.push((x, y));
+//!                     }
+//!                     ContentOperation::Stroke => {
+//!                         println!("Draw path with {} points", renderer.current_path.len());
+//!                         renderer.current_path.clear();
+//!                     }
+//!                     ContentOperation::ShowText(text) => {
+//!                         println!("Draw text: {:?}", String::from_utf8_lossy(&text));
+//!                     }
+//!                     _ => {} // Handle other operations
+//!                 }
+//!             }
+//!         }
+//!         Ok(())
+//!     }
+//! }
+//! # Ok(())
+//! # }
+//! ```
 
 pub mod content;
 pub mod document;
@@ -17,36 +145,67 @@ pub mod xref;
 
 use crate::error::OxidizePdfError;
 
-pub use self::content::{ContentOperation, ContentParser};
+// Re-export main types for convenient access
+pub use self::content::{ContentOperation, ContentParser, TextElement};
 pub use self::document::{PdfDocument, ResourceManager};
-pub use self::objects::{PdfArray, PdfDictionary, PdfName, PdfObject, PdfString};
+pub use self::objects::{PdfArray, PdfDictionary, PdfName, PdfObject, PdfString, PdfStream};
 pub use self::page_tree::ParsedPage;
-pub use self::reader::PdfReader;
+pub use self::reader::{PdfReader, DocumentMetadata};
 
 /// Result type for parser operations
 pub type ParseResult<T> = Result<T, ParseError>;
 
-/// PDF Parser errors
+/// PDF Parser errors covering all failure modes during parsing.
+///
+/// # Error Categories
+///
+/// - **I/O Errors**: File access and reading issues
+/// - **Format Errors**: Invalid PDF structure or syntax
+/// - **Unsupported Features**: Encryption, newer PDF versions
+/// - **Reference Errors**: Invalid or circular object references
+/// - **Stream Errors**: Decompression or filter failures
+///
+/// # Example
+///
+/// ```rust
+/// use oxidize_pdf_core::parser::{PdfReader, ParseError};
+///
+/// # fn example() -> Result<(), ParseError> {
+/// match PdfReader::open("missing.pdf") {
+///     Ok(_) => println!("File opened"),
+///     Err(ParseError::Io(e)) => println!("IO error: {}", e),
+///     Err(ParseError::InvalidHeader) => println!("Not a valid PDF"),
+///     Err(e) => println!("Other error: {}", e),
+/// }
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
+    /// I/O error during file operations
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
+    /// PDF file doesn't start with valid header (%PDF-)
     #[error("Invalid PDF header")]
     InvalidHeader,
 
+    /// PDF version is not supported
     #[error("Unsupported PDF version: {0}")]
     UnsupportedVersion(String),
 
+    /// Syntax error in PDF structure
     #[error("Syntax error at position {position}: {message}")]
     SyntaxError { position: usize, message: String },
 
     #[error("Unexpected token: expected {expected}, found {found}")]
     UnexpectedToken { expected: String, found: String },
 
+    /// Invalid or non-existent object reference
     #[error("Invalid object reference: {0} {1} R")]
     InvalidReference(u32, u16),
 
+    /// Required dictionary key is missing
     #[error("Missing required key: {0}")]
     MissingKey(String),
 
@@ -59,9 +218,11 @@ pub enum ParseError {
     #[error("Circular reference detected")]
     CircularReference,
 
+    /// Error decoding/decompressing stream data
     #[error("Stream decode error: {0}")]
     StreamDecodeError(String),
 
+    /// PDF encryption is not currently supported
     #[error("Encryption not supported")]
     EncryptionNotSupported,
 }

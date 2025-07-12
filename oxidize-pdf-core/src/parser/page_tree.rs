@@ -1,6 +1,40 @@
 //! PDF Page Tree Parser
 //!
-//! Handles navigation and extraction of pages from the PDF page tree structure
+//! This module handles navigation and extraction of pages from the PDF page tree structure.
+//! The page tree is a hierarchical structure that organizes pages in a PDF document,
+//! allowing for efficient access and inheritance of properties from parent nodes.
+//!
+//! # Overview
+//!
+//! The PDF page tree consists of:
+//! - **Page Tree Nodes**: Internal nodes that can contain other nodes or pages
+//! - **Page Objects**: Leaf nodes representing individual pages
+//! - **Inherited Properties**: Resources, MediaBox, CropBox, and Rotate can be inherited from parent nodes
+//!
+//! # Example
+//!
+//! ```rust,no_run
+//! use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! // Open a PDF document
+//! let reader = PdfReader::open("document.pdf")?;
+//! let document = PdfDocument::new(reader);
+//!
+//! // Get a specific page
+//! let page = document.get_page(0)?;
+//!
+//! // Access page properties
+//! println!("Page size: {}x{} points", page.width(), page.height());
+//! println!("Rotation: {}°", page.rotation);
+//!
+//! // Get page resources
+//! if let Some(resources) = page.get_resources() {
+//!     println!("Page has resources");
+//! }
+//! # Ok(())
+//! # }
+//! ```
 
 use super::document::PdfDocument;
 use super::objects::{PdfDictionary, PdfObject, PdfStream};
@@ -9,20 +43,70 @@ use super::{ParseError, ParseResult};
 use std::collections::HashMap;
 use std::io::{Read, Seek};
 
-/// Represents a single page in the PDF
+/// Represents a single page in the PDF with all its properties and resources.
+///
+/// A `ParsedPage` contains all the information needed to render or analyze a PDF page,
+/// including its dimensions, content streams, resources, and inherited properties from
+/// parent page tree nodes.
+///
+/// # Fields
+///
+/// * `obj_ref` - Object reference (object number, generation number) pointing to this page in the PDF
+/// * `dict` - Complete page dictionary containing all page-specific entries
+/// * `inherited_resources` - Resources inherited from parent page tree nodes
+/// * `media_box` - Page dimensions in PDF units [llx, lly, urx, ury]
+/// * `crop_box` - Optional visible area of the page
+/// * `rotation` - Page rotation in degrees (0, 90, 180, or 270)
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let reader = PdfReader::open("document.pdf")?;
+/// let document = PdfDocument::new(reader);
+/// let page = document.get_page(0)?;
+///
+/// // Access page properties
+/// let (obj_num, gen_num) = page.obj_ref;
+/// println!("Page object: {} {} R", obj_num, gen_num);
+///
+/// // Get page dimensions
+/// let [llx, lly, urx, ury] = page.media_box;
+/// println!("MediaBox: ({}, {}) to ({}, {})", llx, lly, urx, ury);
+///
+/// // Check for content
+/// if let Some(contents) = page.dict.get("Contents") {
+///     println!("Page has content streams");
+/// }
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Clone)]
 pub struct ParsedPage {
-    /// Object reference to this page
+    /// Object reference to this page in the form (object_number, generation_number).
+    /// This uniquely identifies the page object in the PDF file.
     pub obj_ref: (u32, u16),
-    /// Page dictionary
+    
+    /// Page dictionary containing all page-specific entries like Contents, Resources, etc.
+    /// This is the raw PDF dictionary for the page object.
     pub dict: PdfDictionary,
-    /// Inherited resources (merged from parent nodes)
+    
+    /// Resources inherited from parent page tree nodes.
+    /// These are automatically merged during page tree traversal.
     pub inherited_resources: Option<PdfDictionary>,
-    /// MediaBox (page dimensions)
+    
+    /// MediaBox defining the page dimensions in PDF units (typically points).
+    /// Format: [lower_left_x, lower_left_y, upper_right_x, upper_right_y]
     pub media_box: [f64; 4],
-    /// CropBox (visible area)
+    
+    /// CropBox defining the visible area of the page.
+    /// If None, the entire MediaBox is visible.
     pub crop_box: Option<[f64; 4]>,
-    /// Page rotation in degrees
+    
+    /// Page rotation in degrees. Valid values are 0, 90, 180, or 270.
+    /// The rotation is applied clockwise.
     pub rotation: i32,
 }
 
@@ -274,7 +358,30 @@ impl PageTree {
 }
 
 impl ParsedPage {
-    /// Get the page width
+    /// Get the effective page width accounting for rotation.
+    ///
+    /// The width is calculated from the MediaBox and adjusted based on the page rotation.
+    /// For 90° or 270° rotations, the width and height are swapped.
+    ///
+    /// # Returns
+    ///
+    /// The page width in PDF units (typically points, where 1 point = 1/72 inch)
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let reader = PdfReader::open("document.pdf")?;
+    /// # let document = PdfDocument::new(reader);
+    /// let page = document.get_page(0)?;
+    /// let width_pts = page.width();
+    /// let width_inches = width_pts / 72.0;
+    /// let width_mm = width_pts * 25.4 / 72.0;
+    /// println!("Page width: {} points ({:.2} inches, {:.2} mm)", width_pts, width_inches, width_mm);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn width(&self) -> f64 {
         match self.rotation {
             90 | 270 => self.media_box[3] - self.media_box[1],
@@ -282,7 +389,30 @@ impl ParsedPage {
         }
     }
 
-    /// Get the page height
+    /// Get the effective page height accounting for rotation.
+    ///
+    /// The height is calculated from the MediaBox and adjusted based on the page rotation.
+    /// For 90° or 270° rotations, the width and height are swapped.
+    ///
+    /// # Returns
+    ///
+    /// The page height in PDF units (typically points, where 1 point = 1/72 inch)
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let reader = PdfReader::open("document.pdf")?;
+    /// # let document = PdfDocument::new(reader);
+    /// let page = document.get_page(0)?;
+    /// println!("Page dimensions: {}x{} points", page.width(), page.height());
+    /// if page.rotation != 0 {
+    ///     println!("Page is rotated {} degrees", page.rotation);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn height(&self) -> f64 {
         match self.rotation {
             90 | 270 => self.media_box[2] - self.media_box[0],
@@ -290,7 +420,40 @@ impl ParsedPage {
         }
     }
 
-    /// Get the content streams for this page
+    /// Get the content streams for this page using a PdfReader.
+    ///
+    /// Content streams contain the actual drawing instructions (operators) that render
+    /// text, graphics, and images on the page. A page may have multiple content streams
+    /// which are concatenated during rendering.
+    ///
+    /// # Arguments
+    ///
+    /// * `reader` - Mutable reference to the PDF reader
+    ///
+    /// # Returns
+    ///
+    /// A vector of decompressed content stream data. Each vector contains the raw bytes
+    /// of a content stream ready for parsing.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The Contents entry is malformed
+    /// - Stream decompression fails
+    /// - Referenced objects cannot be resolved
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use oxidize_pdf_core::parser::{PdfReader, ParsedPage};
+    /// # fn example(page: &ParsedPage, reader: &mut PdfReader<std::fs::File>) -> Result<(), Box<dyn std::error::Error>> {
+    /// let streams = page.content_streams(reader)?;
+    /// for (i, stream) in streams.iter().enumerate() {
+    ///     println!("Content stream {}: {} bytes", i, stream.len());
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn content_streams<R: Read + Seek>(
         &self,
         reader: &mut PdfReader<R>,
@@ -361,7 +524,40 @@ impl ParsedPage {
         Ok(streams)
     }
 
-    /// Get content streams using PdfDocument
+    /// Get content streams using PdfDocument (recommended method).
+    ///
+    /// This is the preferred method for accessing content streams as it uses the
+    /// document's caching and resource management capabilities.
+    ///
+    /// # Arguments
+    ///
+    /// * `document` - Reference to the PDF document
+    ///
+    /// # Returns
+    ///
+    /// A vector of decompressed content stream data ready for parsing with `ContentParser`.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf_core::parser::content::ContentParser;
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let reader = PdfReader::open("document.pdf")?;
+    /// let document = PdfDocument::new(reader);
+    /// let page = document.get_page(0)?;
+    ///
+    /// // Get content streams
+    /// let streams = page.content_streams_with_document(&document)?;
+    ///
+    /// // Parse each stream
+    /// for stream_data in streams {
+    ///     let operations = ContentParser::parse_content(&stream_data)?;
+    ///     println!("Stream has {} operations", operations.len());
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn content_streams_with_document<R: Read + Seek>(
         &self,
         document: &PdfDocument<R>,
@@ -369,7 +565,49 @@ impl ParsedPage {
         document.get_page_content_streams(self)
     }
 
-    /// Get the effective resources for this page (including inherited)
+    /// Get the effective resources for this page (including inherited).
+    ///
+    /// Resources include fonts, images (XObjects), color spaces, patterns, and other
+    /// assets needed to render the page. This method returns page-specific resources
+    /// if present, otherwise falls back to inherited resources from parent nodes.
+    ///
+    /// # Returns
+    ///
+    /// The Resources dictionary if available, or None if the page has no resources.
+    ///
+    /// # Resource Categories
+    ///
+    /// The Resources dictionary may contain:
+    /// - `Font` - Font definitions used by text operators
+    /// - `XObject` - External objects (images, form XObjects)
+    /// - `ColorSpace` - Color space definitions
+    /// - `Pattern` - Pattern definitions for fills
+    /// - `Shading` - Shading dictionaries
+    /// - `ExtGState` - Graphics state parameter dictionaries
+    /// - `Properties` - Property list dictionaries
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let reader = PdfReader::open("document.pdf")?;
+    /// # let document = PdfDocument::new(reader);
+    /// # let page = document.get_page(0)?;
+    /// if let Some(resources) = page.get_resources() {
+    ///     // Check for fonts
+    ///     if let Some(fonts) = resources.get("Font").and_then(|f| f.as_dict()) {
+    ///         println!("Page uses {} fonts", fonts.0.len());
+    ///     }
+    ///     
+    ///     // Check for images
+    ///     if let Some(xobjects) = resources.get("XObject").and_then(|x| x.as_dict()) {
+    ///         println!("Page has {} XObjects", xobjects.0.len());
+    ///     }
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn get_resources(&self) -> Option<&PdfDictionary> {
         self.dict
             .get("Resources")
@@ -377,7 +615,32 @@ impl ParsedPage {
             .or(self.inherited_resources.as_ref())
     }
 
-    /// Clone this page with all its resources
+    /// Clone this page with all inherited resources merged into the page dictionary.
+    ///
+    /// This is useful when extracting a page for separate processing or when you need
+    /// a self-contained page object with all resources explicitly included.
+    ///
+    /// # Returns
+    ///
+    /// A cloned page with inherited resources merged into the Resources entry
+    /// of the page dictionary.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let reader = PdfReader::open("document.pdf")?;
+    /// # let document = PdfDocument::new(reader);
+    /// # let page = document.get_page(0)?;
+    /// // Get a self-contained page with all resources
+    /// let standalone_page = page.clone_with_resources();
+    /// 
+    /// // The cloned page now has all resources in its dictionary
+    /// assert!(standalone_page.dict.contains_key("Resources"));
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn clone_with_resources(&self) -> Self {
         let mut cloned = self.clone();
 
@@ -394,7 +657,38 @@ impl ParsedPage {
         cloned
     }
 
-    /// Get all referenced objects from this page (for extraction)
+    /// Get all objects referenced by this page (for extraction or analysis).
+    ///
+    /// This method recursively collects all objects referenced by the page, including:
+    /// - Content streams
+    /// - Resources (fonts, images, etc.)
+    /// - Nested objects within resources
+    ///
+    /// This is useful for extracting a complete page with all its dependencies or
+    /// for analyzing the object graph of a page.
+    ///
+    /// # Arguments
+    ///
+    /// * `reader` - Mutable reference to the PDF reader
+    ///
+    /// # Returns
+    ///
+    /// A HashMap mapping object references (obj_num, gen_num) to their resolved objects.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use oxidize_pdf_core::parser::{PdfReader, ParsedPage};
+    /// # fn example(page: &ParsedPage, reader: &mut PdfReader<std::fs::File>) -> Result<(), Box<dyn std::error::Error>> {
+    /// let referenced_objects = page.get_referenced_objects(reader)?;
+    /// 
+    /// println!("Page references {} objects", referenced_objects.len());
+    /// for ((obj_num, gen_num), obj) in &referenced_objects {
+    ///     println!("  {} {} R: {:?}", obj_num, gen_num, obj);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn get_referenced_objects<R: Read + Seek>(
         &self,
         reader: &mut PdfReader<R>,

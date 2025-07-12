@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+## [0.1.2] - 2025-01-12
+
+### Added
+
+#### Documentation
+- Comprehensive parser API documentation (1,919+ lines) across all parser modules
+- Complete ParsedPage API documentation with all properties and methods
+- Detailed content stream parsing documentation with all PDF operators
+- PDF object model documentation for all types (PdfObject, PdfDictionary, etc.)
+- Resource system documentation (fonts, images, XObjects, color spaces)
+- Architecture diagrams showing parser module relationships
+- Complete PDF renderer example demonstrating real-world usage
+- All documentation in Rust doc comments for docs.rs publication
+
+### Changed
+- Enhanced crate-level documentation with parser examples
+- Improved module-level documentation with ASCII architecture diagrams
+
 ## [0.1.1] - 2025-01-10
 
 ### Added

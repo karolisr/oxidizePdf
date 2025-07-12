@@ -1,88 +1,309 @@
-//! PDF Content Stream Parser
+//! PDF Content Stream Parser - Complete support for PDF graphics operators
 //!
-//! This module implements parsing of PDF content streams according to the PDF specification.
-//! Content streams contain the actual drawing instructions that render text, graphics, and images
+//! This module implements comprehensive parsing of PDF content streams according to the PDF specification.
+//! Content streams contain the actual drawing instructions (operators) that render text, graphics, and images
 //! on PDF pages.
+//!
+//! # Overview
+//!
+//! Content streams are sequences of PDF operators that describe:
+//! - Text positioning and rendering
+//! - Path construction and painting
+//! - Color and graphics state management
+//! - Image and XObject placement
+//! - Coordinate transformations
+//!
+//! # Architecture
+//!
+//! The parser is divided into two main components:
+//! - `ContentTokenizer`: Low-level tokenization of content stream bytes
+//! - `ContentParser`: High-level parsing of tokens into structured operations
+//!
+//! # Example
+//!
+//! ```rust,no_run
+//! use oxidize_pdf_core::parser::content::{ContentParser, ContentOperation};
+//!
+//! # fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! // Parse a content stream
+//! let content_stream = b"BT /F1 12 Tf 100 200 Td (Hello World) Tj ET";
+//! let operations = ContentParser::parse_content(content_stream)?;
+//!
+//! // Process operations
+//! for op in operations {
+//!     match op {
+//!         ContentOperation::BeginText => println!("Start text object"),
+//!         ContentOperation::SetFont(name, size) => println!("Font: {} at {}", name, size),
+//!         ContentOperation::ShowText(text) => println!("Text: {:?}", text),
+//!         _ => {}
+//!     }
+//! }
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Supported Operators
+//!
+//! This parser supports all standard PDF operators including:
+//! - Text operators (BT, ET, Tj, TJ, Tf, Td, etc.)
+//! - Graphics state operators (q, Q, cm, w, J, etc.)
+//! - Path construction operators (m, l, c, re, h)
+//! - Path painting operators (S, f, B, n, etc.)
+//! - Color operators (g, rg, k, cs, scn, etc.)
+//! - XObject operators (Do)
+//! - Marked content operators (BMC, BDC, EMC, etc.)
 
 use super::{ParseError, ParseResult};
 use std::collections::HashMap;
 
-/// Represents a single operator in a PDF content stream
+/// Represents a single operator in a PDF content stream.
+///
+/// Each variant corresponds to a specific PDF operator and carries the associated
+/// operands. These operations form a complete instruction set for rendering PDF content.
+///
+/// # Categories
+///
+/// Operations are grouped into several categories:
+/// - **Text Object**: BeginText, EndText
+/// - **Text State**: Font, spacing, scaling, rendering mode
+/// - **Text Positioning**: Matrix transforms, moves, line advances
+/// - **Text Showing**: Display text with various formatting
+/// - **Graphics State**: Save/restore, transforms, line properties
+/// - **Path Construction**: Move, line, curve, rectangle operations
+/// - **Path Painting**: Stroke, fill, clipping operations
+/// - **Color**: RGB, CMYK, grayscale, and color space operations
+/// - **XObject**: External graphics and form placement
+/// - **Marked Content**: Semantic tagging for accessibility
+///
+/// # Example
+///
+/// ```rust
+/// use oxidize_pdf_core::parser::content::{ContentOperation};
+///
+/// // Text operation
+/// let op1 = ContentOperation::ShowText(b"Hello".to_vec());
+///
+/// // Graphics operation
+/// let op2 = ContentOperation::SetLineWidth(2.0);
+///
+/// // Path operation
+/// let op3 = ContentOperation::Rectangle(10.0, 10.0, 100.0, 50.0);
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum ContentOperation {
     // Text object operators
-    BeginText, // BT
-    EndText,   // ET
+    /// Begin a text object (BT operator).
+    /// All text showing operations must occur within a text object.
+    BeginText,
+    
+    /// End a text object (ET operator).
+    /// Closes the current text object started with BeginText.
+    EndText,
 
     // Text state operators
-    SetCharSpacing(f32),       // Tc
-    SetWordSpacing(f32),       // Tw
-    SetHorizontalScaling(f32), // Tz
-    SetLeading(f32),           // TL
-    SetFont(String, f32),      // Tf
-    SetTextRenderMode(i32),    // Tr
-    SetTextRise(f32),          // Ts
+    /// Set character spacing (Tc operator).
+    /// Additional space between characters in unscaled text units.
+    SetCharSpacing(f32),
+    
+    /// Set word spacing (Tw operator).
+    /// Additional space for ASCII space character (0x20) in unscaled text units.
+    SetWordSpacing(f32),
+    
+    /// Set horizontal text scaling (Tz operator).
+    /// Percentage of normal width (100 = normal).
+    SetHorizontalScaling(f32),
+    
+    /// Set text leading (TL operator).
+    /// Vertical distance between baselines for T* operator.
+    SetLeading(f32),
+    
+    /// Set font and size (Tf operator).
+    /// Font name must match a key in the Resources/Font dictionary.
+    SetFont(String, f32),
+    
+    /// Set text rendering mode (Tr operator).
+    /// 0=fill, 1=stroke, 2=fill+stroke, 3=invisible, 4=fill+clip, 5=stroke+clip, 6=fill+stroke+clip, 7=clip
+    SetTextRenderMode(i32),
+    
+    /// Set text rise (Ts operator).
+    /// Vertical displacement for superscripts/subscripts in text units.
+    SetTextRise(f32),
 
     // Text positioning operators
-    MoveText(f32, f32),                          // Td
-    MoveTextSetLeading(f32, f32),                // TD
-    SetTextMatrix(f32, f32, f32, f32, f32, f32), // Tm
-    NextLine,                                    // T*
+    /// Move text position (Td operator).
+    /// Translates the text matrix by (tx, ty).
+    MoveText(f32, f32),
+    
+    /// Move text position and set leading (TD operator).
+    /// Equivalent to: -ty TL tx ty Td
+    MoveTextSetLeading(f32, f32),
+    
+    /// Set text matrix directly (Tm operator).
+    /// Parameters: [a, b, c, d, e, f] for transformation matrix.
+    SetTextMatrix(f32, f32, f32, f32, f32, f32),
+    
+    /// Move to start of next line (T* operator).
+    /// Uses the current leading value set with TL.
+    NextLine,
 
     // Text showing operators
-    ShowText(Vec<u8>),                             // Tj
-    ShowTextArray(Vec<TextElement>),               // TJ
-    NextLineShowText(Vec<u8>),                     // '
-    SetSpacingNextLineShowText(f32, f32, Vec<u8>), // "
+    /// Show text string (Tj operator).
+    /// The bytes are encoded according to the current font's encoding.
+    ShowText(Vec<u8>),
+    
+    /// Show text with individual positioning (TJ operator).
+    /// Array elements can be strings or position adjustments.
+    ShowTextArray(Vec<TextElement>),
+    
+    /// Move to next line and show text (' operator).
+    /// Equivalent to: T* string Tj
+    NextLineShowText(Vec<u8>),
+    
+    /// Set spacing, move to next line, and show text (" operator).
+    /// Equivalent to: word_spacing Tw char_spacing Tc string '
+    SetSpacingNextLineShowText(f32, f32, Vec<u8>),
 
     // Graphics state operators
-    SaveGraphicsState,                                // q
-    RestoreGraphicsState,                             // Q
-    SetTransformMatrix(f32, f32, f32, f32, f32, f32), // cm
-    SetLineWidth(f32),                                // w
-    SetLineCap(i32),                                  // J
-    SetLineJoin(i32),                                 // j
-    SetMiterLimit(f32),                               // M
-    SetDashPattern(Vec<f32>, f32),                    // d
-    SetIntent(String),                                // ri
-    SetFlatness(f32),                                 // i
-    SetGraphicsStateParams(String),                   // gs
+    /// Save current graphics state (q operator).
+    /// Pushes the entire graphics state onto a stack.
+    SaveGraphicsState,
+    
+    /// Restore graphics state (Q operator).
+    /// Pops the graphics state from the stack.
+    RestoreGraphicsState,
+    
+    /// Concatenate matrix to current transformation matrix (cm operator).
+    /// Modifies the CTM: CTM' = CTM × [a b c d e f]
+    SetTransformMatrix(f32, f32, f32, f32, f32, f32),
+    
+    /// Set line width (w operator) in user space units.
+    SetLineWidth(f32),
+    
+    /// Set line cap style (J operator).
+    /// 0=butt cap, 1=round cap, 2=projecting square cap
+    SetLineCap(i32),
+    
+    /// Set line join style (j operator).
+    /// 0=miter join, 1=round join, 2=bevel join
+    SetLineJoin(i32),
+    
+    /// Set miter limit (M operator).
+    /// Maximum ratio of miter length to line width.
+    SetMiterLimit(f32),
+    
+    /// Set dash pattern (d operator).
+    /// Array of dash/gap lengths and starting phase.
+    SetDashPattern(Vec<f32>, f32),
+    
+    /// Set rendering intent (ri operator).
+    /// Color rendering intent: /AbsoluteColorimetric, /RelativeColorimetric, /Saturation, /Perceptual
+    SetIntent(String),
+    
+    /// Set flatness tolerance (i operator).
+    /// Maximum error when rendering curves as line segments.
+    SetFlatness(f32),
+    
+    /// Set graphics state from parameter dictionary (gs operator).
+    /// References ExtGState resource dictionary.
+    SetGraphicsStateParams(String),
 
     // Path construction operators
-    MoveTo(f32, f32),                      // m
-    LineTo(f32, f32),                      // l
-    CurveTo(f32, f32, f32, f32, f32, f32), // c
-    CurveToV(f32, f32, f32, f32),          // v
-    CurveToY(f32, f32, f32, f32),          // y
-    ClosePath,                             // h
-    Rectangle(f32, f32, f32, f32),         // re
+    /// Begin new subpath at point (m operator).
+    MoveTo(f32, f32),
+    
+    /// Append straight line segment (l operator).
+    LineTo(f32, f32),
+    
+    /// Append cubic Bézier curve (c operator).
+    /// Control points: (x1,y1), (x2,y2), endpoint: (x3,y3)
+    CurveTo(f32, f32, f32, f32, f32, f32),
+    
+    /// Append cubic Bézier curve with first control point = current point (v operator).
+    CurveToV(f32, f32, f32, f32),
+    
+    /// Append cubic Bézier curve with second control point = endpoint (y operator).
+    CurveToY(f32, f32, f32, f32),
+    
+    /// Close current subpath (h operator).
+    /// Appends straight line to starting point.
+    ClosePath,
+    
+    /// Append rectangle as complete subpath (re operator).
+    /// Parameters: x, y, width, height
+    Rectangle(f32, f32, f32, f32),
 
     // Path painting operators
-    Stroke,                 // S
-    CloseStroke,            // s
-    Fill,                   // f or F
-    FillEvenOdd,            // f*
-    FillStroke,             // B
-    FillStrokeEvenOdd,      // B*
-    CloseFillStroke,        // b
-    CloseFillStrokeEvenOdd, // b*
-    EndPath,                // n
+    /// Stroke the path (S operator).
+    Stroke,
+    
+    /// Close and stroke the path (s operator).
+    /// Equivalent to: h S
+    CloseStroke,
+    
+    /// Fill the path using nonzero winding rule (f or F operator).
+    Fill,
+    
+    /// Fill the path using even-odd rule (f* operator).
+    FillEvenOdd,
+    
+    /// Fill then stroke the path (B operator).
+    /// Uses nonzero winding rule.
+    FillStroke,
+    
+    /// Fill then stroke using even-odd rule (B* operator).
+    FillStrokeEvenOdd,
+    
+    /// Close, fill, and stroke the path (b operator).
+    /// Equivalent to: h B
+    CloseFillStroke,
+    
+    /// Close, fill, and stroke using even-odd rule (b* operator).
+    CloseFillStrokeEvenOdd,
+    
+    /// End path without filling or stroking (n operator).
+    /// Used primarily before clipping.
+    EndPath,
 
     // Clipping path operators
     Clip,        // W
     ClipEvenOdd, // W*
 
     // Color operators
-    SetStrokingColorSpace(String),          // CS
-    SetNonStrokingColorSpace(String),       // cs
-    SetStrokingColor(Vec<f32>),             // SC, SCN
-    SetNonStrokingColor(Vec<f32>),          // sc, scn
-    SetStrokingGray(f32),                   // G
-    SetNonStrokingGray(f32),                // g
-    SetStrokingRGB(f32, f32, f32),          // RG
-    SetNonStrokingRGB(f32, f32, f32),       // rg
-    SetStrokingCMYK(f32, f32, f32, f32),    // K
-    SetNonStrokingCMYK(f32, f32, f32, f32), // k
+    /// Set stroking color space (CS operator).
+    /// References ColorSpace resource dictionary.
+    SetStrokingColorSpace(String),
+    
+    /// Set non-stroking color space (cs operator).
+    /// References ColorSpace resource dictionary.
+    SetNonStrokingColorSpace(String),
+    
+    /// Set stroking color (SC, SCN operators).
+    /// Number of components depends on current color space.
+    SetStrokingColor(Vec<f32>),
+    
+    /// Set non-stroking color (sc, scn operators).
+    /// Number of components depends on current color space.
+    SetNonStrokingColor(Vec<f32>),
+    
+    /// Set stroking color to DeviceGray (G operator).
+    /// 0.0 = black, 1.0 = white
+    SetStrokingGray(f32),
+    
+    /// Set non-stroking color to DeviceGray (g operator).
+    SetNonStrokingGray(f32),
+    
+    /// Set stroking color to DeviceRGB (RG operator).
+    /// Components range from 0.0 to 1.0.
+    SetStrokingRGB(f32, f32, f32),
+    
+    /// Set non-stroking color to DeviceRGB (rg operator).
+    SetNonStrokingRGB(f32, f32, f32),
+    
+    /// Set stroking color to DeviceCMYK (K operator).
+    SetStrokingCMYK(f32, f32, f32, f32),
+    
+    /// Set non-stroking color to DeviceCMYK (k operator).
+    SetNonStrokingCMYK(f32, f32, f32, f32),
 
     // Shading operators
     ShadingFill(String), // sh
@@ -92,7 +313,9 @@ pub enum ContentOperation {
     InlineImageData(Vec<u8>), // ID...EI
 
     // XObject operators
-    PaintXObject(String), // Do
+    /// Paint external object (Do operator).
+    /// References XObject resource dictionary (images, forms).
+    PaintXObject(String),
 
     // Marked content operators
     BeginMarkedContent(String),                                   // BMC
@@ -106,10 +329,30 @@ pub enum ContentOperation {
     EndCompatibility,   // EX
 }
 
-/// Represents a text element in a TJ array
+/// Represents a text element in a TJ array for ShowTextArray operations.
+///
+/// The TJ operator takes an array of strings and position adjustments,
+/// allowing fine control over character and word spacing.
+///
+/// # Example
+///
+/// ```rust
+/// use oxidize_pdf_core::parser::content::{TextElement, ContentOperation};
+///
+/// // TJ array: [(Hello) -50 (World)]
+/// let tj_array = vec![
+///     TextElement::Text(b"Hello".to_vec()),
+///     TextElement::Spacing(-50.0), // Move left 50 units
+///     TextElement::Text(b"World".to_vec()),
+/// ];
+/// let op = ContentOperation::ShowTextArray(tj_array);
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum TextElement {
+    /// Text string to show
     Text(Vec<u8>),
+    /// Position adjustment in thousandths of text space units
+    /// Negative values move to the right (decrease spacing)
     Spacing(f32),
 }
 
@@ -467,7 +710,24 @@ impl<'a> ContentTokenizer<'a> {
     }
 }
 
-/// Content stream parser
+/// High-level content stream parser.
+///
+/// Converts tokenized content streams into structured `ContentOperation` values.
+/// This parser handles the operand stack and operator parsing according to PDF specifications.
+///
+/// # Usage
+///
+/// The parser is typically used through its static methods:
+///
+/// ```rust
+/// use oxidize_pdf_core::parser::content::ContentParser;
+///
+/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let content = b"q 1 0 0 1 50 50 cm 100 100 200 150 re S Q";
+/// let operations = ContentParser::parse(content)?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct ContentParser {
     tokens: Vec<Token>,
     position: usize,
@@ -482,12 +742,47 @@ impl ContentParser {
         }
     }
 
-    /// Parse a content stream into a vector of operators (static method for tests)
+    /// Parse a content stream into a vector of operators.
+    ///
+    /// This is a convenience method that creates a parser and processes the entire stream.
+    ///
+    /// # Arguments
+    ///
+    /// * `content` - Raw content stream bytes (may be compressed)
+    ///
+    /// # Returns
+    ///
+    /// A vector of parsed `ContentOperation` values in the order they appear.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Invalid operator syntax is encountered
+    /// - Operators have incorrect number/type of operands
+    /// - Unknown operators are found
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use oxidize_pdf_core::parser::content::{ContentParser, ContentOperation};
+    ///
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let content = b"BT /F1 12 Tf 100 200 Td (Hello) Tj ET";
+    /// let operations = ContentParser::parse(content)?;
+    /// 
+    /// assert_eq!(operations.len(), 5);
+    /// assert!(matches!(operations[0], ContentOperation::BeginText));
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn parse(content: &[u8]) -> ParseResult<Vec<ContentOperation>> {
         Self::parse_content(content)
     }
 
-    /// Parse a content stream into a vector of operators
+    /// Parse a content stream into a vector of operators.
+    ///
+    /// This method tokenizes the input and converts it to operations.
+    /// It handles the PDF postfix notation where operands precede operators.
     pub fn parse_content(content: &[u8]) -> ParseResult<Vec<ContentOperation>> {
         let mut tokenizer = ContentTokenizer::new(content);
         let mut tokens = Vec::new();
