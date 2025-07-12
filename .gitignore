@@ -20,5 +20,9 @@ oxidizePdf-private*/
 # External test suites
 test-suite/external-suites/
 
+# Local PDF fixtures (symbolic links to private PDFs)
+tests/fixtures/
+tests/fixtures
+
 # Keep GitHub workflows
 !.github/

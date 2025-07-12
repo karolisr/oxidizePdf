@@ -231,6 +231,32 @@ For commercial use cases that require proprietary licensing, please contact us a
 - Priority support and SLAs
 - Custom feature development
 
+## Testing
+
+oxidize-pdf includes comprehensive test suites to ensure reliability:
+
+```bash
+# Run standard test suite (synthetic PDFs)
+cargo test
+
+# Run all tests including performance benchmarks
+cargo test -- --ignored
+
+# Run with local PDF fixtures (if available)
+OXIDIZE_PDF_FIXTURES=on cargo test
+```
+
+### Local PDF Fixtures (Optional)
+
+For enhanced testing with real-world PDFs, you can optionally set up local PDF fixtures:
+
+1. Create a symbolic link: `tests/fixtures -> /path/to/your/pdf/collection`
+2. The test suite will automatically detect and use these PDFs
+3. Fixtures are never committed to the repository (excluded in `.gitignore`)
+4. Tests work fine without fixtures using synthetic PDFs
+
+**Note**: CI/CD always uses synthetic PDFs only for consistent, fast builds.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
