@@ -88,23 +88,23 @@ pub struct ParsedPage {
     /// Object reference to this page in the form (object_number, generation_number).
     /// This uniquely identifies the page object in the PDF file.
     pub obj_ref: (u32, u16),
-    
+
     /// Page dictionary containing all page-specific entries like Contents, Resources, etc.
     /// This is the raw PDF dictionary for the page object.
     pub dict: PdfDictionary,
-    
+
     /// Resources inherited from parent page tree nodes.
     /// These are automatically merged during page tree traversal.
     pub inherited_resources: Option<PdfDictionary>,
-    
+
     /// MediaBox defining the page dimensions in PDF units (typically points).
     /// Format: [lower_left_x, lower_left_y, upper_right_x, upper_right_y]
     pub media_box: [f64; 4],
-    
+
     /// CropBox defining the visible area of the page.
     /// If None, the entire MediaBox is visible.
     pub crop_box: Option<[f64; 4]>,
-    
+
     /// Page rotation in degrees. Valid values are 0, 90, 180, or 270.
     /// The rotation is applied clockwise.
     pub rotation: i32,
@@ -635,7 +635,7 @@ impl ParsedPage {
     /// # let page = document.get_page(0)?;
     /// // Get a self-contained page with all resources
     /// let standalone_page = page.clone_with_resources();
-    /// 
+    ///
     /// // The cloned page now has all resources in its dictionary
     /// assert!(standalone_page.dict.contains_key("Resources"));
     /// # Ok(())
@@ -681,7 +681,7 @@ impl ParsedPage {
     /// # use oxidize_pdf_core::parser::{PdfReader, ParsedPage};
     /// # fn example(page: &ParsedPage, reader: &mut PdfReader<std::fs::File>) -> Result<(), Box<dyn std::error::Error>> {
     /// let referenced_objects = page.get_referenced_objects(reader)?;
-    /// 
+    ///
     /// println!("Page references {} objects", referenced_objects.len());
     /// for ((obj_num, gen_num), obj) in &referenced_objects {
     ///     println!("  {} {} R: {:?}", obj_num, gen_num, obj);

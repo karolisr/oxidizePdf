@@ -77,7 +77,7 @@ use std::rc::Rc;
 /// use oxidize_pdf_core::parser::document::ResourceManager;
 ///
 /// let resources = ResourceManager::new();
-/// 
+///
 /// // Objects are cached automatically when accessed through PdfDocument
 /// // Manual cache management:
 /// resources.clear_cache(); // Free memory when needed

@@ -186,9 +186,8 @@ pub use text::{
 
 // Re-export parsing types
 pub use parser::{
-    ContentOperation, ContentParser, DocumentMetadata as ParsedDocumentMetadata,
-    ParsedPage, PdfArray, PdfDictionary, PdfDocument, PdfName, PdfObject, 
-    PdfReader, PdfStream, PdfString,
+    ContentOperation, ContentParser, DocumentMetadata as ParsedDocumentMetadata, ParsedPage,
+    PdfArray, PdfDictionary, PdfDocument, PdfName, PdfObject, PdfReader, PdfStream, PdfString,
 };
 
 // Re-export operations
@@ -200,7 +199,8 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Supported PDF versions
 pub mod pdf_version {
     /// PDF 1.0 - 1.7 are fully supported
-    pub const SUPPORTED_VERSIONS: &[&str] = &["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7"];
+    pub const SUPPORTED_VERSIONS: &[&str] =
+        &["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7"];
     /// PDF 2.0 support is planned
     pub const PLANNED_VERSIONS: &[&str] = &["2.0"];
 }
@@ -221,7 +221,7 @@ mod tests {
         assert_eq!(page.width(), 595.0);
         assert_eq!(page.height(), 842.0);
     }
-    
+
     #[test]
     fn test_version_info() {
         assert!(!VERSION.is_empty());

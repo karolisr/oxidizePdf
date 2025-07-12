@@ -5,7 +5,6 @@ mod tests {
     use oxidize_pdf::parser::{header::*, lexer::*, objects::*};
     use std::io::Cursor;
 
-
     #[test]
     fn test_lexer_tokenization() {
         let input = b"<< /Type /Page /Parent 2 0 R >>";

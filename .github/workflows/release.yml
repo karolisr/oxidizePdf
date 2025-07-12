@@ -92,29 +92,61 @@ jobs:
             echo "api_changed=false" >> $GITHUB_OUTPUT
           fi
 
-      # Publish to crates.io (only changed packages)
+      # Check if packages need new versions before publishing
+      - name: Check version changes
+        id: version_check
+        run: |
+          # Get current versions from Cargo.toml files
+          CORE_VERSION=$(grep -E "^version = " oxidize-pdf-core/Cargo.toml | cut -d'"' -f2)
+          CLI_VERSION=$(grep -E "^version = " oxidize-pdf-cli/Cargo.toml | cut -d'"' -f2)
+          API_VERSION=$(grep -E "^version = " oxidize-pdf-api/Cargo.toml | cut -d'"' -f2)
+          
+          echo "core_version=$CORE_VERSION" >> $GITHUB_OUTPUT
+          echo "cli_version=$CLI_VERSION" >> $GITHUB_OUTPUT
+          echo "api_version=$API_VERSION" >> $GITHUB_OUTPUT
+          
+          # Check if versions exist on crates.io
+          if cargo search oxidize-pdf --limit 1 | grep -q "oxidize-pdf.*\"$CORE_VERSION\""; then
+            echo "core_needs_publish=false" >> $GITHUB_OUTPUT
+          else
+            echo "core_needs_publish=true" >> $GITHUB_OUTPUT
+          fi
+          
+          if cargo search oxidize-pdf-cli --limit 1 | grep -q "oxidize-pdf-cli.*\"$CLI_VERSION\""; then
+            echo "cli_needs_publish=false" >> $GITHUB_OUTPUT
+          else
+            echo "cli_needs_publish=true" >> $GITHUB_OUTPUT
+          fi
+          
+          if cargo search oxidize-pdf-api --limit 1 | grep -q "oxidize-pdf-api.*\"$API_VERSION\""; then
+            echo "api_needs_publish=false" >> $GITHUB_OUTPUT
+          else
+            echo "api_needs_publish=true" >> $GITHUB_OUTPUT
+          fi
+
+      # Publish to crates.io (only if version doesn't exist and package changed)
       - name: Publish oxidize-pdf to crates.io
-        if: steps.changes.outputs.core_changed == 'true'
+        if: steps.changes.outputs.core_changed == 'true' && steps.version_check.outputs.core_needs_publish == 'true'
         run: cargo publish -p oxidize-pdf
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       - name: Wait for crates.io (core)
-        if: steps.changes.outputs.core_changed == 'true'
+        if: steps.changes.outputs.core_changed == 'true' && steps.version_check.outputs.core_needs_publish == 'true'
         run: sleep 60
 
       - name: Publish oxidize-pdf-cli to crates.io
-        if: steps.changes.outputs.cli_changed == 'true' || steps.changes.outputs.core_changed == 'true'
+        if: steps.changes.outputs.cli_changed == 'true' && steps.version_check.outputs.cli_needs_publish == 'true'
         run: cargo publish -p oxidize-pdf-cli
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       - name: Wait for crates.io (cli)
-        if: steps.changes.outputs.cli_changed == 'true' || steps.changes.outputs.core_changed == 'true'
+        if: steps.changes.outputs.cli_changed == 'true' && steps.version_check.outputs.cli_needs_publish == 'true'
         run: sleep 30
 
       - name: Publish oxidize-pdf-api to crates.io
-        if: steps.changes.outputs.api_changed == 'true' || steps.changes.outputs.core_changed == 'true'
+        if: steps.changes.outputs.api_changed == 'true' && steps.version_check.outputs.api_needs_publish == 'true'
         run: cargo publish -p oxidize-pdf-api
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

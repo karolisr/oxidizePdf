@@ -148,9 +148,9 @@ use crate::error::OxidizePdfError;
 // Re-export main types for convenient access
 pub use self::content::{ContentOperation, ContentParser, TextElement};
 pub use self::document::{PdfDocument, ResourceManager};
-pub use self::objects::{PdfArray, PdfDictionary, PdfName, PdfObject, PdfString, PdfStream};
+pub use self::objects::{PdfArray, PdfDictionary, PdfName, PdfObject, PdfStream, PdfString};
 pub use self::page_tree::ParsedPage;
-pub use self::reader::{PdfReader, DocumentMetadata};
+pub use self::reader::{DocumentMetadata, PdfReader};
 
 /// Result type for parser operations
 pub type ParseResult<T> = Result<T, ParseError>;

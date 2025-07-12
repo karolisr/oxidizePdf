@@ -2,8 +2,8 @@
 
 #[cfg(feature = "compression")]
 mod compression_tests {
-    use oxidize_pdf::{Document, Page, Font};
     use oxidize_pdf::parser::PdfReader;
+    use oxidize_pdf::{Document, Font, Page};
     use tempfile::TempDir;
 
     #[test]
@@ -18,7 +18,7 @@ mod compression_tests {
 
         // Create a page with text
         let mut page = Page::a4();
-        
+
         let mut text_flow = page.text_flow();
         text_flow.set_font(Font::Helvetica, 12.0);
         text_flow.write_wrapped("This is a test of PDF compression. This text should be compressed using FlateDecode filter.")?;
@@ -34,7 +34,7 @@ mod compression_tests {
 
         // Now try to parse the PDF
         let mut reader = PdfReader::open(&pdf_path)?;
-        
+
         // Verify basic properties
         assert_eq!(reader.version().major, 1);
         assert_eq!(reader.version().minor, 7);
@@ -49,7 +49,7 @@ mod compression_tests {
 
     #[test]
     fn test_filter_is_name_object() -> Result<(), Box<dyn std::error::Error>> {
-        use oxidize_pdf::objects::{Stream, Object};
+        use oxidize_pdf::objects::{Object, Stream};
 
         // Create a stream and set filter
         let data = vec![1, 2, 3, 4, 5];
@@ -59,7 +59,7 @@ mod compression_tests {
         // Verify the Filter is set as a Name object, not a String
         let dict = stream.dictionary();
         let filter = dict.get("Filter").expect("Filter should be set");
-        
+
         match filter {
             Object::Name(name) => {
                 assert_eq!(name, "FlateDecode");

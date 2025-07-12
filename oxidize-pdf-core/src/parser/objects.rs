@@ -78,7 +78,7 @@ pub struct PdfName(pub String);
 ///
 /// // Create from UTF-8
 /// let string = PdfString::new(b"Hello World".to_vec());
-/// 
+///
 /// // Try to decode as UTF-8
 /// if let Ok(text) = string.as_str() {
 ///     println!("Text: {}", text);
@@ -134,9 +134,9 @@ pub struct PdfArray(pub Vec<PdfObject>);
 /// use oxidize_pdf_core::parser::objects::{PdfDictionary, PdfObject, PdfName};
 ///
 /// let mut page_dict = PdfDictionary::new();
-/// page_dict.insert("Type".to_string(), 
+/// page_dict.insert("Type".to_string(),
 ///     PdfObject::Name(PdfName::new("Page".to_string())));
-/// page_dict.insert("Parent".to_string(), 
+/// page_dict.insert("Parent".to_string(),
 ///     PdfObject::Reference(2, 0)); // Reference to pages tree
 ///
 /// // Access values

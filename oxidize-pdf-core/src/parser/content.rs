@@ -95,7 +95,7 @@ pub enum ContentOperation {
     /// Begin a text object (BT operator).
     /// All text showing operations must occur within a text object.
     BeginText,
-    
+
     /// End a text object (ET operator).
     /// Closes the current text object started with BeginText.
     EndText,
@@ -104,27 +104,27 @@ pub enum ContentOperation {
     /// Set character spacing (Tc operator).
     /// Additional space between characters in unscaled text units.
     SetCharSpacing(f32),
-    
+
     /// Set word spacing (Tw operator).
     /// Additional space for ASCII space character (0x20) in unscaled text units.
     SetWordSpacing(f32),
-    
+
     /// Set horizontal text scaling (Tz operator).
     /// Percentage of normal width (100 = normal).
     SetHorizontalScaling(f32),
-    
+
     /// Set text leading (TL operator).
     /// Vertical distance between baselines for T* operator.
     SetLeading(f32),
-    
+
     /// Set font and size (Tf operator).
     /// Font name must match a key in the Resources/Font dictionary.
     SetFont(String, f32),
-    
+
     /// Set text rendering mode (Tr operator).
     /// 0=fill, 1=stroke, 2=fill+stroke, 3=invisible, 4=fill+clip, 5=stroke+clip, 6=fill+stroke+clip, 7=clip
     SetTextRenderMode(i32),
-    
+
     /// Set text rise (Ts operator).
     /// Vertical displacement for superscripts/subscripts in text units.
     SetTextRise(f32),
@@ -133,15 +133,15 @@ pub enum ContentOperation {
     /// Move text position (Td operator).
     /// Translates the text matrix by (tx, ty).
     MoveText(f32, f32),
-    
+
     /// Move text position and set leading (TD operator).
     /// Equivalent to: -ty TL tx ty Td
     MoveTextSetLeading(f32, f32),
-    
+
     /// Set text matrix directly (Tm operator).
     /// Parameters: [a, b, c, d, e, f] for transformation matrix.
     SetTextMatrix(f32, f32, f32, f32, f32, f32),
-    
+
     /// Move to start of next line (T* operator).
     /// Uses the current leading value set with TL.
     NextLine,
@@ -150,15 +150,15 @@ pub enum ContentOperation {
     /// Show text string (Tj operator).
     /// The bytes are encoded according to the current font's encoding.
     ShowText(Vec<u8>),
-    
+
     /// Show text with individual positioning (TJ operator).
     /// Array elements can be strings or position adjustments.
     ShowTextArray(Vec<TextElement>),
-    
+
     /// Move to next line and show text (' operator).
     /// Equivalent to: T* string Tj
     NextLineShowText(Vec<u8>),
-    
+
     /// Set spacing, move to next line, and show text (" operator).
     /// Equivalent to: word_spacing Tw char_spacing Tc string '
     SetSpacingNextLineShowText(f32, f32, Vec<u8>),
@@ -167,42 +167,42 @@ pub enum ContentOperation {
     /// Save current graphics state (q operator).
     /// Pushes the entire graphics state onto a stack.
     SaveGraphicsState,
-    
+
     /// Restore graphics state (Q operator).
     /// Pops the graphics state from the stack.
     RestoreGraphicsState,
-    
+
     /// Concatenate matrix to current transformation matrix (cm operator).
     /// Modifies the CTM: CTM' = CTM × [a b c d e f]
     SetTransformMatrix(f32, f32, f32, f32, f32, f32),
-    
+
     /// Set line width (w operator) in user space units.
     SetLineWidth(f32),
-    
+
     /// Set line cap style (J operator).
     /// 0=butt cap, 1=round cap, 2=projecting square cap
     SetLineCap(i32),
-    
+
     /// Set line join style (j operator).
     /// 0=miter join, 1=round join, 2=bevel join
     SetLineJoin(i32),
-    
+
     /// Set miter limit (M operator).
     /// Maximum ratio of miter length to line width.
     SetMiterLimit(f32),
-    
+
     /// Set dash pattern (d operator).
     /// Array of dash/gap lengths and starting phase.
     SetDashPattern(Vec<f32>, f32),
-    
+
     /// Set rendering intent (ri operator).
     /// Color rendering intent: /AbsoluteColorimetric, /RelativeColorimetric, /Saturation, /Perceptual
     SetIntent(String),
-    
+
     /// Set flatness tolerance (i operator).
     /// Maximum error when rendering curves as line segments.
     SetFlatness(f32),
-    
+
     /// Set graphics state from parameter dictionary (gs operator).
     /// References ExtGState resource dictionary.
     SetGraphicsStateParams(String),
@@ -210,24 +210,24 @@ pub enum ContentOperation {
     // Path construction operators
     /// Begin new subpath at point (m operator).
     MoveTo(f32, f32),
-    
+
     /// Append straight line segment (l operator).
     LineTo(f32, f32),
-    
+
     /// Append cubic Bézier curve (c operator).
     /// Control points: (x1,y1), (x2,y2), endpoint: (x3,y3)
     CurveTo(f32, f32, f32, f32, f32, f32),
-    
+
     /// Append cubic Bézier curve with first control point = current point (v operator).
     CurveToV(f32, f32, f32, f32),
-    
+
     /// Append cubic Bézier curve with second control point = endpoint (y operator).
     CurveToY(f32, f32, f32, f32),
-    
+
     /// Close current subpath (h operator).
     /// Appends straight line to starting point.
     ClosePath,
-    
+
     /// Append rectangle as complete subpath (re operator).
     /// Parameters: x, y, width, height
     Rectangle(f32, f32, f32, f32),
@@ -235,31 +235,31 @@ pub enum ContentOperation {
     // Path painting operators
     /// Stroke the path (S operator).
     Stroke,
-    
+
     /// Close and stroke the path (s operator).
     /// Equivalent to: h S
     CloseStroke,
-    
+
     /// Fill the path using nonzero winding rule (f or F operator).
     Fill,
-    
+
     /// Fill the path using even-odd rule (f* operator).
     FillEvenOdd,
-    
+
     /// Fill then stroke the path (B operator).
     /// Uses nonzero winding rule.
     FillStroke,
-    
+
     /// Fill then stroke using even-odd rule (B* operator).
     FillStrokeEvenOdd,
-    
+
     /// Close, fill, and stroke the path (b operator).
     /// Equivalent to: h B
     CloseFillStroke,
-    
+
     /// Close, fill, and stroke using even-odd rule (b* operator).
     CloseFillStrokeEvenOdd,
-    
+
     /// End path without filling or stroking (n operator).
     /// Used primarily before clipping.
     EndPath,
@@ -272,36 +272,36 @@ pub enum ContentOperation {
     /// Set stroking color space (CS operator).
     /// References ColorSpace resource dictionary.
     SetStrokingColorSpace(String),
-    
+
     /// Set non-stroking color space (cs operator).
     /// References ColorSpace resource dictionary.
     SetNonStrokingColorSpace(String),
-    
+
     /// Set stroking color (SC, SCN operators).
     /// Number of components depends on current color space.
     SetStrokingColor(Vec<f32>),
-    
+
     /// Set non-stroking color (sc, scn operators).
     /// Number of components depends on current color space.
     SetNonStrokingColor(Vec<f32>),
-    
+
     /// Set stroking color to DeviceGray (G operator).
     /// 0.0 = black, 1.0 = white
     SetStrokingGray(f32),
-    
+
     /// Set non-stroking color to DeviceGray (g operator).
     SetNonStrokingGray(f32),
-    
+
     /// Set stroking color to DeviceRGB (RG operator).
     /// Components range from 0.0 to 1.0.
     SetStrokingRGB(f32, f32, f32),
-    
+
     /// Set non-stroking color to DeviceRGB (rg operator).
     SetNonStrokingRGB(f32, f32, f32),
-    
+
     /// Set stroking color to DeviceCMYK (K operator).
     SetStrokingCMYK(f32, f32, f32, f32),
-    
+
     /// Set non-stroking color to DeviceCMYK (k operator).
     SetNonStrokingCMYK(f32, f32, f32, f32),
 
@@ -769,7 +769,7 @@ impl ContentParser {
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let content = b"BT /F1 12 Tf 100 200 Td (Hello) Tj ET";
     /// let operations = ContentParser::parse(content)?;
-    /// 
+    ///
     /// assert_eq!(operations.len(), 5);
     /// assert!(matches!(operations[0], ContentOperation::BeginText));
     /// # Ok(())
