@@ -1,10 +1,11 @@
 //! Examples demonstrating PDF split, merge, and rotate operations
 
-use oxidize_pdf_core::{Document, Page, Font, Color, Result};
-use oxidize_pdf_core::operations::{
+use oxidize_pdf::{Document, Page, Font, Color, Result};
+use oxidize_pdf::operations::{
     split_pdf, merge_pdf_files, rotate_pdf_pages,
     SplitMode, SplitOptions, MergeInput, PageRange, RotationAngle, RotateOptions
 };
+use oxidize_pdf::operations::merge::MetadataMode;
 use std::path::Path;
 
 fn main() -> Result<()> {
@@ -118,7 +119,7 @@ fn merge_example() -> Result<()> {
         MergeInput::with_pages("sample2.pdf", PageRange::Single(0)),    // Page 1 only
     ];
     
-    match oxidize_pdf_core::operations::merge_pdfs(
+    match oxidize_pdf::operations::merge_pdfs(
         inputs,
         "merged_selected.pdf",
         Default::default()
@@ -194,7 +195,7 @@ fn advanced_example() -> Result<()> {
     for i in 0..5 {
         page3.text()
             .set_font(Font::Helvetica, 14.0)
-            .at(100.0, 700.0 - (i as f32 * 50.0))
+            .at(100.0, 700.0 - (i as f64 * 50.0))
             .write(&format!("Text block {}", i + 1))?;
     }
     doc.add_page(page3);
@@ -222,8 +223,8 @@ fn advanced_example() -> Result<()> {
     }
     
     // 2. Merge with custom metadata
-    let merge_options = oxidize_pdf_core::operations::MergeOptions {
-        metadata_mode: oxidize_pdf_core::operations::MetadataMode::Custom {
+    let merge_options = oxidize_pdf::operations::MergeOptions {
+        metadata_mode: MetadataMode::Custom {
             title: Some("Combined Document".to_string()),
             author: Some("oxidizePdf Example".to_string()),
             subject: Some("Demonstration of merge operations".to_string()),
@@ -237,7 +238,7 @@ fn advanced_example() -> Result<()> {
         MergeInput::new("rotated_90.pdf"),
     ];
     
-    match oxidize_pdf_core::operations::merge_pdfs(
+    match oxidize_pdf::operations::merge_pdfs(
         inputs,
         "final_combined.pdf",
         merge_options
