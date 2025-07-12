@@ -4,10 +4,9 @@
 //! a basic PDF renderer that processes content streams and extracts
 //! rendering information.
 
-use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
-use oxidize_pdf_core::parser::content::{ContentParser, ContentOperation, TextElement};
-use oxidize_pdf_core::parser::objects::PdfObject;
-use std::collections::HashMap;
+use oxidize_pdf::parser::{PdfDocument, PdfReader};
+use oxidize_pdf::parser::content::{ContentParser, ContentOperation, TextElement};
+use oxidize_pdf::parser::objects::PdfObject;
 
 /// Graphics state for rendering
 #[derive(Debug, Clone)]
@@ -48,7 +47,7 @@ struct PdfRenderer {
     rendered_items: Vec<RenderItem>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum PathCommand {
     MoveTo(f64, f64),
     LineTo(f64, f64),
@@ -136,7 +135,7 @@ impl PdfRenderer {
         Ok(())
     }
 
-    fn analyze_resources(&self, resources: &oxidize_pdf_core::parser::PdfDictionary, document: &PdfDocument<std::fs::File>) -> Result<(), Box<dyn std::error::Error>> {
+    fn analyze_resources(&self, resources: &oxidize_pdf::parser::PdfDictionary, document: &PdfDocument<std::fs::File>) -> Result<(), Box<dyn std::error::Error>> {
         // Analyze fonts
         if let Some(fonts) = resources.get("Font").and_then(|f| f.as_dict()) {
             println!("\nFonts in resources:");

@@ -1,11 +1,11 @@
 [package]
 name = "oxidize-pdf-cli"
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-documentation.workspace = true
+documentation = "https://docs.rs/oxidize-pdf-cli"
 description = "Command-line interface for oxidizePdf"
 keywords = ["pdf", "cli", "command-line"]
 categories = ["command-line-utilities"]
@@ -16,7 +16,7 @@ path = "src/main.rs"
 
 [dependencies]
 # Core functionality
-oxidize-pdf = { version = "0.1.2" }
+oxidize-pdf = { version = "^0.1.2" }
 
 # CLI
 clap = { workspace = true }

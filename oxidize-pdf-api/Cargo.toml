@@ -1,18 +1,18 @@
 [package]
 name = "oxidize-pdf-api"
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-documentation.workspace = true
+documentation = "https://docs.rs/oxidize-pdf-api"
 description = "REST API for oxidizePdf (Community edition)"
 keywords = ["pdf", "api", "rest", "web"]
 categories = ["web-programming::http-server"]
 
 [dependencies]
 # Core functionality
-oxidize-pdf = { version = "0.1.2" }
+oxidize-pdf = { version = "^0.1.2" }
 
 # Web framework
 axum = "0.7"
