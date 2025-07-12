@@ -69,21 +69,19 @@ jobs:
 
       # Publish to crates.io
       - name: Publish oxidize-pdf to crates.io
-        run: cargo publish -p oxidize-pdf --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p oxidize-pdf
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       - name: Wait for crates.io
-        run: sleep 30
+        run: sleep 60
 
       - name: Publish oxidize-pdf-cli to crates.io
-        run: cargo publish -p oxidize-pdf-cli --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p oxidize-pdf-cli
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        continue-on-error: true
 
       - name: Publish oxidize-pdf-api to crates.io
-        run: cargo publish -p oxidize-pdf-api --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p oxidize-pdf-api
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        continue-on-error: true

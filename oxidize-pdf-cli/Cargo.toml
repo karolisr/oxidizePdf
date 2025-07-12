@@ -16,7 +16,7 @@ path = "src/main.rs"
 
 [dependencies]
 # Core functionality
-oxidize-pdf = { path = "../oxidize-pdf-core" }
+oxidize-pdf = { version = "0.1.2" }
 
 # CLI
 clap = { workspace = true }

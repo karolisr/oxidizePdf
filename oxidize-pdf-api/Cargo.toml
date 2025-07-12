@@ -12,7 +12,7 @@ categories = ["web-programming::http-server"]
 
 [dependencies]
 # Core functionality
-oxidize-pdf = { path = "../oxidize-pdf-core" }
+oxidize-pdf = { version = "0.1.2" }
 
 # Web framework
 axum = "0.7"
