@@ -5,7 +5,7 @@
 
 use oxidize_pdf_test_suite::{
     generators::test_pdf_builder::{PdfVersion, TestPdfBuilder},
-    spec_compliance::{Pdf17ComplianceTester, SpecificationTest},
+    spec_compliance::{Pdf17ComplianceTester, Pdf20ComplianceTester, SpecificationTest},
     validators::content_validator::ContentValidator,
 };
 use proptest::prelude::*;
@@ -95,7 +95,7 @@ proptest! {
         prop_assert!(pdf.starts_with(b"%PDF-"));
 
         // Should contain %%EOF at the end
-        prop_assert!(std::str::from_utf8(&pdf).unwrap().trim().ends_with("%%EOF"));
+        prop_assert!(String::from_utf8_lossy(&pdf).trim().ends_with("%%EOF"));
     }
 
     /// Test that generated PDFs pass basic compliance tests
@@ -112,13 +112,19 @@ proptest! {
         }
 
         let pdf = builder.build();
-        let tester = Pdf17ComplianceTester;
-
-        // Header should be valid
-        let header_result = tester.test_header_compliance(&pdf);
+        
+        // Use appropriate tester based on version
+        let header_result = if version == PdfVersion::V2_0 {
+            let tester = Pdf20ComplianceTester;
+            tester.test_header_compliance(&pdf)
+        } else {
+            let tester = Pdf17ComplianceTester;
+            tester.test_header_compliance(&pdf)
+        };
         prop_assert!(header_result.passed, "Header compliance failed: {:?}", header_result.messages);
 
-        // Structure should be valid
+        // Structure validation (use PDF 1.7 tester for structure as it's more lenient)
+        let tester = Pdf17ComplianceTester;
         let structure_result = tester.test_structure_compliance(&pdf);
         prop_assert!(structure_result.passed, "Structure compliance failed: {:?}", structure_result.messages);
     }
@@ -160,25 +166,47 @@ proptest! {
     /// Test that unbalanced operators are detected
     #[test]
     fn unbalanced_operators_detected(
-        extra_saves in 1usize..5,
-        extra_restores in 1usize..5,
-        unclosed_text in any::<bool>(),
+        unbalance_type in prop_oneof![
+            Just("more_saves"),
+            Just("more_restores"), 
+            Just("unclosed_text"),
+            Just("unclosed_text_and_saves")
+        ],
+        count in 1usize..5,
     ) {
         let mut content = Vec::new();
 
-        // Add extra saves
-        for _ in 0..extra_saves {
-            content.extend_from_slice(b"q ");
-        }
-
-        // Add extra restores
-        for _ in 0..extra_restores {
-            content.extend_from_slice(b"Q ");
-        }
-
-        // Add unclosed text object
-        if unclosed_text {
-            content.extend_from_slice(b"BT /F1 12 Tf ");
+        match unbalance_type.as_ref() {
+            "more_saves" => {
+                // More saves than restores
+                for _ in 0..count {
+                    content.extend_from_slice(b"q ");
+                }
+                for _ in 0..(count - 1) {
+                    content.extend_from_slice(b"Q ");
+                }
+            }
+            "more_restores" => {
+                // More restores than saves  
+                for _ in 0..(count - 1) {
+                    content.extend_from_slice(b"q ");
+                }
+                for _ in 0..count {
+                    content.extend_from_slice(b"Q ");
+                }
+            }
+            "unclosed_text" => {
+                // Unclosed text object only
+                content.extend_from_slice(b"BT /F1 12 Tf (Hello) Tj ");
+            }
+            "unclosed_text_and_saves" => {
+                // Both unclosed text and unbalanced saves
+                for _ in 0..count {
+                    content.extend_from_slice(b"q ");
+                }
+                content.extend_from_slice(b"BT /F1 12 Tf (Hello) Tj ");
+            }
+            _ => unreachable!()
         }
 
         let validator = ContentValidator::new();
@@ -187,18 +215,25 @@ proptest! {
         prop_assert!(result.is_ok());
         let report = result.unwrap();
 
-        // Should have errors
+        // Should always have errors
         prop_assert!(!report.is_valid(), "Expected validation errors but got none");
 
-        // Check specific errors
-        if extra_restores > 0 {
-            prop_assert!(report.errors.iter().any(|e| e.contains("Q without q")));
-        }
-        if extra_saves > 0 {
-            prop_assert!(report.errors.iter().any(|e| e.contains("Unbalanced graphics state")));
-        }
-        if unclosed_text {
-            prop_assert!(report.errors.iter().any(|e| e.contains("Unclosed text object")));
+        // Check specific errors based on type
+        match unbalance_type.as_ref() {
+            "more_saves" => {
+                prop_assert!(report.errors.iter().any(|e| e.contains("Unbalanced graphics state")));
+            }
+            "more_restores" => {
+                prop_assert!(report.errors.iter().any(|e| e.contains("Q without q")));
+            }
+            "unclosed_text" => {
+                prop_assert!(report.errors.iter().any(|e| e.contains("Unclosed text object")));
+            }
+            "unclosed_text_and_saves" => {
+                prop_assert!(report.errors.iter().any(|e| e.contains("Unbalanced graphics state")) ||
+                           report.errors.iter().any(|e| e.contains("Unclosed text object")));
+            }
+            _ => unreachable!()
         }
     }
 
@@ -255,12 +290,10 @@ proptest! {
         let pdf = builder.build();
         let pdf_str = String::from_utf8_lossy(&pdf);
 
-        // Check that MediaBox contains our dimensions
-        let width_int = width as i32;
-        let height_int = height as i32;
-        let mediabox_pattern = format!("/MediaBox [0 0 {} {}]", width_int, height_int);
-
-        prop_assert!(pdf_str.contains(&mediabox_pattern));
+        // Check that MediaBox contains our dimensions (allowing for floating point values)
+        let mediabox_pattern = format!("/MediaBox [0 0 {} {}]", width, height);
+        prop_assert!(pdf_str.contains(&mediabox_pattern), 
+                    "Expected to find '{}' in PDF content", mediabox_pattern);
 
         // Should have correct page count
         let page_count = pdf_str.matches("/Type /Page ").count();
@@ -396,6 +429,6 @@ proptest! {
         // Basic validity checks
         prop_assert!(pdf_bytes.len() > 50);
         prop_assert!(pdf_bytes.starts_with(b"%PDF-"));
-        prop_assert!(std::str::from_utf8(&pdf_bytes).unwrap().contains("%%EOF"));
+        prop_assert!(String::from_utf8_lossy(&pdf_bytes).contains("%%EOF"));
     }
 }

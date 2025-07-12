@@ -238,9 +238,13 @@ impl TestPdfBuilder {
         object_num += 1;
 
         // Pages object
-        let page_refs: Vec<String> = (0..self.pages.len())
-            .map(|i| format!("{} 0 R", pages_obj + 1 + i as u32))
-            .collect();
+        let page_refs: Vec<String> = if !self.pages.is_empty() {
+            (0..self.pages.len())
+                .map(|i| format!("{} 0 R", pages_obj + 1 + i as u32))
+                .collect()
+        } else {
+            vec![]
+        };
 
         xref_positions.push(pdf.len());
         pdf.extend_from_slice(
@@ -274,7 +278,7 @@ impl TestPdfBuilder {
 
             // Add content stream reference if there's content
             if !page.content_stream.is_empty() {
-                let content_obj = object_num + self.pages.len() as u32 + 1 + i as u32;
+                let content_obj = pages_obj + 1 + self.pages.len() as u32 + i as u32;
                 page_dict.push_str(&format!(" /Contents {content_obj} 0 R"));
             }
 

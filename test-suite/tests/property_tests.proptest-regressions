@@ -4,7 +4,7 @@
 #
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
-cc 33edaf44dd8a8eb6736b6136ac2be73b3848f5f481fbd89f778c04cd33d90022 # shrinks to version = V1_0, info = []
-cc ac460a53d1cc2af1c47be98c493adac188374475264007c75c29e4d1d11a0041 # shrinks to version = V1_0, page_count = 0
-cc 3c5c2b75708a0fc55adeda03cd16ce704a724ee88e0c2b78c396f42c2cac1a32 # shrinks to pdf = ArbitraryPdf { version: V1_0, pages: [], metadata: [], compress: false }
-cc 0eb0296fcf4ba1851f216f6f2f6935758a41e0653e5fdc3a964d0d684b9b8199 # shrinks to version = V2_0, page_count = 0
+cc 07314197b74a94d8defea65444270930a6906ae2bb7c171a71172d298c2d6e54 # shrinks to extra_saves = 1, extra_restores = 1, unclosed_text = false
+cc f49c47623aca952099ee2630de8ee9ffc5483aa8c85d1344dde7526797d11e83 # shrinks to width = 72.0, height = 526.4783, count = 1
+cc 10549798ffb0fb96345f093e409cf24af8630c65d8c9dd8d0cbc32747f9dd2eb # shrinks to version = V1_0, info = []
+cc 52058764316f1c627dec1891b77d4ec91eb1e410690cde534c93f09cd25f401d # shrinks to pdf = ArbitraryPdf { version: V1_0, pages: [], metadata: [], compress: false }
