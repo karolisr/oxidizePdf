@@ -302,6 +302,7 @@ proptest! {
 
     /// Test content stream tokenization robustness
     #[test]
+    #[ignore = "slow fuzzing test - run with --ignored"]
     fn content_tokenizer_handles_random_input(
         random_bytes in prop::collection::vec(any::<u8>(), 0..1000)
     ) {
