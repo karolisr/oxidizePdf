@@ -192,7 +192,7 @@ pub use parser::{
 };
 
 // Re-export operations
-pub use operations::{merge_pdfs, rotate_pdf, split_pdf};
+pub use operations::{merge_pdfs, rotate_pdf_pages, split_pdf};
 
 /// Current version of oxidize-pdf
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
