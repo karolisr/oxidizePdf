@@ -75,25 +75,37 @@ jobs:
       - name: Detect changed packages
         id: changes
         run: |
-          # Check if core package changed
-          if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -q "^oxidize-pdf-core/"; then
+          # Get the previous tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found, assuming all packages changed"
             echo "core_changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "core_changed=false" >> $GITHUB_OUTPUT
-          fi
-          
-          # Check if CLI package changed
-          if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -q "^oxidize-pdf-cli/"; then
             echo "cli_changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "cli_changed=false" >> $GITHUB_OUTPUT
-          fi
-          
-          # Check if API package changed
-          if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -q "^oxidize-pdf-api/"; then
             echo "api_changed=true" >> $GITHUB_OUTPUT
           else
-            echo "api_changed=false" >> $GITHUB_OUTPUT
+            echo "Comparing changes from $PREVIOUS_TAG to ${{ github.ref_name }}"
+            
+            # Check if core package changed
+            if git diff --name-only "$PREVIOUS_TAG".."${{ github.ref_name }}" | grep -q "^oxidize-pdf-core/"; then
+              echo "core_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "core_changed=false" >> $GITHUB_OUTPUT
+            fi
+            
+            # Check if CLI package changed
+            if git diff --name-only "$PREVIOUS_TAG".."${{ github.ref_name }}" | grep -q "^oxidize-pdf-cli/"; then
+              echo "cli_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "cli_changed=false" >> $GITHUB_OUTPUT
+            fi
+            
+            # Check if API package changed
+            if git diff --name-only "$PREVIOUS_TAG".."${{ github.ref_name }}" | grep -q "^oxidize-pdf-api/"; then
+              echo "api_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "api_changed=false" >> $GITHUB_OUTPUT
+            fi
           fi
 
       # Check if packages need new versions before publishing
