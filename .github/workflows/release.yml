@@ -183,7 +183,7 @@ jobs:
           git checkout main
           
           # Merge the tag into main
-          git merge --no-ff ${{ github.ref }} -m "chore: merge release ${{ steps.get_version.outputs.VERSION }} to main
+          git merge --no-ff --allow-unrelated-histories ${{ github.ref }} -m "chore: merge release ${{ steps.get_version.outputs.VERSION }} to main
 
           Automated merge after successful release of v${{ steps.get_version.outputs.VERSION }}
           
