@@ -113,7 +113,8 @@ jobs:
         id: version_check
         run: |
           # Get current versions from Cargo.toml files
-          CORE_VERSION=$(grep -E "^version = " oxidize-pdf-core/Cargo.toml | cut -d'"' -f2)
+          # Core uses workspace version, so get it from workspace
+          CORE_VERSION=$(grep -A5 "^\[workspace\.package\]" Cargo.toml | grep "^version = " | cut -d'"' -f2)
           CLI_VERSION=$(grep -E "^version = " oxidize-pdf-cli/Cargo.toml | cut -d'"' -f2)
           API_VERSION=$(grep -E "^version = " oxidize-pdf-api/Cargo.toml | cut -d'"' -f2)
           
