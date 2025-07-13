@@ -1,0 +1,28 @@
+/target
+*.pdf
+test_*.pdf
+
+# PDF samples for testing
+PDF_Samples/
+
+# Claude AI files
+.claude/
+CLAUDE.md
+
+# Internal project documentation
+IMPLEMENTATION_*.md
+*_SESSION_*.md
+*_PROGRESS*.md
+
+# Private directories
+oxidizePdf-private*/
+
+# External test suites
+test-suite/external-suites/
+
+# Local PDF fixtures (symbolic links to private PDFs)
+tests/fixtures/
+tests/fixtures
+
+# Keep GitHub workflows
+!.github/

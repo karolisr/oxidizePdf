@@ -1,0 +1,100 @@
+[workspace]
+members = [
+    "oxidize-pdf-core",
+    "oxidize-pdf-cli",
+    "oxidize-pdf-api",
+    "test-suite",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.2"
+edition = "2021"
+authors = ["Santiago Fernández de Munoz"]
+license = "GPL-3.0"
+repository = "https://github.com/bzsanti/oxidizePdf"
+homepage = "https://oxidizepdf.dev"
+documentation = "https://docs.oxidizepdf.dev"
+readme = "README.md"
+keywords = ["pdf", "document", "generation", "graphics", "text"]
+categories = ["graphics", "text-processing", "encoding"]
+
+[workspace.dependencies]
+# Core dependencies
+thiserror = "1.0"
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+lazy_static = "1.4"
+
+# CLI dependencies
+clap = { version = "4.5", features = ["derive"] }
+
+# API dependencies
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Compression (optional)
+flate2 = "1.0"
+
+# Testing
+tempfile = "3.0"
+pretty_assertions = "1.0"
+proptest = "1.5"
+criterion = { version = "0.5", features = ["html_reports"] }
+insta = "1.38"
+
+# Utilities
+rand = "0.8"
+hex = "0.4"
+regex = "1.11"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[workspace.metadata.release]
+# Don't sign commits or tags (requires GPG setup)
+sign-commit = false
+sign-tag = false
+
+# Commit messages
+pre-release-commit-message = "chore: Release {{version}}"
+pre-release-replacements = [
+    {file="CHANGELOG.md", search="Unreleased", replace="{{version}}", min=1},
+    {file="CHANGELOG.md", search="\\.\\.\\.HEAD", replace="...v{{version}}", exactly=1},
+    {file="CHANGELOG.md", search="ReleaseDate", replace="{{date}}", min=1},
+    {file="CHANGELOG.md", search="<!-- next-header -->", replace="<!-- next-header -->\n## [Unreleased] - ReleaseDate\n", exactly=1},
+    {file="README.md", search="oxidize-pdf = \"[0-9.]+\"", replace="oxidize-pdf = \"{{version}}\"", exactly=1},
+]
+
+# Tag configuration
+tag-message = "Release v{{version}}"
+tag-name = "v{{version}}"
+
+# Consolidate commits when releasing workspace
+consolidate-commits = true
+
+# Push options
+push = true
+push-remote = "origin"
+
+# Publishing
+publish = true

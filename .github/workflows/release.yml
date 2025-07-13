@@ -1,0 +1,193 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run tests
+        run: cargo test --all --release
+
+      - name: Build release binaries
+        run: cargo build --all --release
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## oxidize-pdf v${{ steps.get_version.outputs.VERSION }}
+
+            See [CHANGELOG.md](https://github.com/bzsanti/oxidizePdf/blob/main/CHANGELOG.md) for details.
+
+            ### Installation
+
+            Add to your `Cargo.toml`:
+            ```toml
+            [dependencies]
+            oxidize-pdf = "${{ steps.get_version.outputs.VERSION }}"
+            ```
+
+            Or install the CLI:
+            ```bash
+            cargo install oxidize-pdf-cli
+            ```
+
+      # Detect which packages changed
+      - name: Detect changed packages
+        id: changes
+        run: |
+          # Get the previous tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found, assuming all packages changed"
+            echo "core_changed=true" >> $GITHUB_OUTPUT
+            echo "cli_changed=true" >> $GITHUB_OUTPUT
+            echo "api_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "Comparing changes from $PREVIOUS_TAG to ${{ github.ref_name }}"
+            
+            # Check if core package changed
+            if git diff --name-only "$PREVIOUS_TAG".."${{ github.ref_name }}" | grep -q "^oxidize-pdf-core/"; then
+              echo "core_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "core_changed=false" >> $GITHUB_OUTPUT
+            fi
+            
+            # Check if CLI package changed
+            if git diff --name-only "$PREVIOUS_TAG".."${{ github.ref_name }}" | grep -q "^oxidize-pdf-cli/"; then
+              echo "cli_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "cli_changed=false" >> $GITHUB_OUTPUT
+            fi
+            
+            # Check if API package changed
+            if git diff --name-only "$PREVIOUS_TAG".."${{ github.ref_name }}" | grep -q "^oxidize-pdf-api/"; then
+              echo "api_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "api_changed=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      # Check if packages need new versions before publishing
+      - name: Check version changes
+        id: version_check
+        run: |
+          # Get current versions from Cargo.toml files
+          # Core uses workspace version, so get it from workspace
+          CORE_VERSION=$(grep -A5 "^\[workspace\.package\]" Cargo.toml | grep "^version = " | cut -d'"' -f2)
+          CLI_VERSION=$(grep -E "^version = " oxidize-pdf-cli/Cargo.toml | cut -d'"' -f2)
+          API_VERSION=$(grep -E "^version = " oxidize-pdf-api/Cargo.toml | cut -d'"' -f2)
+          
+          echo "core_version=$CORE_VERSION" >> $GITHUB_OUTPUT
+          echo "cli_version=$CLI_VERSION" >> $GITHUB_OUTPUT
+          echo "api_version=$API_VERSION" >> $GITHUB_OUTPUT
+          
+          # Check if versions exist on crates.io
+          if cargo search oxidize-pdf --limit 1 | grep -q "oxidize-pdf.*\"$CORE_VERSION\""; then
+            echo "core_needs_publish=false" >> $GITHUB_OUTPUT
+          else
+            echo "core_needs_publish=true" >> $GITHUB_OUTPUT
+          fi
+          
+          if cargo search oxidize-pdf-cli --limit 1 | grep -q "oxidize-pdf-cli.*\"$CLI_VERSION\""; then
+            echo "cli_needs_publish=false" >> $GITHUB_OUTPUT
+          else
+            echo "cli_needs_publish=true" >> $GITHUB_OUTPUT
+          fi
+          
+          if cargo search oxidize-pdf-api --limit 1 | grep -q "oxidize-pdf-api.*\"$API_VERSION\""; then
+            echo "api_needs_publish=false" >> $GITHUB_OUTPUT
+          else
+            echo "api_needs_publish=true" >> $GITHUB_OUTPUT
+          fi
+
+      # Publish to crates.io (only if version doesn't exist and package changed)
+      - name: Publish oxidize-pdf to crates.io
+        if: steps.changes.outputs.core_changed == 'true' && steps.version_check.outputs.core_needs_publish == 'true'
+        run: cargo publish -p oxidize-pdf
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io (core)
+        if: steps.changes.outputs.core_changed == 'true' && steps.version_check.outputs.core_needs_publish == 'true'
+        run: sleep 60
+
+      - name: Publish oxidize-pdf-cli to crates.io
+        if: steps.changes.outputs.cli_changed == 'true' && steps.version_check.outputs.cli_needs_publish == 'true'
+        run: cargo publish -p oxidize-pdf-cli
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io (cli)
+        if: steps.changes.outputs.cli_changed == 'true' && steps.version_check.outputs.cli_needs_publish == 'true'
+        run: sleep 30
+
+      - name: Publish oxidize-pdf-api to crates.io
+        if: steps.changes.outputs.api_changed == 'true' && steps.version_check.outputs.api_needs_publish == 'true'
+        run: cargo publish -p oxidize-pdf-api
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      # Merge to main branch after successful release
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge to main
+        run: |
+          # Fetch the latest main branch
+          git fetch origin main:main
+          
+          # Checkout main
+          git checkout main
+          
+          # Merge the tag into main (using theirs strategy to prefer development version in conflicts)
+          git merge --no-ff --allow-unrelated-histories -X theirs ${{ github.ref }} -m "chore: merge release ${{ steps.get_version.outputs.VERSION }} to main
+
+          Automated merge after successful release of v${{ steps.get_version.outputs.VERSION }}
+          
+          [skip ci]"
+          
+          # Push to main
+          git push origin main
