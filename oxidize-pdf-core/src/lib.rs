@@ -17,7 +17,7 @@
 //! ### Creating PDFs
 //!
 //! ```rust
-//! use oxidize_pdf_core::{Document, Page, Font, Color, Result};
+//! use oxidize_pdf::{Document, Page, Font, Color, Result};
 //!
 //! # fn main() -> Result<()> {
 //! // Create a new document
@@ -49,7 +49,7 @@
 //! ### Parsing PDFs
 //!
 //! ```rust,no_run
-//! use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+//! use oxidize_pdf::parser::{PdfDocument, PdfReader};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // Open and parse a PDF
@@ -100,8 +100,8 @@
 //! ### Content Stream Processing
 //!
 //! ```rust,no_run
-//! use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
-//! use oxidize_pdf_core::parser::content::{ContentParser, ContentOperation};
+//! use oxidize_pdf::parser::{PdfDocument, PdfReader};
+//! use oxidize_pdf::parser::content::{ContentParser, ContentOperation};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let reader = PdfReader::open("document.pdf")?;
@@ -135,7 +135,7 @@
 //! ### Resource Access
 //!
 //! ```rust,no_run
-//! use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+//! use oxidize_pdf::parser::{PdfDocument, PdfReader};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let reader = PdfReader::open("document.pdf")?;

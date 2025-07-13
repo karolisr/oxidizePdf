@@ -22,7 +22,7 @@
 //! # Example
 //!
 //! ```rust,no_run
-//! use oxidize_pdf_core::parser::content::{ContentParser, ContentOperation};
+//! use oxidize_pdf::parser::content::{ContentParser, ContentOperation};
 //!
 //! # fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! // Parse a content stream
@@ -78,7 +78,7 @@ use std::collections::HashMap;
 /// # Example
 ///
 /// ```rust
-/// use oxidize_pdf_core::parser::content::{ContentOperation};
+/// use oxidize_pdf::parser::content::{ContentOperation};
 ///
 /// // Text operation
 /// let op1 = ContentOperation::ShowText(b"Hello".to_vec());
@@ -337,7 +337,7 @@ pub enum ContentOperation {
 /// # Example
 ///
 /// ```rust
-/// use oxidize_pdf_core::parser::content::{TextElement, ContentOperation};
+/// use oxidize_pdf::parser::content::{TextElement, ContentOperation};
 ///
 /// // TJ array: [(Hello) -50 (World)]
 /// let tj_array = vec![
@@ -720,7 +720,7 @@ impl<'a> ContentTokenizer<'a> {
 /// The parser is typically used through its static methods:
 ///
 /// ```rust
-/// use oxidize_pdf_core::parser::content::ContentParser;
+/// use oxidize_pdf::parser::content::ContentParser;
 ///
 /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// let content = b"q 1 0 0 1 50 50 cm 100 100 200 150 re S Q";
@@ -764,7 +764,7 @@ impl ContentParser {
     /// # Example
     ///
     /// ```rust
-    /// use oxidize_pdf_core::parser::content::{ContentParser, ContentOperation};
+    /// use oxidize_pdf::parser::content::{ContentParser, ContentOperation};
     ///
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let content = b"BT /F1 12 Tf 100 200 Td (Hello) Tj ET";

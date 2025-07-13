@@ -21,7 +21,7 @@
 //! # Example
 //!
 //! ```rust
-//! use oxidize_pdf_core::parser::objects::{PdfObject, PdfDictionary, PdfName};
+//! use oxidize_pdf::parser::objects::{PdfObject, PdfDictionary, PdfName, PdfArray};
 //!
 //! // Create a simple page dictionary
 //! let mut dict = PdfDictionary::new();
@@ -51,7 +51,7 @@ use std::io::Read;
 /// - `/MediaBox` - Page dimensions
 ///
 /// ```rust
-/// use oxidize_pdf_core::parser::objects::PdfName;
+/// use oxidize_pdf::parser::objects::PdfName;
 ///
 /// let name = PdfName::new("Type".to_string());
 /// assert_eq!(name.as_str(), "Type");
@@ -74,7 +74,7 @@ pub struct PdfName(pub String);
 /// # Example
 ///
 /// ```rust
-/// use oxidize_pdf_core::parser::objects::PdfString;
+/// use oxidize_pdf::parser::objects::PdfString;
 ///
 /// // Create from UTF-8
 /// let string = PdfString::new(b"Hello World".to_vec());
@@ -102,7 +102,7 @@ pub struct PdfString(pub Vec<u8>);
 /// # Example
 ///
 /// ```rust
-/// use oxidize_pdf_core::parser::objects::{PdfArray, PdfObject};
+/// use oxidize_pdf::parser::objects::{PdfArray, PdfObject};
 ///
 /// // Create a MediaBox array [0 0 612 792]
 /// let mut media_box = PdfArray::new();
@@ -131,7 +131,7 @@ pub struct PdfArray(pub Vec<PdfObject>);
 /// # Example
 ///
 /// ```rust
-/// use oxidize_pdf_core::parser::objects::{PdfDictionary, PdfObject, PdfName};
+/// use oxidize_pdf::parser::objects::{PdfDictionary, PdfObject, PdfName};
 ///
 /// let mut page_dict = PdfDictionary::new();
 /// page_dict.insert("Type".to_string(),
@@ -166,7 +166,7 @@ pub struct PdfDictionary(pub HashMap<PdfName, PdfObject>);
 /// # Example
 ///
 /// ```rust
-/// use oxidize_pdf_core::parser::objects::{PdfStream, PdfDictionary};
+/// use oxidize_pdf::parser::objects::{PdfStream, PdfDictionary};
 ///
 /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// # let stream = PdfStream { dict: PdfDictionary::new(), data: vec![] };
@@ -208,7 +208,7 @@ impl PdfStream {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::objects::PdfStream;
+    /// # use oxidize_pdf::parser::objects::PdfStream;
     /// # fn example(stream: &PdfStream) -> Result<(), Box<dyn std::error::Error>> {
     /// match stream.decode() {
     ///     Ok(data) => println!("Decoded {} bytes", data.len()),
@@ -229,7 +229,7 @@ impl PdfStream {
     /// # Example
     ///
     /// ```rust
-    /// # use oxidize_pdf_core::parser::objects::PdfStream;
+    /// # use oxidize_pdf::parser::objects::PdfStream;
     /// # let stream = PdfStream { dict: Default::default(), data: vec![1, 2, 3] };
     /// let raw_data = stream.raw_data();
     /// println!("Raw stream: {} bytes", raw_data.len());
@@ -260,7 +260,7 @@ impl PdfStream {
 /// # Example
 ///
 /// ```rust
-/// use oxidize_pdf_core::parser::objects::{PdfObject, PdfName, PdfString};
+/// use oxidize_pdf::parser::objects::{PdfObject, PdfName, PdfString};
 ///
 /// // Different object types
 /// let null = PdfObject::Null;
@@ -322,8 +322,8 @@ impl PdfObject {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use oxidize_pdf_core::parser::lexer::Lexer;
-    /// use oxidize_pdf_core::parser::objects::PdfObject;
+    /// use oxidize_pdf::parser::lexer::Lexer;
+    /// use oxidize_pdf::parser::objects::PdfObject;
     /// use std::io::Cursor;
     ///
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
@@ -537,7 +537,7 @@ impl PdfObject {
     /// # Example
     ///
     /// ```rust
-    /// use oxidize_pdf_core::parser::objects::PdfObject;
+    /// use oxidize_pdf::parser::objects::PdfObject;
     ///
     /// assert!(PdfObject::Null.is_null());
     /// assert!(!PdfObject::Integer(42).is_null());
@@ -555,7 +555,7 @@ impl PdfObject {
     /// # Example
     ///
     /// ```rust
-    /// use oxidize_pdf_core::parser::objects::PdfObject;
+    /// use oxidize_pdf::parser::objects::PdfObject;
     ///
     /// let obj = PdfObject::Boolean(true);
     /// assert_eq!(obj.as_bool(), Some(true));
@@ -590,7 +590,7 @@ impl PdfObject {
     /// # Example
     ///
     /// ```rust
-    /// use oxidize_pdf_core::parser::objects::PdfObject;
+    /// use oxidize_pdf::parser::objects::PdfObject;
     ///
     /// let real_obj = PdfObject::Real(3.14);
     /// assert_eq!(real_obj.as_real(), Some(3.14));
@@ -656,7 +656,7 @@ impl PdfObject {
     /// # Example
     ///
     /// ```rust
-    /// use oxidize_pdf_core::parser::objects::PdfObject;
+    /// use oxidize_pdf::parser::objects::PdfObject;
     ///
     /// let obj = PdfObject::Reference(10, 0);
     /// assert_eq!(obj.as_reference(), Some((10, 0)));
@@ -686,7 +686,7 @@ impl PdfDictionary {
     /// # Example
     ///
     /// ```rust
-    /// use oxidize_pdf_core::parser::objects::{PdfDictionary, PdfObject, PdfName};
+    /// use oxidize_pdf::parser::objects::{PdfDictionary, PdfObject, PdfName};
     ///
     /// let mut dict = PdfDictionary::new();
     /// dict.insert("Type".to_string(), PdfObject::Name(PdfName::new("Font".to_string())));
@@ -708,7 +708,7 @@ impl PdfDictionary {
     /// # Example
     ///
     /// ```rust
-    /// use oxidize_pdf_core::parser::objects::{PdfDictionary, PdfObject};
+    /// use oxidize_pdf::parser::objects::{PdfDictionary, PdfObject};
     ///
     /// let mut dict = PdfDictionary::new();
     /// dict.insert("Length".to_string(), PdfObject::Integer(1000));
@@ -750,7 +750,7 @@ impl PdfDictionary {
     /// # Example
     ///
     /// ```rust
-    /// use oxidize_pdf_core::parser::objects::{PdfDictionary, PdfObject, PdfName};
+    /// use oxidize_pdf::parser::objects::{PdfDictionary, PdfObject, PdfName};
     ///
     /// let mut dict = PdfDictionary::new();
     /// dict.insert("Type".to_string(), PdfObject::Name(PdfName::new("Page".to_string())));
@@ -798,7 +798,7 @@ impl PdfArray {
     /// # Example
     ///
     /// ```rust
-    /// use oxidize_pdf_core::parser::objects::{PdfArray, PdfObject};
+    /// use oxidize_pdf::parser::objects::{PdfArray, PdfObject};
     ///
     /// let mut array = PdfArray::new();
     /// array.push(PdfObject::Integer(10));
@@ -836,7 +836,7 @@ impl PdfString {
     /// # Example
     ///
     /// ```rust
-    /// use oxidize_pdf_core::parser::objects::PdfString;
+    /// use oxidize_pdf::parser::objects::PdfString;
     ///
     /// let string = PdfString::new(b"Hello".to_vec());
     /// assert_eq!(string.as_str(), Ok("Hello"));

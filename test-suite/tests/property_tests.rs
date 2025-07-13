@@ -112,7 +112,7 @@ proptest! {
         }
 
         let pdf = builder.build();
-        
+
         // Use appropriate tester based on version
         let header_result = if version == PdfVersion::V2_0 {
             let tester = Pdf20ComplianceTester;
@@ -168,7 +168,7 @@ proptest! {
     fn unbalanced_operators_detected(
         unbalance_type in prop_oneof![
             Just("more_saves"),
-            Just("more_restores"), 
+            Just("more_restores"),
             Just("unclosed_text"),
             Just("unclosed_text_and_saves")
         ],
@@ -187,7 +187,7 @@ proptest! {
                 }
             }
             "more_restores" => {
-                // More restores than saves  
+                // More restores than saves
                 for _ in 0..(count - 1) {
                     content.extend_from_slice(b"q ");
                 }
@@ -292,7 +292,7 @@ proptest! {
 
         // Check that MediaBox contains our dimensions (allowing for floating point values)
         let mediabox_pattern = format!("/MediaBox [0 0 {} {}]", width, height);
-        prop_assert!(pdf_str.contains(&mediabox_pattern), 
+        prop_assert!(pdf_str.contains(&mediabox_pattern),
                     "Expected to find '{}' in PDF content", mediabox_pattern);
 
         // Should have correct page count

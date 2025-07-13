@@ -23,7 +23,7 @@
 //! # Example
 //!
 //! ```rust,no_run
-//! use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+//! use oxidize_pdf::parser::{PdfDocument, PdfReader};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // Open a PDF document
@@ -74,7 +74,7 @@ use std::rc::Rc;
 /// # Example
 ///
 /// ```rust,no_run
-/// use oxidize_pdf_core::parser::document::ResourceManager;
+/// use oxidize_pdf::parser::document::ResourceManager;
 ///
 /// let resources = ResourceManager::new();
 ///
@@ -114,7 +114,7 @@ impl ResourceManager {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::document::ResourceManager;
+    /// # use oxidize_pdf::parser::document::ResourceManager;
     /// # let resources = ResourceManager::new();
     /// if let Some(obj) = resources.get_cached((10, 0)) {
     ///     println!("Object 10 0 R found in cache");
@@ -134,8 +134,8 @@ impl ResourceManager {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::document::ResourceManager;
-    /// # use oxidize_pdf_core::parser::objects::PdfObject;
+    /// # use oxidize_pdf::parser::document::ResourceManager;
+    /// # use oxidize_pdf::parser::objects::PdfObject;
     /// # let resources = ResourceManager::new();
     /// resources.cache_object((10, 0), PdfObject::Integer(42));
     /// ```
@@ -150,7 +150,7 @@ impl ResourceManager {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::document::ResourceManager;
+    /// # use oxidize_pdf::parser::document::ResourceManager;
     /// # let resources = ResourceManager::new();
     /// // After processing many pages
     /// resources.clear_cache();
@@ -181,7 +181,7 @@ impl ResourceManager {
 /// # Example
 ///
 /// ```rust,no_run
-/// use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+/// use oxidize_pdf::parser::{PdfDocument, PdfReader};
 /// use std::fs::File;
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -234,7 +234,7 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let reader = PdfReader::open("document.pdf")?;
     /// # let document = PdfDocument::new(reader);
@@ -260,7 +260,7 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let reader = PdfReader::open("document.pdf")?;
     /// # let document = PdfDocument::new(reader);
@@ -290,7 +290,7 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let reader = PdfReader::open("document.pdf")?;
     /// # let document = PdfDocument::new(reader);
@@ -362,7 +362,7 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let reader = PdfReader::open("document.pdf")?;
     /// # let document = PdfDocument::new(reader);
@@ -630,7 +630,8 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf::parser::objects::PdfObject;
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let reader = PdfReader::open("document.pdf")?;
     /// # let document = PdfDocument::new(reader);
@@ -684,8 +685,8 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
-    /// # use oxidize_pdf_core::parser::objects::PdfObject;
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf::parser::objects::PdfObject;
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let reader = PdfReader::open("document.pdf")?;
     /// # let document = PdfDocument::new(reader);
@@ -725,8 +726,8 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
-    /// # use oxidize_pdf_core::parser::content::ContentParser;
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf::parser::content::ContentParser;
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let reader = PdfReader::open("document.pdf")?;
     /// # let document = PdfDocument::new(reader);
@@ -783,7 +784,7 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let reader = PdfReader::open("document.pdf")?;
     /// # let document = PdfDocument::new(reader);
@@ -815,7 +816,7 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let reader = PdfReader::open("document.pdf")?;
     /// # let document = PdfDocument::new(reader);
@@ -854,8 +855,8 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
-    /// # use oxidize_pdf_core::text::ExtractionOptions;
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf::text::ExtractionOptions;
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let reader = PdfReader::open("document.pdf")?;
     /// # let document = PdfDocument::new(reader);

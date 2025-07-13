@@ -15,8 +15,8 @@
 //! # Quick Start
 //!
 //! ```rust,no_run
-//! use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
-//! use oxidize_pdf_core::parser::content::ContentParser;
+//! use oxidize_pdf::parser::{PdfDocument, PdfReader};
+//! use oxidize_pdf::parser::content::ContentParser;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // Open a PDF document
@@ -85,8 +85,8 @@
 //! # Example: Building a Simple Renderer
 //!
 //! ```rust,no_run
-//! use oxidize_pdf_core::parser::{PdfDocument, PdfReader};
-//! use oxidize_pdf_core::parser::content::{ContentParser, ContentOperation};
+//! use oxidize_pdf::parser::{PdfDocument, PdfReader};
+//! use oxidize_pdf::parser::content::{ContentParser, ContentOperation};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! struct SimpleRenderer {
@@ -168,7 +168,7 @@ pub type ParseResult<T> = Result<T, ParseError>;
 /// # Example
 ///
 /// ```rust
-/// use oxidize_pdf_core::parser::{PdfReader, ParseError};
+/// use oxidize_pdf::parser::{PdfReader, ParseError};
 ///
 /// # fn example() -> Result<(), ParseError> {
 /// match PdfReader::open("missing.pdf") {
