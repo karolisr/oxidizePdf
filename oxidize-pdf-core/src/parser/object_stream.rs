@@ -154,3 +154,6 @@ impl XRefEntryType {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
