@@ -182,8 +182,8 @@ jobs:
           # Checkout main
           git checkout main
           
-          # Merge the tag into main
-          git merge --no-ff --allow-unrelated-histories ${{ github.ref }} -m "chore: merge release ${{ steps.get_version.outputs.VERSION }} to main
+          # Merge the tag into main (using theirs strategy to prefer development version in conflicts)
+          git merge --no-ff --allow-unrelated-histories -X theirs ${{ github.ref }} -m "chore: merge release ${{ steps.get_version.outputs.VERSION }} to main
 
           Automated merge after successful release of v${{ steps.get_version.outputs.VERSION }}
           
