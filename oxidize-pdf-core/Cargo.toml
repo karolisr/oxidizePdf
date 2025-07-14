@@ -71,7 +71,7 @@ name = "parse_and_extract"
 default = ["compression"]
 
 # Basic features
-compression = ["flate2"]
+compression = ["dep:flate2"]
 
 # Semantic marking (Community level - basic tagging)
 semantic = []
