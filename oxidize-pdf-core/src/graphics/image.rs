@@ -390,7 +390,6 @@ fn parse_tiff_header(data: &[u8]) -> Result<(u32, u32, ColorSpace, u8)> {
     let mut width = 0u32;
     let mut height = 0u32;
     let mut bits_per_sample = 8u16;
-    let mut samples_per_pixel = 1u16;
     let mut photometric_interpretation = 0u16;
     
     // Read directory entries
@@ -446,13 +445,6 @@ fn parse_tiff_header(data: &[u8]) -> Result<(u32, u32, ColorSpace, u8)> {
             }
             258 => { // BitsPerSample
                 bits_per_sample = if is_little_endian {
-                    u16::from_le_bytes([data[value_offset], data[value_offset + 1]])
-                } else {
-                    u16::from_be_bytes([data[value_offset], data[value_offset + 1]])
-                };
-            }
-            277 => { // SamplesPerPixel
-                samples_per_pixel = if is_little_endian {
                     u16::from_le_bytes([data[value_offset], data[value_offset + 1]])
                 } else {
                     u16::from_be_bytes([data[value_offset], data[value_offset + 1]])
