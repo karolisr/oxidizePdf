@@ -761,3 +761,7 @@ impl ParsedPage {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "page_tree_tests.rs"]
+mod page_tree_tests;
