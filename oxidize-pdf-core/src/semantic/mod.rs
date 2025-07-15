@@ -39,3 +39,6 @@ pub mod pro {
         Custom(u32),
     }
 }
+
+#[cfg(test)]
+mod tests;
