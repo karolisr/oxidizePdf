@@ -466,7 +466,7 @@ impl PageContentAnalyzer {
         // Process with OCR
         let ocr_result = ocr_provider
             .process_page(&analysis, &page_image_data, &ocr_options)
-            .map_err(|e| OperationError::ParseError(format!("OCR processing failed: {}", e)))?;
+            .map_err(|e| OperationError::ParseError(format!("OCR processing failed: {e}")))?;
 
         Ok(ocr_result)
     }

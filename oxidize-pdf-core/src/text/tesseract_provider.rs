@@ -443,7 +443,7 @@ impl TesseractOcrProvider {
     fn create_tesseract_instance(config: &TesseractConfig) -> OcrResult<Tesseract> {
         // Initialize Tesseract with language and datapath
         let mut tesseract = Tesseract::new(Some(&config.language), None).map_err(|e| {
-            OcrError::ProviderNotAvailable(format!("Failed to initialize Tesseract: {}", e))
+            OcrError::ProviderNotAvailable(format!("Failed to initialize Tesseract: {e}"))
         })?;
 
         // Set page segmentation mode
@@ -452,7 +452,7 @@ impl TesseractOcrProvider {
                 "tessedit_pageseg_mode",
                 &config.psm.to_psm_value().to_string(),
             )
-            .map_err(|e| OcrError::Configuration(format!("Failed to set PSM: {}", e)))?;
+            .map_err(|e| OcrError::Configuration(format!("Failed to set PSM: {e}")))?;
 
         // Set OCR engine mode
         tesseract
@@ -460,26 +460,26 @@ impl TesseractOcrProvider {
                 "tessedit_ocr_engine_mode",
                 &config.oem.to_oem_value().to_string(),
             )
-            .map_err(|e| OcrError::Configuration(format!("Failed to set OEM: {}", e)))?;
+            .map_err(|e| OcrError::Configuration(format!("Failed to set OEM: {e}")))?;
 
         // Set character whitelist if specified
         if let Some(ref whitelist) = config.char_whitelist {
             tesseract
                 .set_variable("tessedit_char_whitelist", whitelist)
-                .map_err(|e| OcrError::Configuration(format!("Failed to set whitelist: {}", e)))?;
+                .map_err(|e| OcrError::Configuration(format!("Failed to set whitelist: {e}")))?;
         }
 
         // Set character blacklist if specified
         if let Some(ref blacklist) = config.char_blacklist {
             tesseract
                 .set_variable("tessedit_char_blacklist", blacklist)
-                .map_err(|e| OcrError::Configuration(format!("Failed to set blacklist: {}", e)))?;
+                .map_err(|e| OcrError::Configuration(format!("Failed to set blacklist: {e}")))?;
         }
 
         // Set custom variables
         for (name, value) in &config.variables {
             tesseract.set_variable(name, value).map_err(|e| {
-                OcrError::Configuration(format!("Failed to set variable {}: {}", name, e))
+                OcrError::Configuration(format!("Failed to set variable {name}: {e}"))
             })?;
         }
 
@@ -487,7 +487,7 @@ impl TesseractOcrProvider {
         if config.debug {
             tesseract
                 .set_variable("debug_file", "/tmp/tesseract_debug.log")
-                .map_err(|e| OcrError::Configuration(format!("Failed to set debug mode: {}", e)))?;
+                .map_err(|e| OcrError::Configuration(format!("Failed to set debug mode: {e}")))?;
         }
 
         Ok(tesseract)
@@ -498,7 +498,7 @@ impl TesseractOcrProvider {
         let mut instance_guard = self
             .instance
             .lock()
-            .map_err(|e| OcrError::ProcessingFailed(format!("Failed to acquire lock: {}", e)))?;
+            .map_err(|e| OcrError::ProcessingFailed(format!("Failed to acquire lock: {e}")))?;
 
         if instance_guard.is_none() {
             *instance_guard = Some(Self::create_tesseract_instance(&self.config)?);
@@ -524,17 +524,17 @@ impl TesseractOcrProvider {
         // Set the image data
         tesseract
             .set_image_from_mem(image_data)
-            .map_err(|e| OcrError::InvalidImageData(format!("Failed to set image: {}", e)))?;
+            .map_err(|e| OcrError::InvalidImageData(format!("Failed to set image: {e}")))?;
 
         // Extract text
         let text = tesseract
             .get_text()
-            .map_err(|e| OcrError::ProcessingFailed(format!("Failed to extract text: {}", e)))?;
+            .map_err(|e| OcrError::ProcessingFailed(format!("Failed to extract text: {e}")))?;
 
         // Get confidence
         let confidence = tesseract
             .mean_text_conf()
-            .map_err(|e| OcrError::ProcessingFailed(format!("Failed to get confidence: {}", e)))?;
+            .map_err(|e| OcrError::ProcessingFailed(format!("Failed to get confidence: {e}")))?;
 
         // Convert confidence from 0-100 to 0.0-1.0
         let confidence_ratio = confidence as f64 / 100.0;
@@ -589,7 +589,7 @@ impl TesseractOcrProvider {
         // In a real implementation, you would use Tesseract's word-level analysis
         // For now, we'll create a simplified version
         let text = tesseract.get_text().map_err(|e| {
-            OcrError::ProcessingFailed(format!("Failed to get text for fragments: {}", e))
+            OcrError::ProcessingFailed(format!("Failed to get text for fragments: {e}"))
         })?;
 
         // Split into words and create fragments
