@@ -264,14 +264,14 @@ pub async fn extract_text(mut multipart: Multipart) -> Result<Response, AppError
     while let Some(field) = multipart.next_field().await.map_err(|e| {
         AppError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            format!("Failed to read multipart field: {}", e),
+            format!("Failed to read multipart field: {e}"),
         ))
     })? {
         if field.name() == Some("file") {
             pdf_data = Some(field.bytes().await.map_err(|e| {
                 AppError::Io(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
-                    format!("Failed to read file data: {}", e),
+                    format!("Failed to read file data: {e}"),
                 ))
             })?);
             break;
@@ -293,7 +293,7 @@ pub async fn extract_text(mut multipart: Multipart) -> Result<Response, AppError
     let reader = PdfReader::new(cursor).map_err(|e| {
         AppError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            format!("Failed to parse PDF: {:?}", e),
+            format!("Failed to parse PDF: {e:?}"),
         ))
     })?;
     let doc = PdfDocument::new(reader);
@@ -301,7 +301,7 @@ pub async fn extract_text(mut multipart: Multipart) -> Result<Response, AppError
     let extracted_texts = doc.extract_text().map_err(|e| {
         AppError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            format!("Failed to extract text: {:?}", e),
+            format!("Failed to extract text: {e:?}"),
         ))
     })?;
 
