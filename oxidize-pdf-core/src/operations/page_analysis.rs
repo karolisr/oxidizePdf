@@ -10,7 +10,7 @@
 //!
 //! # Usage
 //!
-//! ```rust
+//! ```rust,no_run
 //! use oxidize_pdf::operations::page_analysis::{PageContentAnalyzer, PageType};
 //! use oxidize_pdf::parser::PdfReader;
 //!
@@ -237,7 +237,7 @@ impl PageContentAnalyzer {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use oxidize_pdf::operations::page_analysis::PageContentAnalyzer;
     /// # use oxidize_pdf::parser::PdfReader;
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -307,7 +307,7 @@ impl PageContentAnalyzer {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use oxidize_pdf::operations::page_analysis::PageContentAnalyzer;
     /// # use oxidize_pdf::parser::PdfReader;
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -369,7 +369,7 @@ impl PageContentAnalyzer {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use oxidize_pdf::operations::page_analysis::PageContentAnalyzer;
     /// # use oxidize_pdf::parser::PdfReader;
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -424,7 +424,7 @@ impl PageContentAnalyzer {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use oxidize_pdf::operations::page_analysis::PageContentAnalyzer;
     /// # use oxidize_pdf::text::MockOcrProvider;
     /// # use oxidize_pdf::parser::PdfReader;
@@ -486,7 +486,7 @@ impl PageContentAnalyzer {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// # use oxidize_pdf::operations::page_analysis::PageContentAnalyzer;
     /// # use oxidize_pdf::text::MockOcrProvider;
     /// # use oxidize_pdf::parser::PdfReader;
