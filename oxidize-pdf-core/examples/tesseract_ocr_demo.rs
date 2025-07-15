@@ -42,13 +42,13 @@ use oxidize_pdf::graphics::ImageFormat;
 use oxidize_pdf::operations::page_analysis::{AnalysisOptions, PageContentAnalyzer};
 use oxidize_pdf::parser::PdfReader;
 use oxidize_pdf::text::ocr::{
-    MockOcrProvider, OcrEngine, OcrOptions, OcrProvider, OcrResult, ImagePreprocessing,
+    ImagePreprocessing, MockOcrProvider, OcrEngine, OcrOptions, OcrProvider, OcrResult,
 };
 use oxidize_pdf::Result;
 
 #[cfg(feature = "ocr-tesseract")]
 use oxidize_pdf::text::tesseract_provider::{
-    TesseractOcrProvider, TesseractConfig, PageSegmentationMode, OcrEngineMode,
+    OcrEngineMode, PageSegmentationMode, TesseractConfig, TesseractOcrProvider,
 };
 
 use std::path::Path;
@@ -107,7 +107,7 @@ fn check_tesseract_availability() -> Result<()> {
     match TesseractOcrProvider::check_availability() {
         Ok(()) => {
             println!("✅ Tesseract is available and ready to use");
-            
+
             // Show available languages
             match TesseractOcrProvider::available_languages() {
                 Ok(languages) => {
@@ -134,14 +134,13 @@ fn create_sample_image_data() -> Vec<u8> {
     // Create a minimal JPEG header for testing
     // In a real application, you would load actual image files
     vec![
-        0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
-        0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43,
-        0x00, 0x08, 0x06, 0x06, 0x07, 0x06, 0x05, 0x08, 0x07, 0x07, 0x07, 0x09,
-        0x09, 0x08, 0x0A, 0x0C, 0x14, 0x0D, 0x0C, 0x0B, 0x0B, 0x0C, 0x19, 0x12,
-        0x13, 0x0F, 0x14, 0x1D, 0x1A, 0x1F, 0x1E, 0x1D, 0x1A, 0x1C, 0x1C, 0x20,
-        0x24, 0x2E, 0x27, 0x20, 0x22, 0x2C, 0x23, 0x1C, 0x1C, 0x28, 0x37, 0x29,
-        0x2C, 0x30, 0x31, 0x34, 0x34, 0x34, 0x1F, 0x27, 0x39, 0x3D, 0x38, 0x32,
-        0x3C, 0x2E, 0x33, 0x34, 0x32, 0xFF, 0xD9,
+        0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01, 0x00,
+        0x48, 0x00, 0x48, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43, 0x00, 0x08, 0x06, 0x06, 0x07, 0x06,
+        0x05, 0x08, 0x07, 0x07, 0x07, 0x09, 0x09, 0x08, 0x0A, 0x0C, 0x14, 0x0D, 0x0C, 0x0B, 0x0B,
+        0x0C, 0x19, 0x12, 0x13, 0x0F, 0x14, 0x1D, 0x1A, 0x1F, 0x1E, 0x1D, 0x1A, 0x1C, 0x1C, 0x20,
+        0x24, 0x2E, 0x27, 0x20, 0x22, 0x2C, 0x23, 0x1C, 0x1C, 0x28, 0x37, 0x29, 0x2C, 0x30, 0x31,
+        0x34, 0x34, 0x34, 0x1F, 0x27, 0x39, 0x3D, 0x38, 0x32, 0x3C, 0x2E, 0x33, 0x34, 0x32, 0xFF,
+        0xD9,
     ]
 }
 
@@ -186,26 +185,45 @@ fn demonstrate_configuration_options(sample_image: &[u8]) -> OcrResult<()> {
     println!("📄 Document-optimized configuration:");
     let doc_config = TesseractConfig::for_documents();
     let doc_provider = TesseractOcrProvider::with_config(doc_config)?;
-    
-    println!("   PSM: {:?} ({})", doc_provider.config().psm, doc_provider.config().psm.description());
-    println!("   OEM: {:?} ({})", doc_provider.config().oem, doc_provider.config().oem.description());
+
+    println!(
+        "   PSM: {:?} ({})",
+        doc_provider.config().psm,
+        doc_provider.config().psm.description()
+    );
+    println!(
+        "   OEM: {:?} ({})",
+        doc_provider.config().oem,
+        doc_provider.config().oem.description()
+    );
 
     // Single line configuration
     println!("\n📏 Single line configuration:");
     let line_config = TesseractConfig::for_single_line();
     let line_provider = TesseractOcrProvider::with_config(line_config)?;
-    
-    println!("   PSM: {:?} ({})", line_provider.config().psm, line_provider.config().psm.description());
-    println!("   OEM: {:?} ({})", line_provider.config().oem, line_provider.config().oem.description());
+
+    println!(
+        "   PSM: {:?} ({})",
+        line_provider.config().psm,
+        line_provider.config().psm.description()
+    );
+    println!(
+        "   OEM: {:?} ({})",
+        line_provider.config().oem,
+        line_provider.config().oem.description()
+    );
 
     // Custom configuration with character restrictions
     println!("\n🔢 Numbers-only configuration:");
     let custom_config = TesseractConfig::default()
         .with_char_whitelist("0123456789.,+-")
         .with_debug();
-    
+
     let custom_provider = TesseractOcrProvider::with_config(custom_config)?;
-    println!("   Character whitelist: {:?}", custom_provider.config().char_whitelist);
+    println!(
+        "   Character whitelist: {:?}",
+        custom_provider.config().char_whitelist
+    );
     println!("   Debug mode: {}", custom_provider.config().debug);
 
     println!();
@@ -262,7 +280,12 @@ fn demonstrate_performance_comparison(sample_image: &[u8]) -> OcrResult<()> {
             Ok(result) => {
                 let elapsed = start.elapsed();
                 mock_total_time += elapsed.as_millis() as u64;
-                println!("   Run {}: {}ms (reported: {}ms)", i, elapsed.as_millis(), result.processing_time_ms);
+                println!(
+                    "   Run {}: {}ms (reported: {}ms)",
+                    i,
+                    elapsed.as_millis(),
+                    result.processing_time_ms
+                );
             }
             Err(e) => println!("   Run {}: Error - {}", i, e),
         }
@@ -281,7 +304,12 @@ fn demonstrate_performance_comparison(sample_image: &[u8]) -> OcrResult<()> {
             Ok(result) => {
                 let elapsed = start.elapsed();
                 tesseract_total_time += elapsed.as_millis() as u64;
-                println!("   Run {}: {}ms (reported: {}ms)", i, elapsed.as_millis(), result.processing_time_ms);
+                println!(
+                    "   Run {}: {}ms (reported: {}ms)",
+                    i,
+                    elapsed.as_millis(),
+                    result.processing_time_ms
+                );
             }
             Err(e) => {
                 let elapsed = start.elapsed();
@@ -316,7 +344,7 @@ fn demonstrate_page_analysis_integration() -> OcrResult<()> {
     match found_pdf {
         Some(pdf_path) => {
             println!("📄 Processing PDF: {}", pdf_path);
-            
+
             match process_pdf_with_ocr(pdf_path) {
                 Ok(()) => println!("✅ PDF processing completed successfully"),
                 Err(e) => println!("⚠️  PDF processing failed: {}", e),
@@ -336,10 +364,10 @@ fn demonstrate_page_analysis_integration() -> OcrResult<()> {
 fn process_pdf_with_ocr(pdf_path: &str) -> Result<()> {
     // Open PDF document
     let document = PdfReader::open_document(pdf_path)?;
-    
+
     // Create page analyzer
     let mut analyzer = PageContentAnalyzer::new(document);
-    
+
     // Configure OCR options
     let ocr_options = OcrOptions {
         language: "eng".to_string(),
@@ -354,41 +382,50 @@ fn process_pdf_with_ocr(pdf_path: &str) -> Result<()> {
         },
         ..Default::default()
     };
-    
+
     // Update analysis options with OCR
     let analysis_options = AnalysisOptions {
         ocr_options: Some(ocr_options),
         ..Default::default()
     };
-    
+
     analyzer.set_options(analysis_options);
-    
+
     // Create OCR provider
     let ocr_provider = TesseractOcrProvider::new()?;
-    
+
     // Find scanned pages
     let scanned_pages = analyzer.find_scanned_pages()?;
-    
+
     if scanned_pages.is_empty() {
         println!("   No scanned pages found in document");
         return Ok(());
     }
-    
-    println!("   Found {} scanned pages: {:?}", scanned_pages.len(), scanned_pages);
-    
+
+    println!(
+        "   Found {} scanned pages: {:?}",
+        scanned_pages.len(),
+        scanned_pages
+    );
+
     // Process each scanned page
-    for page_num in scanned_pages.iter().take(3) { // Process first 3 pages max
+    for page_num in scanned_pages.iter().take(3) {
+        // Process first 3 pages max
         match analyzer.extract_text_from_scanned_page(*page_num, &ocr_provider) {
             Ok(ocr_result) => {
-                println!("   Page {}: {} characters extracted ({:.1}% confidence)", 
-                         page_num, ocr_result.text.len(), ocr_result.confidence * 100.0);
+                println!(
+                    "   Page {}: {} characters extracted ({:.1}% confidence)",
+                    page_num,
+                    ocr_result.text.len(),
+                    ocr_result.confidence * 100.0
+                );
             }
             Err(e) => {
                 println!("   Page {}: OCR failed - {}", page_num, e);
             }
         }
     }
-    
+
     Ok(())
 }
 

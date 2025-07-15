@@ -260,7 +260,7 @@ pub struct ExtractTextResponse {
 /// ```
 pub async fn extract_text(mut multipart: Multipart) -> Result<Response, AppError> {
     let mut pdf_data = None;
-    
+
     while let Some(field) = multipart.next_field().await.map_err(|e| {
         AppError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
@@ -277,18 +277,18 @@ pub async fn extract_text(mut multipart: Multipart) -> Result<Response, AppError
             break;
         }
     }
-    
+
     let pdf_bytes = pdf_data.ok_or_else(|| {
         AppError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             "No file provided in upload",
         ))
     })?;
-    
+
     // Parse PDF and extract text
     use oxidize_pdf::parser::{document::PdfDocument, reader::PdfReader};
     use std::io::Cursor;
-    
+
     let cursor = Cursor::new(pdf_bytes.as_ref());
     let reader = PdfReader::new(cursor).map_err(|e| {
         AppError::Io(std::io::Error::new(
@@ -297,27 +297,27 @@ pub async fn extract_text(mut multipart: Multipart) -> Result<Response, AppError
         ))
     })?;
     let doc = PdfDocument::new(reader);
-    
+
     let extracted_texts = doc.extract_text().map_err(|e| {
         AppError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             format!("Failed to extract text: {:?}", e),
         ))
     })?;
-    
+
     // Combine all extracted text
     let text = extracted_texts
         .into_iter()
         .map(|et| et.text)
         .collect::<Vec<_>>()
         .join("\n");
-    
+
     let page_count = doc.page_count().unwrap_or(0) as usize;
-    
+
     let response = ExtractTextResponse {
         text,
         pages: page_count,
     };
-    
+
     Ok((StatusCode::OK, Json(response)).into_response())
 }

@@ -17,16 +17,16 @@
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let document = PdfReader::open_document("example.pdf")?;
 //! let analyzer = PageContentAnalyzer::new(document);
-//! 
+//!
 //! // Analyze a specific page
 //! let analysis = analyzer.analyze_page(0)?;
-//! 
+//!
 //! match analysis.page_type {
 //!     PageType::Scanned => println!("This page appears to be scanned"),
 //!     PageType::Text => println!("This page contains primarily vector text"),
 //!     PageType::Mixed => println!("This page contains both text and images"),
 //! }
-//! 
+//!
 //! // Quick check for scanned pages
 //! if analyzer.is_scanned_page(0)? {
 //!     println!("Page 0 is likely a scanned image");
@@ -37,7 +37,7 @@
 
 use super::{OperationError, OperationResult};
 use crate::parser::{PdfDocument, PdfReader};
-use crate::text::{TextExtractor, ExtractionOptions, OcrProvider, OcrOptions, OcrProcessingResult};
+use crate::text::{ExtractionOptions, OcrOptions, OcrProcessingResult, OcrProvider, TextExtractor};
 // Note: ImageExtractor functionality is implemented inline to avoid circular dependencies
 use std::fs::File;
 use std::path::Path;
@@ -108,7 +108,7 @@ impl ContentAnalysis {
     ///     image_count: 1,
     ///     character_count: 15,
     /// };
-    /// 
+    ///
     /// assert!(analysis.is_scanned());
     /// ```
     pub fn is_scanned(&self) -> bool {
@@ -176,7 +176,7 @@ impl PageContentAnalyzer {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use oxidize_pdf::operations::page_analysis::PageContentAnalyzer;
     /// use oxidize_pdf::parser::PdfReader;
     ///
@@ -243,7 +243,7 @@ impl PageContentAnalyzer {
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let document = PdfReader::open_document("example.pdf")?;
     /// let analyzer = PageContentAnalyzer::new(document);
-    /// 
+    ///
     /// let analysis = analyzer.analyze_page(0)?;
     /// println!("Page type: {:?}", analysis.page_type);
     /// println!("Text ratio: {:.2}%", analysis.text_ratio * 100.0);
@@ -253,30 +253,40 @@ impl PageContentAnalyzer {
     /// ```
     pub fn analyze_page(&self, page_number: usize) -> OperationResult<ContentAnalysis> {
         // Get page dimensions for area calculations
-        let page = self.document.get_page(page_number as u32)
+        let page = self
+            .document
+            .get_page(page_number as u32)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
-        
+
         let page_area = self.calculate_page_area(&page)?;
-        
+
         // Analyze text content
         let text_analysis = self.analyze_text_content(page_number)?;
         let text_area = text_analysis.total_area;
         let text_fragment_count = text_analysis.fragment_count;
         let character_count = text_analysis.character_count;
-        
+
         // Analyze image content
         let image_analysis = self.analyze_image_content(page_number)?;
         let image_area = image_analysis.total_area;
         let image_count = image_analysis.image_count;
-        
+
         // Calculate ratios
-        let text_ratio = if page_area > 0.0 { text_area / page_area } else { 0.0 };
-        let image_ratio = if page_area > 0.0 { image_area / page_area } else { 0.0 };
+        let text_ratio = if page_area > 0.0 {
+            text_area / page_area
+        } else {
+            0.0
+        };
+        let image_ratio = if page_area > 0.0 {
+            image_area / page_area
+        } else {
+            0.0
+        };
         let blank_space_ratio = 1.0 - text_ratio - image_ratio;
-        
+
         // Determine page type based on content ratios
         let page_type = self.determine_page_type(text_ratio, image_ratio);
-        
+
         Ok(ContentAnalysis {
             page_number,
             page_type,
@@ -303,7 +313,7 @@ impl PageContentAnalyzer {
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let document = PdfReader::open_document("example.pdf")?;
     /// let analyzer = PageContentAnalyzer::new(document);
-    /// 
+    ///
     /// let analyses = analyzer.analyze_document()?;
     /// for analysis in analyses {
     ///     println!("Page {}: {:?}", analysis.page_number, analysis.page_type);
@@ -312,15 +322,17 @@ impl PageContentAnalyzer {
     /// # }
     /// ```
     pub fn analyze_document(&self) -> OperationResult<Vec<ContentAnalysis>> {
-        let page_count = self.document.page_count()
+        let page_count = self
+            .document
+            .page_count()
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
-        
+
         let mut analyses = Vec::new();
         for page_idx in 0..page_count {
             let analysis = self.analyze_page(page_idx as usize)?;
             analyses.push(analysis);
         }
-        
+
         Ok(analyses)
     }
 
@@ -363,7 +375,7 @@ impl PageContentAnalyzer {
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let document = PdfReader::open_document("example.pdf")?;
     /// let analyzer = PageContentAnalyzer::new(document);
-    /// 
+    ///
     /// if analyzer.is_scanned_page(0)? {
     ///     println!("Page 0 is a scanned image - consider OCR processing");
     /// }
@@ -420,7 +432,7 @@ impl PageContentAnalyzer {
     /// let document = PdfReader::open_document("scanned.pdf")?;
     /// let analyzer = PageContentAnalyzer::new(document);
     /// let ocr_provider = MockOcrProvider::new();
-    /// 
+    ///
     /// if analyzer.is_scanned_page(0)? {
     ///     let ocr_result = analyzer.extract_text_from_scanned_page(0, &ocr_provider)?;
     ///     println!("OCR extracted text: {}", ocr_result.text);
@@ -482,9 +494,9 @@ impl PageContentAnalyzer {
     /// let document = PdfReader::open_document("scanned.pdf")?;
     /// let analyzer = PageContentAnalyzer::new(document);
     /// let ocr_provider = MockOcrProvider::new();
-    /// 
+    ///
     /// let ocr_results = analyzer.process_scanned_pages_with_ocr(&ocr_provider)?;
-    /// 
+    ///
     /// for (page_num, ocr_result) in ocr_results {
     ///     println!("Page {}: {} characters extracted", page_num, ocr_result.text.len());
     ///     println!("  Confidence: {:.2}%", ocr_result.confidence * 100.0);
@@ -530,9 +542,9 @@ impl PageContentAnalyzer {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use oxidize_pdf::operations::page_analysis::PageContentAnalyzer;
-    /// use oxidize_pdf::text::ocr::MockOcrProvider;
+    /// use oxidize_pdf::text::MockOcrProvider;
     /// use oxidize_pdf::parser::PdfReader;
     ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -549,49 +561,51 @@ impl PageContentAnalyzer {
     /// # }
     /// ```
     pub fn process_scanned_pages_parallel<P: OcrProvider + Clone + Send + Sync + 'static>(
-        &self, 
-        ocr_provider: &P, 
-        max_threads: Option<usize>
+        &self,
+        ocr_provider: &P,
+        max_threads: Option<usize>,
     ) -> OperationResult<Vec<(usize, OcrProcessingResult)>> {
         use std::sync::{Arc, Mutex};
         use std::thread;
-        
+
         let scanned_pages = self.find_scanned_pages()?;
         if scanned_pages.is_empty() {
             return Ok(Vec::new());
         }
-        
+
         // Determine thread count
         let thread_count = max_threads.unwrap_or_else(|| {
             std::cmp::min(
                 scanned_pages.len(),
-                std::thread::available_parallelism().map(|p| p.get()).unwrap_or(4)
+                std::thread::available_parallelism()
+                    .map(|p| p.get())
+                    .unwrap_or(4),
             )
         });
-        
+
         if thread_count <= 1 {
             // Fall back to sequential processing
             return self.process_scanned_pages_with_ocr(ocr_provider);
         }
-        
+
         // Shared results vector
         let results = Arc::new(Mutex::new(Vec::new()));
         let provider = Arc::new(ocr_provider.clone());
-        
+
         // Create chunks of pages for each thread
-        let chunk_size = (scanned_pages.len() + thread_count - 1) / thread_count;
+        let chunk_size = scanned_pages.len().div_ceil(thread_count);
         let mut handles = Vec::new();
-        
+
         for chunk in scanned_pages.chunks(chunk_size) {
             let chunk_pages = chunk.to_vec();
             let results_clone = Arc::clone(&results);
             let provider_clone = Arc::clone(&provider);
-            
+
             // Create a temporary analyzer for this thread
             // Note: This is a simplified approach - in practice you'd want to avoid cloning the document
             let handle = thread::spawn(move || {
                 let mut thread_results = Vec::new();
-                
+
                 for page_num in chunk_pages {
                     // In a real implementation, you'd extract the image data and process it
                     // For now, we'll simulate with a simple approach
@@ -604,28 +618,29 @@ impl PageContentAnalyzer {
                         }
                     }
                 }
-                
+
                 // Add results to shared vector
                 if let Ok(mut shared_results) = results_clone.lock() {
                     shared_results.extend(thread_results);
                 }
             });
-            
+
             handles.push(handle);
         }
-        
+
         // Wait for all threads to complete
         for handle in handles {
             if let Err(e) = handle.join() {
                 eprintln!("Thread panicked: {:?}", e);
             }
         }
-        
+
         // Extract results
-        let final_results = results.lock()
+        let final_results = results
+            .lock()
             .map_err(|e| OperationError::ProcessingError(format!("Failed to get results: {}", e)))?
             .clone();
-        
+
         Ok(final_results)
     }
 
@@ -643,16 +658,16 @@ impl PageContentAnalyzer {
     ///
     /// A vector of tuples containing page numbers and their OCR results.
     pub fn process_scanned_pages_batch<P: OcrProvider>(
-        &self, 
-        ocr_provider: &P, 
-        batch_size: usize
+        &self,
+        ocr_provider: &P,
+        batch_size: usize,
     ) -> OperationResult<Vec<(usize, OcrProcessingResult)>> {
         let scanned_pages = self.find_scanned_pages()?;
         let mut results = Vec::new();
-        
+
         for batch in scanned_pages.chunks(batch_size) {
             println!("Processing batch of {} pages", batch.len());
-            
+
             for &page_num in batch {
                 match self.extract_text_from_scanned_page(page_num, ocr_provider) {
                     Ok(ocr_result) => {
@@ -663,11 +678,11 @@ impl PageContentAnalyzer {
                     }
                 }
             }
-            
+
             // Add a small delay between batches to avoid overwhelming the OCR provider
             std::thread::sleep(std::time::Duration::from_millis(100));
         }
-        
+
         Ok(results)
     }
 
@@ -676,32 +691,45 @@ impl PageContentAnalyzer {
     /// This method extracts the primary image from a scanned page.
     /// For scanned pages, this typically returns the main page image.
     fn extract_page_image_data(&self, page_number: usize) -> OperationResult<Vec<u8>> {
-        let page = self.document.get_page(page_number as u32)
+        let page = self
+            .document
+            .get_page(page_number as u32)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
 
         // Get page resources to find the main image
-        let resources = self.document.get_page_resources(&page)
+        let resources = self
+            .document
+            .get_page_resources(&page)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
 
         if let Some(resources) = resources {
-            if let Some(crate::parser::objects::PdfObject::Dictionary(xobjects)) = 
-                resources.0.get(&crate::parser::objects::PdfName("XObject".to_string())) {
-                
-                for (_, obj_ref) in &xobjects.0 {
-                    if let crate::parser::objects::PdfObject::Reference(obj_num, gen_num) = obj_ref {
-                        if let Ok(xobject) = self.document.get_object(*obj_num, *gen_num) {
-                            if let crate::parser::objects::PdfObject::Stream(stream) = &xobject {
-                                // Check if it's an image XObject
-                                if let Some(crate::parser::objects::PdfObject::Name(subtype)) = 
-                                    stream.dict.0.get(&crate::parser::objects::PdfName("Subtype".to_string())) {
-                                    if subtype.0 == "Image" {
-                                        // Get the raw image data
-                                        let image_data = stream.decode()
-                                            .map_err(|e| OperationError::ParseError(format!("Failed to decode image: {}", e)))?;
-                                        
-                                        // Return the first (and typically only) image for scanned pages
-                                        return Ok(image_data);
-                                    }
+            if let Some(crate::parser::objects::PdfObject::Dictionary(xobjects)) = resources
+                .0
+                .get(&crate::parser::objects::PdfName("XObject".to_string()))
+            {
+                for obj_ref in xobjects.0.values() {
+                    if let crate::parser::objects::PdfObject::Reference(obj_num, gen_num) = obj_ref
+                    {
+                        if let Ok(crate::parser::objects::PdfObject::Stream(stream)) =
+                            self.document.get_object(*obj_num, *gen_num)
+                        {
+                            // Check if it's an image XObject
+                            if let Some(crate::parser::objects::PdfObject::Name(subtype)) = stream
+                                .dict
+                                .0
+                                .get(&crate::parser::objects::PdfName("Subtype".to_string()))
+                            {
+                                if subtype.0 == "Image" {
+                                    // Get the raw image data
+                                    let image_data = stream.decode().map_err(|e| {
+                                        OperationError::ParseError(format!(
+                                            "Failed to decode image: {}",
+                                            e
+                                        ))
+                                    })?;
+
+                                    // Return the first (and typically only) image for scanned pages
+                                    return Ok(image_data);
                                 }
                             }
                         }
@@ -720,7 +748,7 @@ impl PageContentAnalyzer {
         // Get page dimensions from MediaBox
         let width = page.width();
         let height = page.height();
-        
+
         Ok(width * height)
     }
 
@@ -731,14 +759,15 @@ impl PageContentAnalyzer {
             space_threshold: 0.2,
             newline_threshold: 10.0,
         });
-        
-        let extracted_text = extractor.extract_from_page(&self.document, page_number as u32)
+
+        let extracted_text = extractor
+            .extract_from_page(&self.document, page_number as u32)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
-        
+
         let mut total_area = 0.0;
         let mut fragment_count = 0;
         let character_count = extracted_text.text.len();
-        
+
         // Calculate area covered by text fragments
         for fragment in &extracted_text.fragments {
             if fragment.text.trim().len() >= self.options.min_text_fragment_size {
@@ -746,7 +775,7 @@ impl PageContentAnalyzer {
                 fragment_count += 1;
             }
         }
-        
+
         Ok(TextAnalysisResult {
             total_area,
             fragment_count,
@@ -758,47 +787,67 @@ impl PageContentAnalyzer {
     fn analyze_image_content(&self, page_number: usize) -> OperationResult<ImageAnalysisResult> {
         // For now, we'll use a simplified approach that estimates image coverage
         // based on the presence of XObject references in the page resources
-        
-        let page = self.document.get_page(page_number as u32)
+
+        let page = self
+            .document
+            .get_page(page_number as u32)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
-        
+
         // Get page resources to check for XObject references
-        let resources = self.document.get_page_resources(&page)
+        let resources = self
+            .document
+            .get_page_resources(&page)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
-        
+
         let mut total_area = 0.0;
         let mut image_count = 0;
-        
+
         if let Some(resources) = resources {
-            if let Some(crate::parser::objects::PdfObject::Dictionary(xobjects)) = 
-                resources.0.get(&crate::parser::objects::PdfName("XObject".to_string())) {
-                
-                for (_, obj_ref) in &xobjects.0 {
-                    if let crate::parser::objects::PdfObject::Reference(obj_num, gen_num) = obj_ref {
-                        if let Ok(xobject) = self.document.get_object(*obj_num, *gen_num) {
-                            if let crate::parser::objects::PdfObject::Stream(stream) = &xobject {
-                                // Check if it's an image XObject
-                                if let Some(crate::parser::objects::PdfObject::Name(subtype)) = 
-                                    stream.dict.0.get(&crate::parser::objects::PdfName("Subtype".to_string())) {
-                                    if subtype.0 == "Image" {
-                                        image_count += 1;
-                                        
-                                        // Get image dimensions
-                                        let width = match stream.dict.0.get(&crate::parser::objects::PdfName("Width".to_string())) {
-                                            Some(crate::parser::objects::PdfObject::Integer(w)) => *w as f64,
+            if let Some(crate::parser::objects::PdfObject::Dictionary(xobjects)) = resources
+                .0
+                .get(&crate::parser::objects::PdfName("XObject".to_string()))
+            {
+                for obj_ref in xobjects.0.values() {
+                    if let crate::parser::objects::PdfObject::Reference(obj_num, gen_num) = obj_ref
+                    {
+                        if let Ok(crate::parser::objects::PdfObject::Stream(stream)) =
+                            self.document.get_object(*obj_num, *gen_num)
+                        {
+                            // Check if it's an image XObject
+                            if let Some(crate::parser::objects::PdfObject::Name(subtype)) = stream
+                                .dict
+                                .0
+                                .get(&crate::parser::objects::PdfName("Subtype".to_string()))
+                            {
+                                if subtype.0 == "Image" {
+                                    image_count += 1;
+
+                                    // Get image dimensions
+                                    let width =
+                                        match stream.dict.0.get(&crate::parser::objects::PdfName(
+                                            "Width".to_string(),
+                                        )) {
+                                            Some(crate::parser::objects::PdfObject::Integer(w)) => {
+                                                *w as f64
+                                            }
                                             _ => 0.0,
                                         };
-                                        
-                                        let height = match stream.dict.0.get(&crate::parser::objects::PdfName("Height".to_string())) {
-                                            Some(crate::parser::objects::PdfObject::Integer(h)) => *h as f64,
+
+                                    let height =
+                                        match stream.dict.0.get(&crate::parser::objects::PdfName(
+                                            "Height".to_string(),
+                                        )) {
+                                            Some(crate::parser::objects::PdfObject::Integer(h)) => {
+                                                *h as f64
+                                            }
                                             _ => 0.0,
                                         };
-                                        
-                                        // Check minimum size
-                                        if width >= self.options.min_image_size as f64 && 
-                                           height >= self.options.min_image_size as f64 {
-                                            total_area += width * height;
-                                        }
+
+                                    // Check minimum size
+                                    if width >= self.options.min_image_size as f64
+                                        && height >= self.options.min_image_size as f64
+                                    {
+                                        total_area += width * height;
                                     }
                                 }
                             }
@@ -807,7 +856,7 @@ impl PageContentAnalyzer {
                 }
             }
         }
-        
+
         Ok(ImageAnalysisResult {
             total_area,
             image_count,
@@ -853,15 +902,15 @@ struct ImageAnalysisResult {
 
 /// Simulate OCR processing for a single page (helper function for parallel processing)
 fn simulate_page_ocr_processing<P: OcrProvider>(
-    page_num: usize, 
-    ocr_provider: &P
+    page_num: usize,
+    ocr_provider: &P,
 ) -> Result<OcrProcessingResult, crate::text::ocr::OcrError> {
     // Create mock image data for the page
     let mock_image_data = vec![
-        0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
-        0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xFF, 0xD9,
+        0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01, 0x00,
+        0x48, 0x00, 0x48, 0x00, 0x00, 0xFF, 0xD9,
     ];
-    
+
     let options = crate::text::ocr::OcrOptions {
         language: "eng".to_string(),
         min_confidence: 0.6,
@@ -870,13 +919,13 @@ fn simulate_page_ocr_processing<P: OcrProvider>(
         engine_options: std::collections::HashMap::new(),
         timeout_seconds: 30,
     };
-    
+
     // Process the mock image data
     let mut result = ocr_provider.process_image(&mock_image_data, &options)?;
-    
+
     // Customize the result to indicate which page it came from
     result.text = format!("Page {} text extracted via OCR", page_num);
-    
+
     Ok(result)
 }
 
@@ -889,11 +938,11 @@ mod tests {
         assert!(PageType::Scanned.is_scanned());
         assert!(!PageType::Text.is_scanned());
         assert!(!PageType::Mixed.is_scanned());
-        
+
         assert!(PageType::Text.is_text());
         assert!(!PageType::Scanned.is_text());
         assert!(!PageType::Mixed.is_text());
-        
+
         assert!(PageType::Mixed.is_mixed());
         assert!(!PageType::Scanned.is_mixed());
         assert!(!PageType::Text.is_mixed());
@@ -911,7 +960,7 @@ mod tests {
             image_count: 1,
             character_count: 15,
         };
-        
+
         assert!(analysis.is_scanned());
         assert!(!analysis.is_text_heavy());
         assert!(!analysis.is_mixed_content());
@@ -932,7 +981,7 @@ mod tests {
     fn test_determine_page_type() {
         // Create a mock analyzer to test the logic
         let options = AnalysisOptions::default();
-        
+
         // Test scanned page detection
         let page_type = if 0.90 > options.scanned_threshold && 0.05 < 0.1 {
             PageType::Scanned
@@ -942,7 +991,7 @@ mod tests {
             PageType::Mixed
         };
         assert_eq!(page_type, PageType::Scanned);
-        
+
         // Test text page detection
         let page_type = if 0.10 > options.scanned_threshold && 0.80 < 0.1 {
             PageType::Scanned
@@ -952,7 +1001,7 @@ mod tests {
             PageType::Mixed
         };
         assert_eq!(page_type, PageType::Text);
-        
+
         // Test mixed page detection
         let page_type = if 0.40 > options.scanned_threshold && 0.50 < 0.1 {
             PageType::Scanned

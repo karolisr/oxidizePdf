@@ -16,26 +16,26 @@ mod tests {
         doc.set_author("Test Author");
         doc.set_subject("Test Subject");
         doc.set_keywords("test, pdf, split");
-        
+
         for i in 0..num_pages {
             let mut page = Page::a4();
-            
+
             // Add some content to each page
             page.text()
                 .set_font(crate::text::Font::Helvetica, 24.0)
                 .at(50.0, 700.0)
                 .write(&format!("{} - Page {}", title, i + 1))
                 .unwrap();
-            
+
             // Add some graphics to make pages different
             page.graphics()
                 .rect(100.0, 500.0, 200.0, 100.0)
                 .set_fill_color(crate::graphics::Color::Rgb(0.8, 0.8, 0.8))
                 .fill();
-            
+
             doc.add_page(page);
         }
-        
+
         doc
     }
 
@@ -53,22 +53,22 @@ mod tests {
         let ranges = SplitMode::Ranges(vec![PageRange::Range(0, 2), PageRange::Single(5)]);
         let chunk = SplitMode::ChunkSize(3);
         let split_at = SplitMode::SplitAt(vec![3, 6, 9]);
-        
+
         match single {
             SplitMode::SinglePages => assert!(true),
             _ => panic!("Wrong variant"),
         }
-        
+
         match ranges {
             SplitMode::Ranges(ref r) => assert_eq!(r.len(), 2),
             _ => panic!("Wrong variant"),
         }
-        
+
         match chunk {
             SplitMode::ChunkSize(size) => assert_eq!(size, 3),
             _ => panic!("Wrong variant"),
         }
-        
+
         match split_at {
             SplitMode::SplitAt(ref points) => assert_eq!(points.len(), 3),
             _ => panic!("Wrong variant"),
@@ -83,7 +83,7 @@ mod tests {
             preserve_metadata: false,
             optimize: true,
         };
-        
+
         assert!(matches!(options.mode, SplitMode::ChunkSize(5)));
         assert_eq!(options.output_pattern, "chunk_{n}.pdf");
         assert!(!options.preserve_metadata);
@@ -95,20 +95,25 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let mut doc = create_test_pdf(5, "Test Document");
         let input_path = save_test_pdf(&mut doc, &temp_dir, "input.pdf");
-        
+
         let options = SplitOptions {
             mode: SplitMode::SinglePages,
-            output_pattern: temp_dir.path().join("page_{}.pdf").to_str().unwrap().to_string(),
+            output_pattern: temp_dir
+                .path()
+                .join("page_{}.pdf")
+                .to_str()
+                .unwrap()
+                .to_string(),
             preserve_metadata: true,
             optimize: false,
         };
-        
+
         let result = split_pdf(&input_path, options);
         assert!(result.is_ok());
-        
+
         let output_files = result.unwrap();
         assert_eq!(output_files.len(), 5);
-        
+
         // Check that all output files exist
         for (i, output_path) in output_files.iter().enumerate() {
             assert!(output_path.exists(), "Output file {} should exist", i + 1);
@@ -121,21 +126,26 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let mut doc = create_test_pdf(10, "Chunked Document");
         let input_path = save_test_pdf(&mut doc, &temp_dir, "input.pdf");
-        
+
         let options = SplitOptions {
             mode: SplitMode::ChunkSize(3),
-            output_pattern: temp_dir.path().join("chunk_{n}.pdf").to_str().unwrap().to_string(),
+            output_pattern: temp_dir
+                .path()
+                .join("chunk_{n}.pdf")
+                .to_str()
+                .unwrap()
+                .to_string(),
             preserve_metadata: true,
             optimize: false,
         };
-        
+
         let result = split_pdf(&input_path, options);
         assert!(result.is_ok());
-        
+
         let output_files = result.unwrap();
         // 10 pages split into chunks of 3: [0-2], [3-5], [6-8], [9]
         assert_eq!(output_files.len(), 4);
-        
+
         for output_path in output_files {
             assert!(output_path.exists());
         }
@@ -146,23 +156,28 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let mut doc = create_test_pdf(8, "Range Split Document");
         let input_path = save_test_pdf(&mut doc, &temp_dir, "input.pdf");
-        
+
         let ranges = vec![
             PageRange::Single(0),        // Page 1
             PageRange::Range(1, 3),      // Pages 2-4
             PageRange::List(vec![4, 6]), // Pages 5 and 7
         ];
-        
+
         let options = SplitOptions {
             mode: SplitMode::Ranges(ranges),
-            output_pattern: temp_dir.path().join("range_{n}.pdf").to_str().unwrap().to_string(),
+            output_pattern: temp_dir
+                .path()
+                .join("range_{n}.pdf")
+                .to_str()
+                .unwrap()
+                .to_string(),
             preserve_metadata: false,
             optimize: false,
         };
-        
+
         let result = split_pdf(&input_path, options);
         assert!(result.is_ok());
-        
+
         let output_files = result.unwrap();
         assert_eq!(output_files.len(), 3);
     }
@@ -172,20 +187,25 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let mut doc = create_test_pdf(12, "Split At Document");
         let input_path = save_test_pdf(&mut doc, &temp_dir, "input.pdf");
-        
+
         // Split at pages 3, 6, 9 creates: [0-2], [3-5], [6-8], [9-11]
         let split_points = vec![3, 6, 9];
-        
+
         let options = SplitOptions {
             mode: SplitMode::SplitAt(split_points),
-            output_pattern: temp_dir.path().join("part_{n}.pdf").to_str().unwrap().to_string(),
+            output_pattern: temp_dir
+                .path()
+                .join("part_{n}.pdf")
+                .to_str()
+                .unwrap()
+                .to_string(),
             preserve_metadata: true,
             optimize: false,
         };
-        
+
         let result = split_pdf(&input_path, options);
         assert!(result.is_ok());
-        
+
         let output_files = result.unwrap();
         assert_eq!(output_files.len(), 4);
     }
@@ -195,10 +215,15 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let mut doc = create_test_pdf(3, "Simple Split");
         let input_path = save_test_pdf(&mut doc, &temp_dir, "input.pdf");
-        
-        let output_pattern = temp_dir.path().join("output_{}.pdf").to_str().unwrap().to_string();
+
+        let output_pattern = temp_dir
+            .path()
+            .join("output_{}.pdf")
+            .to_str()
+            .unwrap()
+            .to_string();
         let result = split_into_pages(&input_path, &output_pattern);
-        
+
         assert!(result.is_ok());
         let output_files = result.unwrap();
         assert_eq!(output_files.len(), 3);
@@ -209,9 +234,9 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let mut doc = Document::new(); // Empty document
         let input_path = save_test_pdf(&mut doc, &temp_dir, "empty.pdf");
-        
+
         let result = split_into_pages(&input_path, "page_{}.pdf");
-        
+
         // Should fail with NoPagesToProcess
         assert!(result.is_err());
         match result {
@@ -224,7 +249,7 @@ mod tests {
     fn test_split_nonexistent_file() {
         let options = SplitOptions::default();
         let result = split_pdf("nonexistent.pdf", options);
-        
+
         assert!(result.is_err());
         match result {
             Err(crate::operations::OperationError::ParseError(_)) => assert!(true),
@@ -237,14 +262,14 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let mut doc = create_test_pdf(5, "Pattern Test");
         let input_path = save_test_pdf(&mut doc, &temp_dir, "input.pdf");
-        
+
         // Test various output patterns
         let patterns = vec![
             ("page_{}.pdf", "Single page pattern"),
             ("doc_{n}_page_{page}.pdf", "Pattern with index and page"),
             ("split_{start}-{end}.pdf", "Pattern with range"),
         ];
-        
+
         for (pattern, description) in patterns {
             let options = SplitOptions {
                 mode: SplitMode::SinglePages,
@@ -252,9 +277,14 @@ mod tests {
                 preserve_metadata: true,
                 optimize: false,
             };
-            
+
             let result = split_pdf(&input_path, options);
-            assert!(result.is_ok(), "Pattern '{}' failed: {}", pattern, description);
+            assert!(
+                result.is_ok(),
+                "Pattern '{}' failed: {}",
+                pattern,
+                description
+            );
         }
     }
 
@@ -266,20 +296,25 @@ mod tests {
         doc.set_author("Original Author");
         doc.set_subject("Original Subject");
         doc.set_keywords("original, keywords");
-        
+
         let input_path = save_test_pdf(&mut doc, &temp_dir, "input.pdf");
-        
+
         // Split with metadata preservation
         let options = SplitOptions {
             mode: SplitMode::SinglePages,
-            output_pattern: temp_dir.path().join("preserved_{}.pdf").to_str().unwrap().to_string(),
+            output_pattern: temp_dir
+                .path()
+                .join("preserved_{}.pdf")
+                .to_str()
+                .unwrap()
+                .to_string(),
             preserve_metadata: true,
             optimize: false,
         };
-        
+
         let result = split_pdf(&input_path, options);
         assert!(result.is_ok());
-        
+
         // Note: We'd need metadata getters to verify preservation
     }
 
@@ -288,17 +323,22 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let mut doc = create_test_pdf(2, "No Metadata Test");
         doc.set_title("Should Not Be Preserved");
-        
+
         let input_path = save_test_pdf(&mut doc, &temp_dir, "input.pdf");
-        
+
         // Split without metadata preservation
         let options = SplitOptions {
             mode: SplitMode::SinglePages,
-            output_pattern: temp_dir.path().join("no_meta_{}.pdf").to_str().unwrap().to_string(),
+            output_pattern: temp_dir
+                .path()
+                .join("no_meta_{}.pdf")
+                .to_str()
+                .unwrap()
+                .to_string(),
             preserve_metadata: false,
             optimize: false,
         };
-        
+
         let result = split_pdf(&input_path, options);
         assert!(result.is_ok());
     }
@@ -306,25 +346,33 @@ mod tests {
     #[test]
     fn test_split_edge_cases() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         // Test with 1-page document
         let mut doc1 = create_test_pdf(1, "Single Page");
         let path1 = save_test_pdf(&mut doc1, &temp_dir, "single.pdf");
-        
-        let result1 = split_into_pages(&path1, temp_dir.path().join("single_{}.pdf").to_str().unwrap());
+
+        let result1 = split_into_pages(
+            &path1,
+            temp_dir.path().join("single_{}.pdf").to_str().unwrap(),
+        );
         assert!(result1.is_ok());
         assert_eq!(result1.unwrap().len(), 1);
-        
+
         // Test chunk size larger than document
         let mut doc2 = create_test_pdf(3, "Small Document");
         let path2 = save_test_pdf(&mut doc2, &temp_dir, "small.pdf");
-        
+
         let options2 = SplitOptions {
             mode: SplitMode::ChunkSize(10), // Larger than document
-            output_pattern: temp_dir.path().join("large_chunk_{}.pdf").to_str().unwrap().to_string(),
+            output_pattern: temp_dir
+                .path()
+                .join("large_chunk_{}.pdf")
+                .to_str()
+                .unwrap()
+                .to_string(),
             ..Default::default()
         };
-        
+
         let result2 = split_pdf(&path2, options2);
         assert!(result2.is_ok());
         assert_eq!(result2.unwrap().len(), 1); // Should create single output
@@ -335,19 +383,24 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let mut doc = create_test_pdf(5, "Invalid Split Points");
         let input_path = save_test_pdf(&mut doc, &temp_dir, "input.pdf");
-        
+
         // Test with invalid split points (0 and beyond document)
         let split_points = vec![0, 10, 15]; // 0 and points beyond page 5
-        
+
         let options = SplitOptions {
             mode: SplitMode::SplitAt(split_points),
-            output_pattern: temp_dir.path().join("invalid_{}.pdf").to_str().unwrap().to_string(),
+            output_pattern: temp_dir
+                .path()
+                .join("invalid_{}.pdf")
+                .to_str()
+                .unwrap()
+                .to_string(),
             ..Default::default()
         };
-        
+
         let result = split_pdf(&input_path, options);
         assert!(result.is_ok());
-        
+
         // Should handle gracefully and create valid splits
         let output_files = result.unwrap();
         assert!(output_files.len() > 0);
@@ -358,18 +411,23 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let mut doc = create_test_pdf(15, "Large Document");
         let input_path = save_test_pdf(&mut doc, &temp_dir, "large.pdf");
-        
+
         // Split into chunks of 4
         let options = SplitOptions {
             mode: SplitMode::ChunkSize(4),
-            output_pattern: temp_dir.path().join("chunk_{n}.pdf").to_str().unwrap().to_string(),
+            output_pattern: temp_dir
+                .path()
+                .join("chunk_{n}.pdf")
+                .to_str()
+                .unwrap()
+                .to_string(),
             preserve_metadata: true,
             optimize: false,
         };
-        
+
         let result = split_pdf(&input_path, options);
         assert!(result.is_ok(), "Split operation failed: {:?}", result);
-        
+
         let output_files = result.unwrap();
         // 15 pages / 4 per chunk = 4 files (last one has 3 pages)
         assert_eq!(output_files.len(), 4);

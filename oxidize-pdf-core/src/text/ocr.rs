@@ -18,15 +18,18 @@
 //! ## Basic OCR Processing
 //!
 //! ```rust
-//! use oxidize_pdf::text::ocr::{MockOcrProvider, OcrOptions, OcrProvider};
+//! use oxidize_pdf::text::{MockOcrProvider, OcrOptions, OcrProvider};
 //! use oxidize_pdf::graphics::ImageFormat;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let provider = MockOcrProvider::new();
 //! let options = OcrOptions::default();
 //!
-//! // Process image data directly
-//! let image_data = vec![/* JPEG image bytes */];
+//! // Process image data directly - Mock JPEG data
+//! let image_data = vec![
+//!     0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
+//!     0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xFF, 0xD9
+//! ];
 //! let result = provider.process_image(&image_data, &options)?;
 //!
 //! println!("Extracted text: {}", result.text);
@@ -41,9 +44,9 @@
 //!
 //! ## Integration with Page Analysis
 //!
-//! ```rust
+//! ```rust,no_run
 //! use oxidize_pdf::operations::page_analysis::PageContentAnalyzer;
-//! use oxidize_pdf::text::ocr::{MockOcrProvider, OcrOptions};
+//! use oxidize_pdf::text::{MockOcrProvider, OcrOptions};
 //! use oxidize_pdf::parser::PdfReader;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -258,7 +261,13 @@ impl OcrProcessingResult {
     }
 
     /// Get text fragments within a specific region
-    pub fn fragments_in_region(&self, x: f64, y: f64, width: f64, height: f64) -> Vec<&OcrTextFragment> {
+    pub fn fragments_in_region(
+        &self,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+    ) -> Vec<&OcrTextFragment> {
         self.fragments
             .iter()
             .filter(|fragment| {
@@ -283,7 +292,7 @@ impl OcrProcessingResult {
         if self.fragments.is_empty() {
             return 0.0;
         }
-        
+
         let sum: f64 = self.fragments.iter().map(|f| f.confidence).sum();
         sum / self.fragments.len() as f64
     }
@@ -320,7 +329,10 @@ impl OcrEngine {
     pub fn supports_format(&self, format: ImageFormat) -> bool {
         match self {
             OcrEngine::Mock => true, // Mock supports all formats
-            OcrEngine::Tesseract => matches!(format, ImageFormat::Jpeg | ImageFormat::Png | ImageFormat::Tiff),
+            OcrEngine::Tesseract => matches!(
+                format,
+                ImageFormat::Jpeg | ImageFormat::Png | ImageFormat::Tiff
+            ),
             OcrEngine::Azure => matches!(format, ImageFormat::Jpeg | ImageFormat::Png),
             OcrEngine::Aws => matches!(format, ImageFormat::Jpeg | ImageFormat::Png),
             OcrEngine::GoogleCloud => matches!(format, ImageFormat::Jpeg | ImageFormat::Png),
@@ -349,7 +361,7 @@ impl fmt::Display for OcrEngine {
 /// # Examples
 ///
 /// ```rust
-/// use oxidize_pdf::text::ocr::{OcrProvider, OcrOptions, OcrProcessingResult, OcrError};
+/// use oxidize_pdf::text::{OcrProvider, OcrOptions, OcrProcessingResult, OcrError, OcrEngine};
 /// use oxidize_pdf::graphics::ImageFormat;
 ///
 /// struct MyOcrProvider;
@@ -404,7 +416,11 @@ pub trait OcrProvider: Send + Sync {
     /// - OCR processing fails
     /// - Network errors occur (for cloud providers)
     /// - Authentication fails (for cloud providers)
-    fn process_image(&self, image_data: &[u8], options: &OcrOptions) -> OcrResult<OcrProcessingResult>;
+    fn process_image(
+        &self,
+        image_data: &[u8],
+        options: &OcrOptions,
+    ) -> OcrResult<OcrProcessingResult>;
 
     /// Process a scanned page using content analysis information
     ///
@@ -520,15 +536,16 @@ pub trait OcrProvider: Send + Sync {
 /// # Examples
 ///
 /// ```rust
-/// use oxidize_pdf::text::ocr::{MockOcrProvider, OcrOptions, OcrProvider};
+/// use oxidize_pdf::text::{MockOcrProvider, OcrOptions, OcrProvider};
 ///
 /// let provider = MockOcrProvider::new();
 /// let options = OcrOptions::default();
-/// let image_data = vec![0xFF, 0xD8, 0xFF]; // Mock JPEG data
+/// let image_data = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46]; // Mock JPEG data
 ///
 /// let result = provider.process_image(&image_data, &options).unwrap();
 /// assert!(result.text.contains("Mock OCR"));
 /// ```
+#[derive(Clone)]
 pub struct MockOcrProvider {
     /// Mock confidence level to return
     confidence: f64,
@@ -580,7 +597,11 @@ impl Default for MockOcrProvider {
 }
 
 impl OcrProvider for MockOcrProvider {
-    fn process_image(&self, image_data: &[u8], options: &OcrOptions) -> OcrResult<OcrProcessingResult> {
+    fn process_image(
+        &self,
+        image_data: &[u8],
+        options: &OcrOptions,
+    ) -> OcrResult<OcrProcessingResult> {
         // Validate image data
         self.validate_image_data(image_data)?;
 
@@ -670,11 +691,11 @@ mod tests {
         assert!(OcrEngine::Mock.supports_format(ImageFormat::Jpeg));
         assert!(OcrEngine::Mock.supports_format(ImageFormat::Png));
         assert!(OcrEngine::Mock.supports_format(ImageFormat::Tiff));
-        
+
         assert!(OcrEngine::Tesseract.supports_format(ImageFormat::Jpeg));
         assert!(OcrEngine::Tesseract.supports_format(ImageFormat::Png));
         assert!(OcrEngine::Tesseract.supports_format(ImageFormat::Tiff));
-        
+
         assert!(OcrEngine::Azure.supports_format(ImageFormat::Jpeg));
         assert!(OcrEngine::Azure.supports_format(ImageFormat::Png));
         assert!(!OcrEngine::Azure.supports_format(ImageFormat::Tiff));
@@ -707,10 +728,10 @@ mod tests {
     fn test_mock_ocr_provider_process_image() {
         let provider = MockOcrProvider::new();
         let options = OcrOptions::default();
-        
+
         // Mock JPEG data
         let jpeg_data = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46];
-        
+
         let result = provider.process_image(&jpeg_data, &options).unwrap();
         assert!(result.text.contains("Mock OCR"));
         assert_eq!(result.confidence, 0.85);
@@ -746,15 +767,15 @@ mod tests {
     #[test]
     fn test_mock_ocr_provider_validate_image_data() {
         let provider = MockOcrProvider::new();
-        
+
         // Valid JPEG data
         let jpeg_data = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46];
         assert!(provider.validate_image_data(&jpeg_data).is_ok());
-        
+
         // Invalid data (too short)
         let short_data = vec![0xFF, 0xD8];
         assert!(provider.validate_image_data(&short_data).is_err());
-        
+
         // Invalid format
         let invalid_data = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09];
         assert!(provider.validate_image_data(&invalid_data).is_err());

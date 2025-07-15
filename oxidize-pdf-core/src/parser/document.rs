@@ -758,23 +758,26 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader, PdfObject, PdfName};
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let reader = PdfReader::open("document.pdf")?;
     /// # let document = PdfDocument::new(reader);
     /// let page = document.get_page(0)?;
     /// if let Some(resources) = document.get_page_resources(&page)? {
     ///     // Check for images (XObjects)
-    ///     if let Some(xobjects) = resources.get_dict("XObject") {
-    ///         for (name, _) in xobjects.iter() {
-    ///             println!("Found XObject: {}", name);
+    ///     if let Some(PdfObject::Dictionary(xobjects)) = resources.0.get(&PdfName("XObject".to_string())) {
+    ///         for (name, _) in xobjects.0.iter() {
+    ///             println!("Found XObject: {}", name.0);
     ///         }
     ///     }
     /// }
     /// # Ok(())
     /// # }
     /// ```
-    pub fn get_page_resources<'a>(&self, page: &'a ParsedPage) -> ParseResult<Option<&'a PdfDictionary>> {
+    pub fn get_page_resources<'a>(
+        &self,
+        page: &'a ParsedPage,
+    ) -> ParseResult<Option<&'a PdfDictionary>> {
         Ok(page.get_resources())
     }
 

@@ -65,8 +65,8 @@ use crate::graphics::ImageFormat;
 use crate::operations::page_analysis::ContentAnalysis;
 #[cfg(feature = "ocr-tesseract")]
 use crate::text::{
-    FragmentType, OcrEngine, OcrError, OcrOptions, OcrProcessingResult, OcrProvider,
-    OcrResult, OcrTextFragment,
+    FragmentType, OcrEngine, OcrError, OcrOptions, OcrProcessingResult, OcrProvider, OcrResult,
+    OcrTextFragment,
 };
 #[cfg(feature = "ocr-tesseract")]
 use std::collections::HashMap;
@@ -442,17 +442,24 @@ impl TesseractOcrProvider {
     /// Create a new Tesseract instance with the given configuration
     fn create_tesseract_instance(config: &TesseractConfig) -> OcrResult<Tesseract> {
         // Initialize Tesseract with language and datapath
-        let mut tesseract = Tesseract::new(Some(&config.language), None)
-            .map_err(|e| OcrError::ProviderNotAvailable(format!("Failed to initialize Tesseract: {}", e)))?;
+        let mut tesseract = Tesseract::new(Some(&config.language), None).map_err(|e| {
+            OcrError::ProviderNotAvailable(format!("Failed to initialize Tesseract: {}", e))
+        })?;
 
         // Set page segmentation mode
         tesseract
-            .set_variable("tessedit_pageseg_mode", &config.psm.to_psm_value().to_string())
+            .set_variable(
+                "tessedit_pageseg_mode",
+                &config.psm.to_psm_value().to_string(),
+            )
             .map_err(|e| OcrError::Configuration(format!("Failed to set PSM: {}", e)))?;
 
         // Set OCR engine mode
         tesseract
-            .set_variable("tessedit_ocr_engine_mode", &config.oem.to_oem_value().to_string())
+            .set_variable(
+                "tessedit_ocr_engine_mode",
+                &config.oem.to_oem_value().to_string(),
+            )
             .map_err(|e| OcrError::Configuration(format!("Failed to set OEM: {}", e)))?;
 
         // Set character whitelist if specified
@@ -471,9 +478,9 @@ impl TesseractOcrProvider {
 
         // Set custom variables
         for (name, value) in &config.variables {
-            tesseract
-                .set_variable(name, value)
-                .map_err(|e| OcrError::Configuration(format!("Failed to set variable {}: {}", name, e)))?;
+            tesseract.set_variable(name, value).map_err(|e| {
+                OcrError::Configuration(format!("Failed to set variable {}: {}", name, e))
+            })?;
         }
 
         // Set debug mode if enabled
@@ -488,7 +495,9 @@ impl TesseractOcrProvider {
 
     /// Get or create a Tesseract instance
     fn get_tesseract_instance(&self) -> OcrResult<Tesseract> {
-        let mut instance_guard = self.instance.lock()
+        let mut instance_guard = self
+            .instance
+            .lock()
             .map_err(|e| OcrError::ProcessingFailed(format!("Failed to acquire lock: {}", e)))?;
 
         if instance_guard.is_none() {
@@ -496,12 +505,17 @@ impl TesseractOcrProvider {
         }
 
         // Clone the instance (Tesseract should be cheap to clone or we'll need to handle this differently)
-        instance_guard.as_ref().cloned()
-            .ok_or_else(|| OcrError::ProcessingFailed("Failed to get Tesseract instance".to_string()))
+        instance_guard.as_ref().cloned().ok_or_else(|| {
+            OcrError::ProcessingFailed("Failed to get Tesseract instance".to_string())
+        })
     }
 
     /// Process image with detailed error handling
-    fn process_image_internal(&self, image_data: &[u8], options: &OcrOptions) -> OcrResult<OcrProcessingResult> {
+    fn process_image_internal(
+        &self,
+        image_data: &[u8],
+        options: &OcrOptions,
+    ) -> OcrResult<OcrProcessingResult> {
         let start_time = Instant::now();
 
         // Get Tesseract instance
@@ -574,9 +588,9 @@ impl TesseractOcrProvider {
 
         // In a real implementation, you would use Tesseract's word-level analysis
         // For now, we'll create a simplified version
-        let text = tesseract
-            .get_text()
-            .map_err(|e| OcrError::ProcessingFailed(format!("Failed to get text for fragments: {}", e)))?;
+        let text = tesseract.get_text().map_err(|e| {
+            OcrError::ProcessingFailed(format!("Failed to get text for fragments: {}", e))
+        })?;
 
         // Split into words and create fragments
         let words: Vec<&str> = text.split_whitespace().collect();
@@ -586,7 +600,7 @@ impl TesseractOcrProvider {
 
         for (i, word) in words.iter().enumerate() {
             let width = word.len() as f64 * 8.0; // Approximate width
-            
+
             fragments.push(OcrTextFragment {
                 text: word.to_string(),
                 x,
@@ -599,7 +613,7 @@ impl TesseractOcrProvider {
             });
 
             x += width + 8.0; // Move to next word position
-            
+
             // Simple line wrapping at 500 pixels
             if x > 500.0 {
                 x = 0.0;
@@ -613,7 +627,11 @@ impl TesseractOcrProvider {
 
 #[cfg(feature = "ocr-tesseract")]
 impl OcrProvider for TesseractOcrProvider {
-    fn process_image(&self, image_data: &[u8], options: &OcrOptions) -> OcrResult<OcrProcessingResult> {
+    fn process_image(
+        &self,
+        image_data: &[u8],
+        options: &OcrOptions,
+    ) -> OcrResult<OcrProcessingResult> {
         // Validate image data first
         self.validate_image_data(image_data)?;
 
@@ -629,16 +647,12 @@ impl OcrProvider for TesseractOcrProvider {
     ) -> OcrResult<OcrProcessingResult> {
         // Optimize configuration based on page analysis
         let optimized_options = self.optimize_for_page_analysis(page_analysis, options);
-        
+
         self.process_image(page_data, &optimized_options)
     }
 
     fn supported_formats(&self) -> Vec<ImageFormat> {
-        vec![
-            ImageFormat::Jpeg,
-            ImageFormat::Png,
-            ImageFormat::Tiff,
-        ]
+        vec![ImageFormat::Jpeg, ImageFormat::Png, ImageFormat::Tiff]
     }
 
     fn engine_name(&self) -> &str {
@@ -653,7 +667,11 @@ impl OcrProvider for TesseractOcrProvider {
 #[cfg(feature = "ocr-tesseract")]
 impl TesseractOcrProvider {
     /// Optimize OCR options based on page analysis
-    fn optimize_for_page_analysis(&self, analysis: &ContentAnalysis, options: &OcrOptions) -> OcrOptions {
+    fn optimize_for_page_analysis(
+        &self,
+        analysis: &ContentAnalysis,
+        options: &OcrOptions,
+    ) -> OcrOptions {
         let mut optimized = options.clone();
 
         // Adjust preprocessing based on page type
@@ -711,16 +729,18 @@ mod tests {
         assert_eq!(PageSegmentationMode::Auto as u8, 3);
         assert_eq!(PageSegmentationMode::SingleLine as u8, 7);
         assert_eq!(PageSegmentationMode::SingleWord as u8, 8);
-        
+
         assert_eq!(PageSegmentationMode::Auto.to_psm_value(), 3);
-        assert!(PageSegmentationMode::Auto.description().contains("automatic"));
+        assert!(PageSegmentationMode::Auto
+            .description()
+            .contains("automatic"));
     }
 
     #[test]
     fn test_ocr_engine_mode() {
         assert_eq!(OcrEngineMode::LstmOnly as u8, 1);
         assert_eq!(OcrEngineMode::Default as u8, 3);
-        
+
         assert_eq!(OcrEngineMode::LstmOnly.to_oem_value(), 1);
         assert!(OcrEngineMode::LstmOnly.description().contains("LSTM"));
     }
@@ -740,14 +760,14 @@ mod tests {
     fn test_tesseract_config_builders() {
         let config = TesseractConfig::with_language("spa");
         assert_eq!(config.language, "spa");
-        
+
         let config = TesseractConfig::for_documents();
         assert_eq!(config.psm, PageSegmentationMode::Auto);
         assert_eq!(config.oem, OcrEngineMode::LstmOnly);
-        
+
         let config = TesseractConfig::for_single_line();
         assert_eq!(config.psm, PageSegmentationMode::SingleLine);
-        
+
         let config = TesseractConfig::for_sparse_text();
         assert_eq!(config.psm, PageSegmentationMode::SparseText);
     }
@@ -759,7 +779,7 @@ mod tests {
             .with_char_blacklist("!@#$%")
             .with_variable("tessedit_char_blacklist", "")
             .with_debug();
-        
+
         assert_eq!(config.char_whitelist, Some("0123456789".to_string()));
         assert_eq!(config.char_blacklist, Some("!@#$%".to_string()));
         assert!(config.variables.contains_key("tessedit_char_blacklist"));
@@ -831,7 +851,7 @@ mod tests {
     #[test]
     fn test_tesseract_supported_formats() {
         let config = TesseractConfig::default();
-        
+
         // Test without actually creating provider (to avoid Tesseract dependency)
         let supported = vec![ImageFormat::Jpeg, ImageFormat::Png, ImageFormat::Tiff];
         assert!(supported.contains(&ImageFormat::Jpeg));

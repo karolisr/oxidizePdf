@@ -14,36 +14,34 @@
 mod tesseract_tests {
     use oxidize_pdf::graphics::ImageFormat;
     use oxidize_pdf::text::ocr::{
-        OcrEngine, OcrOptions, OcrProvider, OcrResult, ImagePreprocessing,
-        FragmentType, OcrTextFragment, OcrProcessingResult,
+        FragmentType, ImagePreprocessing, OcrEngine, OcrOptions, OcrProcessingResult, OcrProvider,
+        OcrResult, OcrTextFragment,
     };
     use oxidize_pdf::text::tesseract_provider::{
-        TesseractOcrProvider, TesseractConfig, PageSegmentationMode, OcrEngineMode,
+        OcrEngineMode, PageSegmentationMode, TesseractConfig, TesseractOcrProvider,
     };
     use std::time::Duration;
 
     // Helper function to create mock image data
     fn create_mock_jpeg_data() -> Vec<u8> {
         vec![
-            0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
-            0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43,
-            0x00, 0x08, 0x06, 0x06, 0x07, 0x06, 0x05, 0x08, 0x07, 0x07, 0x07, 0x09,
-            0x09, 0x08, 0x0A, 0x0C, 0x14, 0x0D, 0x0C, 0x0B, 0x0B, 0x0C, 0x19, 0x12,
-            0x13, 0x0F, 0x14, 0x1D, 0x1A, 0x1F, 0x1E, 0x1D, 0x1A, 0x1C, 0x1C, 0x20,
-            0x24, 0x2E, 0x27, 0x20, 0x22, 0x2C, 0x23, 0x1C, 0x1C, 0x28, 0x37, 0x29,
-            0x2C, 0x30, 0x31, 0x34, 0x34, 0x34, 0x1F, 0x27, 0x39, 0x3D, 0x38, 0x32,
+            0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01,
+            0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43, 0x00, 0x08, 0x06, 0x06,
+            0x07, 0x06, 0x05, 0x08, 0x07, 0x07, 0x07, 0x09, 0x09, 0x08, 0x0A, 0x0C, 0x14, 0x0D,
+            0x0C, 0x0B, 0x0B, 0x0C, 0x19, 0x12, 0x13, 0x0F, 0x14, 0x1D, 0x1A, 0x1F, 0x1E, 0x1D,
+            0x1A, 0x1C, 0x1C, 0x20, 0x24, 0x2E, 0x27, 0x20, 0x22, 0x2C, 0x23, 0x1C, 0x1C, 0x28,
+            0x37, 0x29, 0x2C, 0x30, 0x31, 0x34, 0x34, 0x34, 0x1F, 0x27, 0x39, 0x3D, 0x38, 0x32,
             0x3C, 0x2E, 0x33, 0x34, 0x32, 0xFF, 0xD9,
         ]
     }
 
     fn create_mock_png_data() -> Vec<u8> {
         vec![
-            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
-            0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-            0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
-            0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-            0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
-            0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48,
+            0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00,
+            0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41, 0x54, 0x78,
+            0x9C, 0x63, 0x00, 0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+            0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
         ]
     }
 
@@ -155,7 +153,7 @@ mod tesseract_tests {
         let languages = TesseractOcrProvider::available_languages().unwrap();
         assert!(!languages.is_empty());
         assert!(languages.contains(&"eng".to_string()));
-        
+
         // Check for common languages
         let common_languages = ["spa", "deu", "fra", "ita", "por", "rus"];
         for lang in &common_languages {
@@ -193,7 +191,7 @@ mod tesseract_tests {
         let provider = TesseractOcrProvider::new().expect("Failed to create provider");
         assert_eq!(provider.engine_name(), "Tesseract");
         assert_eq!(provider.engine_type(), OcrEngine::Tesseract);
-        
+
         let formats = provider.supported_formats();
         assert!(formats.contains(&ImageFormat::Jpeg));
         assert!(formats.contains(&ImageFormat::Png));
@@ -204,8 +202,9 @@ mod tesseract_tests {
     #[ignore = "Requires Tesseract installation"]
     fn test_tesseract_provider_with_config() {
         let config = TesseractConfig::for_documents();
-        let provider = TesseractOcrProvider::with_config(config).expect("Failed to create provider");
-        
+        let provider =
+            TesseractOcrProvider::with_config(config).expect("Failed to create provider");
+
         assert_eq!(provider.config().psm, PageSegmentationMode::Auto);
         assert_eq!(provider.config().oem, OcrEngineMode::LstmOnly);
     }
@@ -213,7 +212,8 @@ mod tesseract_tests {
     #[test]
     #[ignore = "Requires Tesseract installation"]
     fn test_tesseract_provider_with_language() {
-        let provider = TesseractOcrProvider::with_language("eng").expect("Failed to create provider");
+        let provider =
+            TesseractOcrProvider::with_language("eng").expect("Failed to create provider");
         assert_eq!(provider.config().language, "eng");
     }
 
@@ -236,10 +236,12 @@ mod tesseract_tests {
     #[ignore = "Requires Tesseract installation"]
     fn test_tesseract_config_update() {
         let mut provider = TesseractOcrProvider::new().expect("Failed to create provider");
-        
+
         let new_config = TesseractConfig::for_single_line();
-        provider.set_config(new_config).expect("Failed to update config");
-        
+        provider
+            .set_config(new_config)
+            .expect("Failed to update config");
+
         assert_eq!(provider.config().psm, PageSegmentationMode::SingleLine);
     }
 
@@ -247,19 +249,19 @@ mod tesseract_tests {
     #[ignore = "Requires Tesseract installation"]
     fn test_tesseract_image_validation() {
         let provider = TesseractOcrProvider::new().expect("Failed to create provider");
-        
+
         // Valid JPEG data
         let jpeg_data = create_mock_jpeg_data();
         assert!(provider.validate_image_data(&jpeg_data).is_ok());
-        
+
         // Valid PNG data
         let png_data = create_mock_png_data();
         assert!(provider.validate_image_data(&png_data).is_ok());
-        
+
         // Invalid data (too short)
         let short_data = vec![0xFF, 0xD8];
         assert!(provider.validate_image_data(&short_data).is_err());
-        
+
         // Invalid format
         let invalid_data = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08];
         assert!(provider.validate_image_data(&invalid_data).is_err());
@@ -270,10 +272,10 @@ mod tesseract_tests {
     fn test_tesseract_process_image() {
         let provider = TesseractOcrProvider::new().expect("Failed to create provider");
         let options = OcrOptions::default();
-        
+
         // Note: This test will fail with mock data but verifies the interface
         let image_data = create_mock_jpeg_data();
-        
+
         match provider.process_image(&image_data, &options) {
             Ok(result) => {
                 // If processing succeeds (unlikely with mock data)
@@ -298,14 +300,15 @@ mod tesseract_tests {
             PageSegmentationMode::SingleWord,
             PageSegmentationMode::SparseText,
         ];
-        
+
         for psm in psm_modes {
             let config = TesseractConfig {
                 psm,
                 ..Default::default()
             };
-            
-            let provider = TesseractOcrProvider::with_config(config).expect("Failed to create provider");
+
+            let provider =
+                TesseractOcrProvider::with_config(config).expect("Failed to create provider");
             assert_eq!(provider.config().psm, psm);
         }
     }
@@ -319,14 +322,15 @@ mod tesseract_tests {
             OcrEngineMode::LegacyLstm,
             OcrEngineMode::Default,
         ];
-        
+
         for oem in oem_modes {
             let config = TesseractConfig {
                 oem,
                 ..Default::default()
             };
-            
-            let provider = TesseractOcrProvider::with_config(config).expect("Failed to create provider");
+
+            let provider =
+                TesseractOcrProvider::with_config(config).expect("Failed to create provider");
             assert_eq!(provider.config().oem, oem);
         }
     }
@@ -334,20 +338,23 @@ mod tesseract_tests {
     #[test]
     #[ignore = "Requires Tesseract installation"]
     fn test_tesseract_char_whitelist() {
-        let config = TesseractConfig::default()
-            .with_char_whitelist("0123456789");
-        
-        let provider = TesseractOcrProvider::with_config(config).expect("Failed to create provider");
-        assert_eq!(provider.config().char_whitelist, Some("0123456789".to_string()));
+        let config = TesseractConfig::default().with_char_whitelist("0123456789");
+
+        let provider =
+            TesseractOcrProvider::with_config(config).expect("Failed to create provider");
+        assert_eq!(
+            provider.config().char_whitelist,
+            Some("0123456789".to_string())
+        );
     }
 
     #[test]
     #[ignore = "Requires Tesseract installation"]
     fn test_tesseract_char_blacklist() {
-        let config = TesseractConfig::default()
-            .with_char_blacklist("!@#$%");
-        
-        let provider = TesseractOcrProvider::with_config(config).expect("Failed to create provider");
+        let config = TesseractConfig::default().with_char_blacklist("!@#$%");
+
+        let provider =
+            TesseractOcrProvider::with_config(config).expect("Failed to create provider");
         assert_eq!(provider.config().char_blacklist, Some("!@#$%".to_string()));
     }
 
@@ -357,9 +364,13 @@ mod tesseract_tests {
         let config = TesseractConfig::default()
             .with_variable("tessedit_char_blacklist", "")
             .with_variable("debug_file", "/tmp/tesseract.log");
-        
-        let provider = TesseractOcrProvider::with_config(config).expect("Failed to create provider");
-        assert!(provider.config().variables.contains_key("tessedit_char_blacklist"));
+
+        let provider =
+            TesseractOcrProvider::with_config(config).expect("Failed to create provider");
+        assert!(provider
+            .config()
+            .variables
+            .contains_key("tessedit_char_blacklist"));
         assert!(provider.config().variables.contains_key("debug_file"));
     }
 
@@ -367,7 +378,8 @@ mod tesseract_tests {
     #[ignore = "Requires Tesseract installation"]
     fn test_tesseract_debug_mode() {
         let config = TesseractConfig::default().with_debug();
-        let provider = TesseractOcrProvider::with_config(config).expect("Failed to create provider");
+        let provider =
+            TesseractOcrProvider::with_config(config).expect("Failed to create provider");
         assert!(provider.config().debug);
     }
 
@@ -377,7 +389,10 @@ mod tesseract_tests {
         match TesseractOcrProvider::with_language("invalid_language_code") {
             Ok(_) => panic!("Expected error for invalid language"),
             Err(e) => {
-                assert!(e.to_string().contains("not available") || e.to_string().contains("Failed to initialize"));
+                assert!(
+                    e.to_string().contains("not available")
+                        || e.to_string().contains("Failed to initialize")
+                );
             }
         }
     }
@@ -386,13 +401,13 @@ mod tesseract_tests {
     #[ignore = "Requires Tesseract installation"]
     fn test_tesseract_low_confidence_handling() {
         let provider = TesseractOcrProvider::new().expect("Failed to create provider");
-        
+
         // Set very high confidence threshold
         let options = OcrOptions {
             min_confidence: 0.99,
             ..Default::default()
         };
-        
+
         let image_data = create_mock_jpeg_data();
         match provider.process_image(&image_data, &options) {
             Ok(result) => {
@@ -401,7 +416,9 @@ mod tesseract_tests {
             }
             Err(e) => {
                 // Expected to fail with high confidence threshold
-                assert!(e.to_string().contains("confidence") || e.to_string().contains("Invalid image"));
+                assert!(
+                    e.to_string().contains("confidence") || e.to_string().contains("Invalid image")
+                );
             }
         }
     }
@@ -410,7 +427,7 @@ mod tesseract_tests {
     #[ignore = "Requires Tesseract installation"]
     fn test_tesseract_preprocessing_options() {
         let provider = TesseractOcrProvider::new().expect("Failed to create provider");
-        
+
         let options = OcrOptions {
             preprocessing: ImagePreprocessing {
                 denoise: true,
@@ -421,9 +438,9 @@ mod tesseract_tests {
             },
             ..Default::default()
         };
-        
+
         let image_data = create_mock_jpeg_data();
-        
+
         // Test that preprocessing options are accepted
         match provider.process_image(&image_data, &options) {
             Ok(_) => {
@@ -441,19 +458,19 @@ mod tesseract_tests {
     #[ignore = "Requires Tesseract installation"]
     fn test_tesseract_timeout_handling() {
         let provider = TesseractOcrProvider::new().expect("Failed to create provider");
-        
+
         let options = OcrOptions {
             timeout_seconds: 1, // Very short timeout
             ..Default::default()
         };
-        
+
         let image_data = create_mock_jpeg_data();
-        
+
         // Test that timeout is respected
         let start = std::time::Instant::now();
         let _ = provider.process_image(&image_data, &options);
         let elapsed = start.elapsed();
-        
+
         // Should complete within reasonable time (even if it fails)
         assert!(elapsed < Duration::from_secs(5));
     }
@@ -462,7 +479,7 @@ mod tesseract_tests {
     #[ignore = "Requires Tesseract installation"]
     fn test_tesseract_format_support() {
         let provider = TesseractOcrProvider::new().expect("Failed to create provider");
-        
+
         assert!(provider.supports_format(ImageFormat::Jpeg));
         assert!(provider.supports_format(ImageFormat::Png));
         assert!(provider.supports_format(ImageFormat::Tiff));
@@ -472,14 +489,14 @@ mod tesseract_tests {
     #[ignore = "Requires Tesseract installation"]
     fn test_tesseract_layout_preservation() {
         let provider = TesseractOcrProvider::new().expect("Failed to create provider");
-        
+
         let options = OcrOptions {
             preserve_layout: true,
             ..Default::default()
         };
-        
+
         let image_data = create_mock_jpeg_data();
-        
+
         match provider.process_image(&image_data, &options) {
             Ok(result) => {
                 // Should have position information when layout is preserved
@@ -503,13 +520,13 @@ mod tesseract_tests {
         let provider = TesseractOcrProvider::new().expect("Failed to create provider");
         let options = OcrOptions::default();
         let image_data = create_mock_jpeg_data();
-        
+
         // Test multiple runs to check consistency
         for _ in 0..3 {
             let start = std::time::Instant::now();
             let _ = provider.process_image(&image_data, &options);
             let elapsed = start.elapsed();
-            
+
             // Should complete within reasonable time
             assert!(elapsed < Duration::from_secs(30));
         }
@@ -523,7 +540,7 @@ mod tesseract_tests {
             let result = TesseractOcrProvider::new();
             assert!(result.is_err());
             assert!(result.unwrap_err().to_string().contains("not available"));
-            
+
             let result = TesseractOcrProvider::check_availability();
             assert!(result.is_err());
             assert!(result.unwrap_err().to_string().contains("not available"));

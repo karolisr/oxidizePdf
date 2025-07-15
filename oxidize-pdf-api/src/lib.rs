@@ -5,6 +5,6 @@
 
 mod api;
 pub use api::{
-    app, create_pdf, health_check, extract_text,
-    CreatePdfRequest, ErrorResponse, ExtractTextResponse, AppError
+    app, create_pdf, extract_text, health_check, AppError, CreatePdfRequest, ErrorResponse,
+    ExtractTextResponse,
 };

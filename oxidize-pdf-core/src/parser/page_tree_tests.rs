@@ -2,8 +2,8 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::page_tree::*;
     use crate::parser::objects::{PdfArray, PdfDictionary, PdfObject};
+    use crate::parser::page_tree::*;
     use crate::parser::reader::PdfReader;
     use std::io::Cursor;
 
@@ -51,7 +51,7 @@ startxref\n\
     #[test]
     fn test_page_tree_cache_operations() {
         let mut tree = PageTree::new(10);
-        
+
         // Test caching a page
         let page = ParsedPage {
             obj_ref: (1, 0),
@@ -61,14 +61,14 @@ startxref\n\
             crop_box: None,
             rotation: 0,
         };
-        
+
         tree.cache_page(0, page.clone());
-        
+
         // Test retrieving cached page
         let cached = tree.get_cached_page(0);
         assert!(cached.is_some());
         assert_eq!(cached.unwrap().obj_ref, (1, 0));
-        
+
         // Test non-existent page
         assert!(tree.get_cached_page(1).is_none());
     }
@@ -84,7 +84,7 @@ startxref\n\
             crop_box: None,
             rotation: 0,
         };
-        
+
         assert_eq!(page.width(), 612.0);
         assert_eq!(page.height(), 792.0);
     }
@@ -99,7 +99,7 @@ startxref\n\
             crop_box: None,
             rotation: 90,
         };
-        
+
         // Width and height should be swapped
         assert_eq!(page.width(), 792.0);
         assert_eq!(page.height(), 612.0);
@@ -115,7 +115,7 @@ startxref\n\
             crop_box: None,
             rotation: 270,
         };
-        
+
         // Width and height should be swapped
         assert_eq!(page.width(), 792.0);
         assert_eq!(page.height(), 612.0);
@@ -131,7 +131,7 @@ startxref\n\
             crop_box: None,
             rotation: 180,
         };
-        
+
         // Dimensions should remain the same
         assert_eq!(page.width(), 612.0);
         assert_eq!(page.height(), 792.0);
@@ -140,11 +140,17 @@ startxref\n\
     #[test]
     fn test_parsed_page_get_resources() {
         let mut resources_dict = PdfDictionary::new();
-        resources_dict.insert("Font".to_string(), PdfObject::Dictionary(PdfDictionary::new()));
-        
+        resources_dict.insert(
+            "Font".to_string(),
+            PdfObject::Dictionary(PdfDictionary::new()),
+        );
+
         let mut page_dict = PdfDictionary::new();
-        page_dict.insert("Resources".to_string(), PdfObject::Dictionary(resources_dict.clone()));
-        
+        page_dict.insert(
+            "Resources".to_string(),
+            PdfObject::Dictionary(resources_dict.clone()),
+        );
+
         let page = ParsedPage {
             obj_ref: (1, 0),
             dict: page_dict,
@@ -153,7 +159,7 @@ startxref\n\
             crop_box: None,
             rotation: 0,
         };
-        
+
         let resources = page.get_resources();
         assert!(resources.is_some());
         assert!(resources.unwrap().contains_key("Font"));
@@ -162,8 +168,11 @@ startxref\n\
     #[test]
     fn test_parsed_page_get_inherited_resources() {
         let mut inherited_resources = PdfDictionary::new();
-        inherited_resources.insert("Font".to_string(), PdfObject::Dictionary(PdfDictionary::new()));
-        
+        inherited_resources.insert(
+            "Font".to_string(),
+            PdfObject::Dictionary(PdfDictionary::new()),
+        );
+
         let page = ParsedPage {
             obj_ref: (1, 0),
             dict: PdfDictionary::new(), // No direct resources
@@ -172,7 +181,7 @@ startxref\n\
             crop_box: None,
             rotation: 0,
         };
-        
+
         let resources = page.get_resources();
         assert!(resources.is_some());
         assert!(resources.unwrap().contains_key("Font"));
@@ -181,8 +190,11 @@ startxref\n\
     #[test]
     fn test_parsed_page_clone_with_resources() {
         let mut inherited_resources = PdfDictionary::new();
-        inherited_resources.insert("Font".to_string(), PdfObject::Dictionary(PdfDictionary::new()));
-        
+        inherited_resources.insert(
+            "Font".to_string(),
+            PdfObject::Dictionary(PdfDictionary::new()),
+        );
+
         let page = ParsedPage {
             obj_ref: (1, 0),
             dict: PdfDictionary::new(),
@@ -191,12 +203,12 @@ startxref\n\
             crop_box: None,
             rotation: 0,
         };
-        
+
         let cloned = page.clone_with_resources();
-        
+
         // The cloned page should have Resources in its dictionary
         assert!(cloned.dict.contains_key("Resources"));
-        
+
         // And it should contain the inherited Font
         let resources = cloned.dict.get("Resources").unwrap().as_dict().unwrap();
         assert!(resources.contains_key("Font"));
@@ -205,14 +217,23 @@ startxref\n\
     #[test]
     fn test_parsed_page_clone_with_resources_preserves_existing() {
         let mut page_resources = PdfDictionary::new();
-        page_resources.insert("XObject".to_string(), PdfObject::Dictionary(PdfDictionary::new()));
-        
+        page_resources.insert(
+            "XObject".to_string(),
+            PdfObject::Dictionary(PdfDictionary::new()),
+        );
+
         let mut page_dict = PdfDictionary::new();
-        page_dict.insert("Resources".to_string(), PdfObject::Dictionary(page_resources));
-        
+        page_dict.insert(
+            "Resources".to_string(),
+            PdfObject::Dictionary(page_resources),
+        );
+
         let mut inherited_resources = PdfDictionary::new();
-        inherited_resources.insert("Font".to_string(), PdfObject::Dictionary(PdfDictionary::new()));
-        
+        inherited_resources.insert(
+            "Font".to_string(),
+            PdfObject::Dictionary(PdfDictionary::new()),
+        );
+
         let page = ParsedPage {
             obj_ref: (1, 0),
             dict: page_dict,
@@ -221,9 +242,9 @@ startxref\n\
             crop_box: None,
             rotation: 0,
         };
-        
+
         let cloned = page.clone_with_resources();
-        
+
         // Should preserve existing resources
         let resources = cloned.dict.get("Resources").unwrap().as_dict().unwrap();
         assert!(resources.contains_key("XObject"));
@@ -234,13 +255,13 @@ startxref\n\
     #[test]
     fn test_collect_references() {
         let mut refs = Vec::new();
-        
+
         // Test reference collection
         let ref_obj = PdfObject::Reference(5, 0);
         ParsedPage::collect_references(&ref_obj, &mut refs);
         assert_eq!(refs.len(), 1);
         assert_eq!(refs[0], (5, 0));
-        
+
         // Test array with references
         refs.clear();
         let array = PdfArray(vec![
@@ -252,7 +273,7 @@ startxref\n\
         assert_eq!(refs.len(), 2);
         assert!(refs.contains(&(1, 0)));
         assert!(refs.contains(&(2, 0)));
-        
+
         // Test dictionary with references
         refs.clear();
         let mut dict = PdfDictionary::new();
@@ -273,7 +294,7 @@ startxref\n\
             crop_box: None,
             rotation: 0,
         };
-        
+
         // Test that content_streams returns empty vec when no Contents
         // We don't need a real reader for this test since there's no Contents key
         let mut mock_data = Cursor::new(Vec::new());
@@ -299,7 +320,7 @@ startxref\n\
             PdfObject::Real(792.0),
         ]);
         node.insert("MediaBox".to_string(), PdfObject::Array(media_box));
-        
+
         let rect = PageTree::get_rectangle(&node, None, "MediaBox").unwrap();
         assert!(rect.is_some());
         assert_eq!(rect.unwrap(), [0.0, 0.0, 612.0, 792.0]);
@@ -308,7 +329,7 @@ startxref\n\
     #[test]
     fn test_page_tree_get_rectangle_inherited() {
         let node = PdfDictionary::new(); // No MediaBox
-        
+
         let mut inherited = PdfDictionary::new();
         let media_box = PdfArray(vec![
             PdfObject::Real(0.0),
@@ -317,7 +338,7 @@ startxref\n\
             PdfObject::Real(792.0),
         ]);
         inherited.insert("MediaBox".to_string(), PdfObject::Array(media_box));
-        
+
         let rect = PageTree::get_rectangle(&node, Some(&inherited), "MediaBox").unwrap();
         assert!(rect.is_some());
         assert_eq!(rect.unwrap(), [0.0, 0.0, 612.0, 792.0]);
@@ -333,7 +354,7 @@ startxref\n\
             // Missing fourth element
         ]);
         node.insert("MediaBox".to_string(), PdfObject::Array(invalid_box));
-        
+
         let result = PageTree::get_rectangle(&node, None, "MediaBox");
         assert!(result.is_err());
     }
@@ -342,7 +363,7 @@ startxref\n\
     fn test_page_tree_get_integer() {
         let mut node = PdfDictionary::new();
         node.insert("Rotate".to_string(), PdfObject::Integer(90));
-        
+
         let value = PageTree::get_integer(&node, None, "Rotate").unwrap();
         assert_eq!(value, Some(90));
     }
@@ -350,10 +371,10 @@ startxref\n\
     #[test]
     fn test_page_tree_get_integer_inherited() {
         let node = PdfDictionary::new(); // No Rotate
-        
+
         let mut inherited = PdfDictionary::new();
         inherited.insert("Rotate".to_string(), PdfObject::Integer(180));
-        
+
         let value = PageTree::get_integer(&node, Some(&inherited), "Rotate").unwrap();
         assert_eq!(value, Some(180));
     }
@@ -375,7 +396,7 @@ startxref\n\
             crop_box: Some([10.0, 10.0, 602.0, 782.0]),
             rotation: 90,
         };
-        
+
         let debug_str = format!("{:?}", page);
         assert!(debug_str.contains("ParsedPage"));
         assert!(debug_str.contains("(1, 0)"));
@@ -385,8 +406,11 @@ startxref\n\
     #[test]
     fn test_parsed_page_clone() {
         let mut resources = PdfDictionary::new();
-        resources.insert("Font".to_string(), PdfObject::Dictionary(PdfDictionary::new()));
-        
+        resources.insert(
+            "Font".to_string(),
+            PdfObject::Dictionary(PdfDictionary::new()),
+        );
+
         let page = ParsedPage {
             obj_ref: (5, 0),
             dict: PdfDictionary::new(),
@@ -395,7 +419,7 @@ startxref\n\
             crop_box: Some([20.0, 20.0, 575.0, 822.0]),
             rotation: 180,
         };
-        
+
         let cloned = page.clone();
         assert_eq!(cloned.obj_ref, page.obj_ref);
         assert_eq!(cloned.media_box, page.media_box);
@@ -407,7 +431,7 @@ startxref\n\
     #[test]
     fn test_multiple_page_cache() {
         let mut tree = PageTree::new(100);
-        
+
         // Cache multiple pages
         for i in 0..10 {
             let page = ParsedPage {
@@ -420,14 +444,14 @@ startxref\n\
             };
             tree.cache_page(i, page);
         }
-        
+
         // Verify all pages are cached
         for i in 0..10 {
             let cached = tree.get_cached_page(i);
             assert!(cached.is_some());
             assert_eq!(cached.unwrap().obj_ref.0, i + 1);
         }
-        
+
         // Verify uncached pages return None
         assert!(tree.get_cached_page(10).is_none());
         assert!(tree.get_cached_page(99).is_none());

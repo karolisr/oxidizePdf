@@ -13,9 +13,9 @@ use std::collections::HashMap;
 fn benchmark_array_memory_patterns(c: &mut Criterion) {
     let mut group = c.benchmark_group("array_memory");
     group.sample_size(20); // Reduce samples for memory-intensive benchmarks
-    
+
     let sizes = vec![100, 1000, 10000, 50000];
-    
+
     for size in sizes {
         // Benchmark memory allocation during array growth
         group.bench_with_input(
@@ -39,7 +39,7 @@ fn benchmark_array_memory_patterns(c: &mut Criterion) {
                 });
             },
         );
-        
+
         // Benchmark pre-allocated vs incremental
         group.bench_with_input(
             BenchmarkId::new("pre_allocated", size),
@@ -53,20 +53,21 @@ fn benchmark_array_memory_patterns(c: &mut Criterion) {
                             _ => Object::Boolean(i % 2 == 0),
                         })
                         .collect();
-                    
+
                     let array = Array::from(black_box(objects));
                     black_box(array)
                 });
             },
         );
-        
+
         // Benchmark memory usage during large array cloning
-        if size <= 10000 { // Limit for clone benchmarks
+        if size <= 10000 {
+            // Limit for clone benchmarks
             let test_objects: Vec<Object> = (0..size)
                 .map(|i| Object::String(format!("CloneTest_{}", i)))
                 .collect();
             let large_array = Array::from(test_objects);
-            
+
             group.bench_with_input(
                 BenchmarkId::new("clone_large_array", size),
                 &large_array,
@@ -79,7 +80,7 @@ fn benchmark_array_memory_patterns(c: &mut Criterion) {
             );
         }
     }
-    
+
     group.finish();
 }
 
@@ -87,9 +88,9 @@ fn benchmark_array_memory_patterns(c: &mut Criterion) {
 fn benchmark_dictionary_memory_patterns(c: &mut Criterion) {
     let mut group = c.benchmark_group("dictionary_memory");
     group.sample_size(15);
-    
+
     let sizes = vec![50, 500, 2000, 5000];
-    
+
     for size in sizes {
         // Memory allocation during dictionary growth
         group.bench_with_input(
@@ -104,7 +105,9 @@ fn benchmark_dictionary_memory_patterns(c: &mut Criterion) {
                             0 => PdfObject::Integer(i as i64),
                             1 => PdfObject::Boolean(i % 2 == 0),
                             2 => PdfObject::Name(PdfName::new(format!("Name_{}", i))),
-                            _ => PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(format!("Value_{}", i).into_bytes())),
+                            _ => PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(
+                                format!("Value_{}", i).into_bytes(),
+                            )),
                         };
                         dict.insert(black_box(key), black_box(value));
                     }
@@ -112,7 +115,7 @@ fn benchmark_dictionary_memory_patterns(c: &mut Criterion) {
                 });
             },
         );
-        
+
         // Memory usage with large string values
         group.bench_with_input(
             BenchmarkId::new("large_string_values", size),
@@ -124,23 +127,30 @@ fn benchmark_dictionary_memory_patterns(c: &mut Criterion) {
                         let key = format!("LargeKey_{}", i);
                         // Create larger string values to test memory pressure
                         let large_value = "x".repeat(100 + (i % 500));
-                        dict.insert(black_box(key), PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(black_box(large_value).into_bytes())));
+                        dict.insert(
+                            black_box(key),
+                            PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(
+                                black_box(large_value).into_bytes(),
+                            )),
+                        );
                     }
                     black_box(dict)
                 });
             },
         );
-        
+
         // Memory patterns during dictionary cloning
         if size <= 2000 {
             let mut test_dict = PdfDictionary::new();
             for i in 0..size {
                 test_dict.insert(
                     format!("Key{}", i),
-                    PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(format!("ComplexValue_{}_with_content", i).into_bytes())),
+                    PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(
+                        format!("ComplexValue_{}_with_content", i).into_bytes(),
+                    )),
                 );
             }
-            
+
             group.bench_with_input(
                 BenchmarkId::new("clone_dictionary", size),
                 &test_dict,
@@ -153,7 +163,7 @@ fn benchmark_dictionary_memory_patterns(c: &mut Criterion) {
             );
         }
     }
-    
+
     group.finish();
 }
 
@@ -161,9 +171,9 @@ fn benchmark_dictionary_memory_patterns(c: &mut Criterion) {
 fn benchmark_object_stream_memory(c: &mut Criterion) {
     let mut group = c.benchmark_group("object_stream_memory");
     group.sample_size(10);
-    
+
     let object_counts = vec![10, 50, 100, 200];
-    
+
     for count in object_counts {
         // Memory allocation during stream creation
         group.bench_with_input(
@@ -174,26 +184,33 @@ fn benchmark_object_stream_memory(c: &mut Criterion) {
                     let mut dict = PdfDictionary::new();
                     dict.insert("N".to_string(), PdfObject::Integer(obj_count as i64));
                     dict.insert("First".to_string(), PdfObject::Integer(20));
-                    dict.insert("Type".to_string(), PdfObject::Name(PdfName::new("ObjStm".to_string())));
-                    
+                    dict.insert(
+                        "Type".to_string(),
+                        PdfObject::Name(PdfName::new("ObjStm".to_string())),
+                    );
+
                     // Create substantial stream data
                     let mut data = Vec::with_capacity(obj_count * 50);
                     for i in 0..obj_count {
                         data.extend_from_slice(format!("{} {} ", i + 1, i * 15).as_bytes());
                     }
-                    
+
                     // Add object data
                     for i in 0..obj_count {
-                        let obj_data = format!("<< /Type /Test /Index {} /Data {} >> ", i, "x".repeat(20));
+                        let obj_data =
+                            format!("<< /Type /Test /Index {} /Data {} >> ", i, "x".repeat(20));
                         data.extend_from_slice(obj_data.as_bytes());
                     }
-                    
-                    let stream = PdfStream { dict: black_box(dict), data: black_box(data) };
+
+                    let stream = PdfStream {
+                        dict: black_box(dict),
+                        data: black_box(data),
+                    };
                     black_box(stream)
                 });
             },
         );
-        
+
         // Memory usage during ObjectStream parsing simulation
         group.bench_with_input(
             BenchmarkId::new("parsing_simulation", count),
@@ -202,25 +219,36 @@ fn benchmark_object_stream_memory(c: &mut Criterion) {
                 b.iter(|| {
                     // Create a mock object cache to simulate memory usage
                     let mut object_cache: HashMap<u32, PdfObject> = HashMap::new();
-                    
+
                     for i in 0..obj_count {
                         let complex_object = match i % 4 {
                             0 => {
                                 let mut inner_dict = PdfDictionary::new();
-                                inner_dict.insert("Type".to_string(), PdfObject::Name(PdfName::new("Page".to_string())));
-                                inner_dict.insert("Index".to_string(), PdfObject::Integer(i as i64));
+                                inner_dict.insert(
+                                    "Type".to_string(),
+                                    PdfObject::Name(PdfName::new("Page".to_string())),
+                                );
+                                inner_dict
+                                    .insert("Index".to_string(), PdfObject::Integer(i as i64));
                                 PdfObject::Dictionary(inner_dict)
                             }
                             1 => {
-                                let large_string = format!("LargeContent_{}_with_substantial_data_{}", i, "x".repeat(100));
-                                PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(large_string.into_bytes()))
+                                let large_string = format!(
+                                    "LargeContent_{}_with_substantial_data_{}",
+                                    i,
+                                    "x".repeat(100)
+                                );
+                                PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(
+                                    large_string.into_bytes(),
+                                ))
                             }
                             2 => {
                                 let array_data: Vec<PdfObject> = (0..10)
                                     .map(|j| PdfObject::Integer((i * 10 + j) as i64))
                                     .collect();
                                 {
-                                    let mut pdf_array = oxidize_pdf::parser::objects::PdfArray::new();
+                                    let mut pdf_array =
+                                        oxidize_pdf::parser::objects::PdfArray::new();
                                     for item in array_data {
                                         pdf_array.push(item);
                                     }
@@ -229,16 +257,16 @@ fn benchmark_object_stream_memory(c: &mut Criterion) {
                             }
                             _ => PdfObject::Boolean(i % 2 == 0),
                         };
-                        
+
                         object_cache.insert(black_box(i as u32), black_box(complex_object));
                     }
-                    
+
                     black_box(object_cache)
                 });
             },
         );
     }
-    
+
     group.finish();
 }
 
@@ -246,9 +274,9 @@ fn benchmark_object_stream_memory(c: &mut Criterion) {
 fn benchmark_pdf_generation_memory(c: &mut Criterion) {
     let mut group = c.benchmark_group("pdf_generation_memory");
     group.sample_size(10);
-    
+
     let page_counts = vec![1, 10, 50, 100];
-    
+
     for pages in page_counts {
         // Memory allocation during PDF construction
         group.bench_with_input(
@@ -265,19 +293,19 @@ fn benchmark_pdf_generation_memory(c: &mut Criterion) {
                             i + 1, i + 1
                         );
                         builder.add_text_page(&page_content, 12.0);
-                        
+
                         // Every 5th page, add graphics to increase memory complexity
                         if i % 5 == 0 {
                             builder.add_graphics_page();
                         }
                     }
-                    
+
                     let pdf_data = black_box(builder).build();
                     black_box(pdf_data)
                 });
             },
         );
-        
+
         // Memory usage for text-heavy documents
         group.bench_with_input(
             BenchmarkId::new("text_heavy_document", pages),
@@ -299,14 +327,14 @@ fn benchmark_pdf_generation_memory(c: &mut Criterion) {
                         );
                         builder.add_text_page(&large_text, 10.0);
                     }
-                    
+
                     let pdf_data = black_box(builder).build();
                     black_box(pdf_data)
                 });
             },
         );
     }
-    
+
     group.finish();
 }
 
@@ -314,10 +342,10 @@ fn benchmark_pdf_generation_memory(c: &mut Criterion) {
 fn benchmark_string_memory_patterns(c: &mut Criterion) {
     let mut group = c.benchmark_group("string_memory");
     group.sample_size(30);
-    
+
     let counts = vec![100, 1000, 5000];
     let string_sizes = vec![10, 100, 500, 1000];
-    
+
     for count in counts {
         for str_size in &string_sizes {
             // Memory allocation for PdfObject strings
@@ -329,14 +357,16 @@ fn benchmark_string_memory_patterns(c: &mut Criterion) {
                         let strings: Vec<PdfObject> = (0..count)
                             .map(|i| {
                                 let content = format!("String{}_{}", i, "x".repeat(size));
-                                PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(black_box(content).into_bytes()))
+                                PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(
+                                    black_box(content).into_bytes(),
+                                ))
                             })
                             .collect();
                         black_box(strings)
                     });
                 },
             );
-            
+
             // Memory allocation for PdfName objects
             group.bench_with_input(
                 BenchmarkId::new("pdf_names", format!("{}x{}", count, str_size)),
@@ -345,7 +375,8 @@ fn benchmark_string_memory_patterns(c: &mut Criterion) {
                     b.iter(|| {
                         let names: Vec<PdfObject> = (0..count)
                             .map(|i| {
-                                let name_content = format!("Name{}_{}", i, "N".repeat(size.min(50))); // Names typically shorter
+                                let name_content =
+                                    format!("Name{}_{}", i, "N".repeat(size.min(50))); // Names typically shorter
                                 PdfObject::Name(PdfName::new(black_box(name_content)))
                             })
                             .collect();
@@ -355,7 +386,7 @@ fn benchmark_string_memory_patterns(c: &mut Criterion) {
             );
         }
     }
-    
+
     group.finish();
 }
 
@@ -363,9 +394,9 @@ fn benchmark_string_memory_patterns(c: &mut Criterion) {
 fn benchmark_nested_structure_memory(c: &mut Criterion) {
     let mut group = c.benchmark_group("nested_memory");
     group.sample_size(10);
-    
+
     let depths = vec![5, 10, 15, 20];
-    
+
     for depth in depths {
         // Deeply nested dictionaries
         group.bench_with_input(
@@ -375,22 +406,33 @@ fn benchmark_nested_structure_memory(c: &mut Criterion) {
                 b.iter(|| {
                     fn create_nested_dict(remaining_depth: usize) -> PdfObject {
                         let mut dict = PdfDictionary::new();
-                        dict.insert("Level".to_string(), PdfObject::Integer(remaining_depth as i64));
-                        dict.insert("Data".to_string(), PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(format!("Level_{}_content", remaining_depth).into_bytes())));
-                        
+                        dict.insert(
+                            "Level".to_string(),
+                            PdfObject::Integer(remaining_depth as i64),
+                        );
+                        dict.insert(
+                            "Data".to_string(),
+                            PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(
+                                format!("Level_{}_content", remaining_depth).into_bytes(),
+                            )),
+                        );
+
                         if remaining_depth > 0 {
-                            dict.insert("Child".to_string(), create_nested_dict(remaining_depth - 1));
+                            dict.insert(
+                                "Child".to_string(),
+                                create_nested_dict(remaining_depth - 1),
+                            );
                         }
-                        
+
                         PdfObject::Dictionary(dict)
                     }
-                    
+
                     let nested = create_nested_dict(black_box(depth));
                     black_box(nested)
                 });
             },
         );
-        
+
         // Deeply nested arrays
         group.bench_with_input(
             BenchmarkId::new("nested_arrays", depth),
@@ -400,13 +442,15 @@ fn benchmark_nested_structure_memory(c: &mut Criterion) {
                     fn create_nested_array(remaining_depth: usize) -> PdfObject {
                         let mut array_items = vec![
                             PdfObject::Integer(remaining_depth as i64),
-                            PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(format!("ArrayLevel_{}", remaining_depth).into_bytes())),
+                            PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(
+                                format!("ArrayLevel_{}", remaining_depth).into_bytes(),
+                            )),
                         ];
-                        
+
                         if remaining_depth > 0 {
                             array_items.push(create_nested_array(remaining_depth - 1));
                         }
-                        
+
                         {
                             let mut pdf_array = oxidize_pdf::parser::objects::PdfArray::new();
                             for item in array_items {
@@ -415,14 +459,14 @@ fn benchmark_nested_structure_memory(c: &mut Criterion) {
                             PdfObject::Array(pdf_array)
                         }
                     }
-                    
+
                     let nested = create_nested_array(black_box(depth));
                     black_box(nested)
                 });
             },
         );
     }
-    
+
     group.finish();
 }
 

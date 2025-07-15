@@ -66,11 +66,11 @@ impl Dictionary {
     pub fn entries_mut(&mut self) -> impl Iterator<Item = (&String, &mut Object)> {
         self.entries.iter_mut()
     }
-    
+
     pub fn iter(&self) -> impl Iterator<Item = (&String, &Object)> {
         self.entries.iter()
     }
-    
+
     pub fn get_dict(&self, key: &str) -> Option<&Dictionary> {
         self.get(key).and_then(|obj| {
             if let Object::Dictionary(dict) = obj {

@@ -4,7 +4,7 @@
 
 use super::{OperationError, OperationResult};
 use crate::graphics::ImageFormat;
-use crate::parser::objects::{PdfObject, PdfStream, PdfName};
+use crate::parser::objects::{PdfName, PdfObject, PdfStream};
 use crate::parser::{PdfDocument, PdfReader};
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -95,9 +95,12 @@ impl ImageExtractor {
     }
 
     /// Extract images from a specific page
-    pub fn extract_from_page(&mut self, page_number: usize) -> OperationResult<Vec<ExtractedImage>> {
+    pub fn extract_from_page(
+        &mut self,
+        page_number: usize,
+    ) -> OperationResult<Vec<ExtractedImage>> {
         let mut extracted = Vec::new();
-        
+
         // Get the page
         let page = self
             .document
@@ -112,9 +115,11 @@ impl ImageExtractor {
                 .map_err(|e| OperationError::ParseError(e.to_string()))?;
 
             let mut refs = Vec::new();
-            
+
             if let Some(resources) = resources {
-                if let Some(PdfObject::Dictionary(xobjects)) = resources.0.get(&PdfName("XObject".to_string())) {
+                if let Some(PdfObject::Dictionary(xobjects)) =
+                    resources.0.get(&PdfName("XObject".to_string()))
+                {
                     for (name, obj_ref) in &xobjects.0 {
                         if let PdfObject::Reference(obj_num, gen_num) = obj_ref {
                             refs.push((name.0.clone(), *obj_num, *gen_num));
@@ -122,7 +127,7 @@ impl ImageExtractor {
                     }
                 }
             }
-            
+
             refs
         };
 
@@ -130,12 +135,9 @@ impl ImageExtractor {
         let mut image_index = 0;
         for (name, obj_num, gen_num) in xobject_refs {
             if let Ok(xobject) = self.document.get_object(obj_num, gen_num) {
-                if let Some(extracted_image) = self.process_xobject(
-                    &xobject,
-                    page_number,
-                    image_index,
-                    &name,
-                )? {
+                if let Some(extracted_image) =
+                    self.process_xobject(&xobject, page_number, image_index, &name)?
+                {
                     extracted.push(extracted_image);
                     image_index += 1;
                 }
@@ -155,16 +157,15 @@ impl ImageExtractor {
         image_index: usize,
         _name: &str,
     ) -> OperationResult<Option<ExtractedImage>> {
-        match xobject {
-            PdfObject::Stream(stream) => {
-                // Check if it's an image XObject
-                if let Some(PdfObject::Name(subtype)) = stream.dict.0.get(&PdfName("Subtype".to_string())) {
-                    if subtype.0 == "Image" {
-                        return self.extract_image_xobject(stream, page_number, image_index);
-                    }
+        if let PdfObject::Stream(stream) = xobject {
+            // Check if it's an image XObject
+            if let Some(PdfObject::Name(subtype)) =
+                stream.dict.0.get(&PdfName("Subtype".to_string()))
+            {
+                if subtype.0 == "Image" {
+                    return self.extract_image_xobject(stream, page_number, image_index);
                 }
             }
-            _ => {}
         }
         Ok(None)
     }
@@ -195,8 +196,9 @@ impl ImageExtractor {
         }
 
         // Get the decoded image data
-        let data = stream.decode()
-            .map_err(|e| OperationError::ParseError(format!("Failed to decode image stream: {}", e)))?;
+        let data = stream.decode().map_err(|e| {
+            OperationError::ParseError(format!("Failed to decode image stream: {}", e))
+        })?;
 
         // Determine format from filter
         let format = match stream.dict.0.get(&PdfName("Filter".to_string())) {
@@ -286,18 +288,20 @@ impl ImageExtractor {
             format,
         }))
     }
-    
+
     /// Detect image format from raw data by examining magic bytes
     fn detect_image_format_from_data(&self, data: &[u8]) -> OperationResult<ImageFormat> {
         if data.len() < 8 {
-            return Err(OperationError::ParseError("Image data too short to detect format".to_string()));
+            return Err(OperationError::ParseError(
+                "Image data too short to detect format".to_string(),
+            ));
         }
-        
+
         // Check for PNG signature
         if data.len() >= 8 && &data[0..8] == b"\x89PNG\r\n\x1a\n" {
             return Ok(ImageFormat::Png);
         }
-        
+
         // Check for TIFF signatures
         if data.len() >= 4 {
             if &data[0..2] == b"II" && &data[2..4] == b"\x2A\x00" {
@@ -307,12 +311,12 @@ impl ImageExtractor {
                 return Ok(ImageFormat::Tiff); // Big endian TIFF
             }
         }
-        
+
         // Check for JPEG signature
         if data.len() >= 2 && data[0] == 0xFF && data[1] == 0xD8 {
             return Ok(ImageFormat::Jpeg);
         }
-        
+
         // Default to PNG for FlateDecode if no other format detected
         // This is a fallback since FlateDecode is commonly used for PNG in PDFs
         Ok(ImageFormat::Png)

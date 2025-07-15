@@ -171,7 +171,10 @@ fn create_test_object_stream(object_count: u32) -> PdfStream {
     let mut dict = PdfDictionary::new();
     dict.insert("N".to_string(), PdfObject::Integer(object_count as i64));
     dict.insert("First".to_string(), PdfObject::Integer(10));
-    dict.insert("Type".to_string(), PdfObject::Name(PdfName::new("ObjStm".to_string())));
+    dict.insert(
+        "Type".to_string(),
+        PdfObject::Name(PdfName::new("ObjStm".to_string())),
+    );
 
     // Create mock stream data
     let mut data = Vec::new();
@@ -220,7 +223,7 @@ fn benchmark_object_stream(c: &mut Criterion) {
                     for i in 0..obj_count {
                         cache.insert(i, PdfObject::Integer(i as i64));
                     }
-                    
+
                     // Simulate random lookups
                     let mut found = 0;
                     for i in (0..obj_count).step_by(3) {
@@ -243,9 +246,18 @@ fn benchmark_xref_operations(c: &mut Criterion) {
     group.sample_size(100);
 
     let entry_types = vec![
-        XRefEntryType::Free { next_free_obj: 42, generation: 1 },
-        XRefEntryType::InUse { offset: 1024, generation: 2 },
-        XRefEntryType::Compressed { stream_obj_num: 10, index_in_stream: 5 },
+        XRefEntryType::Free {
+            next_free_obj: 42,
+            generation: 1,
+        },
+        XRefEntryType::InUse {
+            offset: 1024,
+            generation: 2,
+        },
+        XRefEntryType::Compressed {
+            stream_obj_num: 10,
+            index_in_stream: 5,
+        },
     ];
 
     // Benchmark entry type conversions
@@ -265,9 +277,18 @@ fn benchmark_xref_operations(c: &mut Criterion) {
     // Benchmark batch conversions
     let large_entry_list: Vec<XRefEntryType> = (0..1000)
         .map(|i| match i % 3 {
-            0 => XRefEntryType::Free { next_free_obj: i, generation: 0 },
-            1 => XRefEntryType::InUse { offset: i as u64 * 100, generation: 1 },
-            _ => XRefEntryType::Compressed { stream_obj_num: i / 10, index_in_stream: i % 10 },
+            0 => XRefEntryType::Free {
+                next_free_obj: i,
+                generation: 0,
+            },
+            1 => XRefEntryType::InUse {
+                offset: i as u64 * 100,
+                generation: 1,
+            },
+            _ => XRefEntryType::Compressed {
+                stream_obj_num: i / 10,
+                index_in_stream: i % 10,
+            },
         })
         .collect();
 
@@ -298,7 +319,9 @@ fn benchmark_dictionary_operations(c: &mut Criterion) {
                 0 => PdfObject::Integer(i as i64),
                 1 => PdfObject::Boolean(i % 2 == 0),
                 2 => PdfObject::Name(PdfName::new(format!("Name{}", i))),
-                _ => PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(format!("String{}", i).into_bytes())),
+                _ => PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(
+                    format!("String{}", i).into_bytes(),
+                )),
             };
             test_dict.insert(key, value);
         }
@@ -344,7 +367,7 @@ fn benchmark_dictionary_operations(c: &mut Criterion) {
 /// Benchmark string and name operations
 fn benchmark_string_name_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("string_name_operations");
-    
+
     let test_strings: Vec<String> = (0..1000)
         .map(|i| format!("TestString{}_with_some_length_{}", i, "x".repeat(i % 50)))
         .collect();
@@ -368,7 +391,9 @@ fn benchmark_string_name_operations(c: &mut Criterion) {
                 .enumerate()
                 .map(|(i, s)| {
                     if i % 2 == 0 {
-                        PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(black_box(s.clone()).into_bytes()))
+                        PdfObject::String(oxidize_pdf::parser::objects::PdfString::new(
+                            black_box(s.clone()).into_bytes(),
+                        ))
                     } else {
                         PdfObject::Name(PdfName::new(black_box(s.clone())))
                     }

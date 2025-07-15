@@ -272,93 +272,91 @@ fn parse_png_header(data: &[u8]) -> Result<(u32, u32, ColorSpace, u8)> {
 
     // Find IHDR chunk (should be first chunk after signature)
     let mut pos = 8;
-    
+
     while pos + 8 < data.len() {
         // Read chunk length (4 bytes, big-endian)
-        let chunk_length = u32::from_be_bytes([
-            data[pos],
-            data[pos + 1],
-            data[pos + 2],
-            data[pos + 3],
-        ]) as usize;
-        
+        let chunk_length =
+            u32::from_be_bytes([data[pos], data[pos + 1], data[pos + 2], data[pos + 3]]) as usize;
+
         // Read chunk type (4 bytes)
         let chunk_type = &data[pos + 4..pos + 8];
-        
+
         if chunk_type == b"IHDR" {
             // IHDR chunk found
             if pos + 8 + chunk_length > data.len() || chunk_length < 13 {
                 return Err(PdfError::InvalidImage("Invalid PNG IHDR chunk".to_string()));
             }
-            
+
             let ihdr_data = &data[pos + 8..pos + 8 + chunk_length];
-            
+
             // Parse IHDR data
-            let width = u32::from_be_bytes([
-                ihdr_data[0],
-                ihdr_data[1],
-                ihdr_data[2],
-                ihdr_data[3],
-            ]);
-            
-            let height = u32::from_be_bytes([
-                ihdr_data[4],
-                ihdr_data[5],
-                ihdr_data[6],
-                ihdr_data[7],
-            ]);
-            
+            let width =
+                u32::from_be_bytes([ihdr_data[0], ihdr_data[1], ihdr_data[2], ihdr_data[3]]);
+
+            let height =
+                u32::from_be_bytes([ihdr_data[4], ihdr_data[5], ihdr_data[6], ihdr_data[7]]);
+
             let bit_depth = ihdr_data[8];
             let color_type = ihdr_data[9];
-            
+
             // Map PNG color types to PDF color spaces
             let color_space = match color_type {
-                0 => ColorSpace::DeviceGray,     // Grayscale
-                2 => ColorSpace::DeviceRGB,      // RGB
-                3 => ColorSpace::DeviceRGB,      // Palette (treated as RGB)
-                4 => ColorSpace::DeviceGray,     // Grayscale + Alpha
-                6 => ColorSpace::DeviceRGB,      // RGB + Alpha
-                _ => return Err(PdfError::InvalidImage(format!(
-                    "Unsupported PNG color type: {color_type}"
-                ))),
+                0 => ColorSpace::DeviceGray, // Grayscale
+                2 => ColorSpace::DeviceRGB,  // RGB
+                3 => ColorSpace::DeviceRGB,  // Palette (treated as RGB)
+                4 => ColorSpace::DeviceGray, // Grayscale + Alpha
+                6 => ColorSpace::DeviceRGB,  // RGB + Alpha
+                _ => {
+                    return Err(PdfError::InvalidImage(format!(
+                        "Unsupported PNG color type: {color_type}"
+                    )))
+                }
             };
-            
+
             return Ok((width, height, color_space, bit_depth));
         }
-        
+
         // Skip to next chunk
         pos += 8 + chunk_length + 4; // header + data + CRC
     }
-    
-    Err(PdfError::InvalidImage("PNG IHDR chunk not found".to_string()))
+
+    Err(PdfError::InvalidImage(
+        "PNG IHDR chunk not found".to_string(),
+    ))
 }
 
 /// Parse TIFF header to extract image information
 fn parse_tiff_header(data: &[u8]) -> Result<(u32, u32, ColorSpace, u8)> {
     if data.len() < 8 {
-        return Err(PdfError::InvalidImage("Invalid TIFF file: too short".to_string()));
+        return Err(PdfError::InvalidImage(
+            "Invalid TIFF file: too short".to_string(),
+        ));
     }
-    
+
     // Check byte order (first 2 bytes)
     let (is_little_endian, offset) = if &data[0..2] == b"II" {
-        (true, 2)  // Little endian
+        (true, 2) // Little endian
     } else if &data[0..2] == b"MM" {
         (false, 2) // Big endian
     } else {
-        return Err(PdfError::InvalidImage("Invalid TIFF byte order".to_string()));
+        return Err(PdfError::InvalidImage(
+            "Invalid TIFF byte order".to_string(),
+        ));
     };
-    
+
     // Check magic number (should be 42)
     let magic = if is_little_endian {
         u16::from_le_bytes([data[offset], data[offset + 1]])
     } else {
         u16::from_be_bytes([data[offset], data[offset + 1]])
     };
-    
+
     if magic != 42 {
-        return Err(PdfError::InvalidImage("Invalid TIFF magic number".to_string()));
+        return Err(PdfError::InvalidImage(
+            "Invalid TIFF magic number".to_string(),
+        ));
     }
-    
+
     // Get offset to first IFD (Image File Directory)
     let ifd_offset = if is_little_endian {
         u32::from_le_bytes([
@@ -375,41 +373,44 @@ fn parse_tiff_header(data: &[u8]) -> Result<(u32, u32, ColorSpace, u8)> {
             data[offset + 5],
         ])
     } as usize;
-    
+
     if ifd_offset + 2 > data.len() {
-        return Err(PdfError::InvalidImage("Invalid TIFF IFD offset".to_string()));
+        return Err(PdfError::InvalidImage(
+            "Invalid TIFF IFD offset".to_string(),
+        ));
     }
-    
+
     // Read number of directory entries
     let num_entries = if is_little_endian {
         u16::from_le_bytes([data[ifd_offset], data[ifd_offset + 1]])
     } else {
         u16::from_be_bytes([data[ifd_offset], data[ifd_offset + 1]])
     };
-    
+
     let mut width = 0u32;
     let mut height = 0u32;
     let mut bits_per_sample = 8u16;
     let mut photometric_interpretation = 0u16;
-    
+
     // Read directory entries
     for i in 0..num_entries {
         let entry_offset = ifd_offset + 2 + (i as usize * 12);
-        
+
         if entry_offset + 12 > data.len() {
             break;
         }
-        
+
         let tag = if is_little_endian {
             u16::from_le_bytes([data[entry_offset], data[entry_offset + 1]])
         } else {
             u16::from_be_bytes([data[entry_offset], data[entry_offset + 1]])
         };
-        
+
         let value_offset = entry_offset + 8;
-        
+
         match tag {
-            256 => { // ImageWidth
+            256 => {
+                // ImageWidth
                 width = if is_little_endian {
                     u32::from_le_bytes([
                         data[value_offset],
@@ -426,7 +427,8 @@ fn parse_tiff_header(data: &[u8]) -> Result<(u32, u32, ColorSpace, u8)> {
                     ])
                 };
             }
-            257 => { // ImageHeight
+            257 => {
+                // ImageHeight
                 height = if is_little_endian {
                     u32::from_le_bytes([
                         data[value_offset],
@@ -443,14 +445,16 @@ fn parse_tiff_header(data: &[u8]) -> Result<(u32, u32, ColorSpace, u8)> {
                     ])
                 };
             }
-            258 => { // BitsPerSample
+            258 => {
+                // BitsPerSample
                 bits_per_sample = if is_little_endian {
                     u16::from_le_bytes([data[value_offset], data[value_offset + 1]])
                 } else {
                     u16::from_be_bytes([data[value_offset], data[value_offset + 1]])
                 };
             }
-            262 => { // PhotometricInterpretation
+            262 => {
+                // PhotometricInterpretation
                 photometric_interpretation = if is_little_endian {
                     u16::from_le_bytes([data[value_offset], data[value_offset + 1]])
                 } else {
@@ -460,19 +464,21 @@ fn parse_tiff_header(data: &[u8]) -> Result<(u32, u32, ColorSpace, u8)> {
             _ => {} // Skip unknown tags
         }
     }
-    
+
     if width == 0 || height == 0 {
-        return Err(PdfError::InvalidImage("TIFF dimensions not found".to_string()));
+        return Err(PdfError::InvalidImage(
+            "TIFF dimensions not found".to_string(),
+        ));
     }
-    
+
     // Map TIFF photometric interpretation to PDF color space
     let color_space = match photometric_interpretation {
-        0 | 1 => ColorSpace::DeviceGray,    // White is zero | Black is zero
-        2 => ColorSpace::DeviceRGB,         // RGB
-        5 => ColorSpace::DeviceCMYK,        // CMYK
-        _ => ColorSpace::DeviceRGB,         // Default to RGB
+        0 | 1 => ColorSpace::DeviceGray, // White is zero | Black is zero
+        2 => ColorSpace::DeviceRGB,      // RGB
+        5 => ColorSpace::DeviceCMYK,     // CMYK
+        _ => ColorSpace::DeviceRGB,      // Default to RGB
     };
-    
+
     Ok((width, height, color_space, bits_per_sample as u8))
 }
 
@@ -525,10 +531,10 @@ mod tests {
             0x00, // Filter method
             0x00, // Interlace method
         ];
-        
+
         // Add CRC (simplified - just 4 bytes)
         png_data.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]);
-        
+
         let result = parse_png_header(&png_data);
         assert!(result.is_ok());
         let (width, height, color_space, bits) = result.unwrap();
@@ -558,10 +564,10 @@ mod tests {
             // ImageHeight tag (257)
             0x01, 0x01, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
             // BitsPerSample tag (258)
-            0x02, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, // Next IFD offset (0 = none)
+            0x02, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, // Next IFD offset (0 = none)
         ];
-        
+
         let result = parse_tiff_header(&tiff_data);
         assert!(result.is_ok());
         let (width, height, color_space, bits) = result.unwrap();
@@ -584,10 +590,10 @@ mod tests {
             // ImageHeight tag (257)
             0x01, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x64,
             // BitsPerSample tag (258)
-            0x01, 0x02, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x08, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, // Next IFD offset (0 = none)
+            0x01, 0x02, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, // Next IFD offset (0 = none)
         ];
-        
+
         let result = parse_tiff_header(&tiff_data);
         assert!(result.is_ok());
         let (width, height, color_space, bits) = result.unwrap();

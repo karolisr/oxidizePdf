@@ -60,21 +60,25 @@ fn benchmark_parsing(c: &mut Criterion) {
     group.sample_size(10); // Reduce sample size for faster benchmarks
 
     for (name, pdf_data) in test_pdfs {
-        group.bench_with_input(BenchmarkId::new("parse_attempt", &name), &pdf_data, |b, pdf| {
-            b.iter(|| {
-                let cursor = Cursor::new(black_box(pdf));
-                // Attempt to create PdfReader - will fail but measure the attempt
-                match PdfReader::new(cursor) {
-                    Ok(_reader) => {
-                        // If successful, this measures actual parsing
+        group.bench_with_input(
+            BenchmarkId::new("parse_attempt", &name),
+            &pdf_data,
+            |b, pdf| {
+                b.iter(|| {
+                    let cursor = Cursor::new(black_box(pdf));
+                    // Attempt to create PdfReader - will fail but measure the attempt
+                    match PdfReader::new(cursor) {
+                        Ok(_reader) => {
+                            // If successful, this measures actual parsing
+                        }
+                        Err(_) => {
+                            // Expected to fail, but we measure the attempt
+                            // This still gives us timing for validation and initial parsing
+                        }
                     }
-                    Err(_) => {
-                        // Expected to fail, but we measure the attempt
-                        // This still gives us timing for validation and initial parsing
-                    }
-                }
-            });
-        });
+                });
+            },
+        );
     }
 
     group.finish();

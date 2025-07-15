@@ -190,9 +190,9 @@ pub use error::{OxidizePdfError, PdfError, Result};
 pub use graphics::{Color, GraphicsContext, Image, ImageColorSpace, ImageFormat};
 pub use page::{Margins, Page};
 pub use text::{
-    measure_text, split_into_words, Font, FontFamily, TextAlign, TextContext, TextFlowContext,
-    FragmentType, ImagePreprocessing, MockOcrProvider, OcrEngine, OcrError, OcrOptions,
-    OcrProcessingResult, OcrProvider, OcrResult, OcrTextFragment,
+    measure_text, split_into_words, Font, FontFamily, FragmentType, ImagePreprocessing,
+    MockOcrProvider, OcrEngine, OcrError, OcrOptions, OcrProcessingResult, OcrProvider, OcrResult,
+    OcrTextFragment, TextAlign, TextContext, TextFlowContext,
 };
 
 // Re-export parsing types
@@ -228,7 +228,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 ///             // Process with OCR
 ///             let ocr_provider = MockOcrProvider::new();
 ///             let ocr_result = analyzer.extract_text_from_scanned_page(
-///                 analysis.page_number, 
+///                 analysis.page_number,
 ///                 &ocr_provider
 ///             )?;
 ///             
@@ -242,7 +242,6 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// # Ok(())
 /// # }
 /// ```
-
 /// Supported PDF versions
 pub mod pdf_version {
     /// PDF 1.0 - 1.7 are fully supported
