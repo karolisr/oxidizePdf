@@ -197,7 +197,7 @@ impl ImageExtractor {
 
         // Get the decoded image data
         let data = stream.decode().map_err(|e| {
-            OperationError::ParseError(format!("Failed to decode image stream: {}", e))
+            OperationError::ParseError(format!("Failed to decode image stream: {e}"))
         })?;
 
         // Determine format from filter
