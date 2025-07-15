@@ -5,6 +5,9 @@ mod font;
 mod metrics;
 pub mod ocr;
 
+#[cfg(feature = "ocr-tesseract")]
+pub mod tesseract_provider;
+
 pub use encoding::TextEncoding;
 pub use extraction::{ExtractedText, ExtractionOptions, TextExtractor, TextFragment};
 pub use flow::{TextAlign, TextFlowContext};

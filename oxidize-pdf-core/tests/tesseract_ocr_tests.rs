@@ -532,21 +532,5 @@ mod tesseract_tests {
 }
 
 // Tests that run without the feature enabled
-#[cfg(not(feature = "ocr-tesseract"))]
-mod no_feature_tests {
-    use crate::text::tesseract_provider::TesseractOcrProvider;
-
-    #[test]
-    fn test_tesseract_provider_unavailable() {
-        let result = TesseractOcrProvider::new();
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("not available"));
-    }
-
-    #[test]
-    fn test_tesseract_check_availability_unavailable() {
-        let result = TesseractOcrProvider::check_availability();
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("not available"));
-    }
-}
+// Note: These tests cannot import TesseractOcrProvider when the feature is disabled
+// The provider simply doesn't exist in that configuration
