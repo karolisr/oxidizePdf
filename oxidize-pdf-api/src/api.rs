@@ -46,7 +46,7 @@ pub struct CreatePdfRequest {
 ///   "error": "Failed to generate PDF: Invalid text encoding"
 /// }
 /// ```
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorResponse {
     /// Human-readable error message describing what went wrong
     pub error: String,

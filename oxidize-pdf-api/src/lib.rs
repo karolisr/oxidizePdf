@@ -4,4 +4,7 @@
 //!
 
 mod api;
-pub use api::*;
+pub use api::{
+    app, create_pdf, health_check, extract_text,
+    CreatePdfRequest, ErrorResponse, ExtractTextResponse, AppError
+};

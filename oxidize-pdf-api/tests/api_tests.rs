@@ -2,16 +2,17 @@
 
 use axum::{
     body::Body,
-    http::{Request, StatusCode},
+    http::{header, Request, StatusCode},
 };
-use oxidize_pdf_api::{app, CreatePdfRequest, ExtractTextResponse};
+use oxidize_pdf_api::{app, CreatePdfRequest, ExtractTextResponse, ErrorResponse};
 use serde_json::json;
 use tower::util::ServiceExt;
+use http_body_util::BodyExt;
 
 #[cfg(test)]
 mod unit_tests {
     use super::*;
-    use oxidize_pdf_api::{AppError, ErrorResponse};
+    use oxidize_pdf_api::AppError;
     use axum::response::IntoResponse;
 
     #[test]
@@ -49,10 +50,7 @@ mod unit_tests {
 
     #[test]
     fn test_app_error_pdf_conversion() {
-        let pdf_error = oxidize_pdf::PdfError::Io(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "Invalid PDF data"
-        ));
+        let pdf_error = oxidize_pdf::PdfError::InvalidStructure("Invalid PDF data".to_string());
         let app_error: AppError = pdf_error.into();
         
         let response = app_error.into_response();
@@ -72,7 +70,6 @@ mod unit_tests {
 #[cfg(test)]
 mod integration_tests {
     use super::*;
-    use http_body_util::BodyExt;
 
     #[tokio::test]
     async fn test_health_check_endpoint() {
@@ -358,7 +355,7 @@ mod integration_tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body = http_body_util::BodyExt::collect(response.into_body())
+        let body = response.into_body().collect()
             .await
             .unwrap()
             .to_bytes();
@@ -394,13 +391,99 @@ mod integration_tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
+        assert!(error.error.contains("No file provided"));
+    }
+    
+    #[tokio::test]
+    async fn test_extract_text_endpoint_invalid_pdf() {
+        let app = app();
+
+        let boundary = "----boundary----";
+        let mut body = Vec::new();
+        body.extend_from_slice(b"------boundary----\r\n");
+        body.extend_from_slice(b"Content-Disposition: form-data; name=\"file\"; filename=\"bad.pdf\"\r\n");
+        body.extend_from_slice(b"Content-Type: application/pdf\r\n");
+        body.extend_from_slice(b"\r\n");
+        body.extend_from_slice(b"Not a valid PDF content");
+        body.extend_from_slice(b"\r\n------boundary------\r\n");
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/extract")
+                    .method("POST")
+                    .header("content-type", format!("multipart/form-data; boundary={}", boundary))
+                    .body(Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
+        assert!(error.error.contains("Failed to parse PDF"));
+    }
+    
+    #[tokio::test]
+    async fn test_cors_headers_preflight() {
+        let app = app();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/create")
+                    .method("OPTIONS")
+                    .header(header::ORIGIN, "http://example.com")
+                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, "POST")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(response.headers().contains_key(header::ACCESS_CONTROL_ALLOW_ORIGIN));
+        assert!(response.headers().contains_key(header::ACCESS_CONTROL_ALLOW_METHODS));
+    }
+    
+    #[tokio::test]
+    async fn test_create_pdf_with_newlines() {
+        let app = app();
+
+        let request_body = json!({
+            "text": "Line 1\nLine 2\nLine 3",
+            "font_size": 16.0
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/create")
+                    .method("POST")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_string(&request_body).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "application/pdf"
+        );
     }
 }
 
 #[cfg(test)]
 mod handler_tests {
     use super::*;
-    use oxidize_pdf_api::{create_pdf, health_check};
+    use oxidize_pdf_api::{create_pdf, health_check, AppError};
     use axum::extract::Json;
     use axum::response::IntoResponse;
 
@@ -422,5 +505,29 @@ mod handler_tests {
         
         let response = result.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
+    }
+    
+    #[test]
+    fn test_app_error_debug_trait() {
+        let io_error = std::io::Error::new(std::io::ErrorKind::Other, "test error");
+        let app_error = AppError::Io(io_error);
+        let debug_str = format!("{:?}", app_error);
+        assert!(debug_str.contains("Io"));
+        
+        let pdf_error = oxidize_pdf::PdfError::InvalidStructure("test error".to_string());
+        let app_error = AppError::Pdf(pdf_error);
+        let debug_str = format!("{:?}", app_error);
+        assert!(debug_str.contains("Pdf"));
+    }
+    
+    #[test]
+    fn test_extract_text_response_debug() {
+        let response = ExtractTextResponse {
+            text: "Test text".to_string(),
+            pages: 5,
+        };
+        let debug_str = format!("{:?}", response);
+        assert!(debug_str.contains("Test text"));
+        assert!(debug_str.contains("5"));
     }
 }
