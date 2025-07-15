@@ -517,7 +517,7 @@ impl PageContentAnalyzer {
                     results.push((page_number, ocr_result));
                 }
                 Err(e) => {
-                    eprintln!("Failed to process page {}: {}", page_number, e);
+                    eprintln!("Failed to process page {page_number}: {e}");
                     continue;
                 }
             }
@@ -614,7 +614,7 @@ impl PageContentAnalyzer {
                             thread_results.push((page_num, ocr_result));
                         }
                         Err(e) => {
-                            eprintln!("OCR failed for page {}: {}", page_num, e);
+                            eprintln!("OCR failed for page {page_num}: {e}");
                         }
                     }
                 }
@@ -631,14 +631,14 @@ impl PageContentAnalyzer {
         // Wait for all threads to complete
         for handle in handles {
             if let Err(e) = handle.join() {
-                eprintln!("Thread panicked: {:?}", e);
+                eprintln!("Thread panicked: {e:?}");
             }
         }
 
         // Extract results
         let final_results = results
             .lock()
-            .map_err(|e| OperationError::ProcessingError(format!("Failed to get results: {}", e)))?
+            .map_err(|e| OperationError::ProcessingError(format!("Failed to get results: {e}")))?
             .clone();
 
         Ok(final_results)
@@ -674,7 +674,7 @@ impl PageContentAnalyzer {
                         results.push((page_num, ocr_result));
                     }
                     Err(e) => {
-                        eprintln!("OCR failed for page {}: {}", page_num, e);
+                        eprintln!("OCR failed for page {page_num}: {e}");
                     }
                 }
             }
@@ -723,8 +723,7 @@ impl PageContentAnalyzer {
                                     // Get the raw image data
                                     let image_data = stream.decode().map_err(|e| {
                                         OperationError::ParseError(format!(
-                                            "Failed to decode image: {}",
-                                            e
+                                            "Failed to decode image: {e}"
                                         ))
                                     })?;
 
@@ -924,7 +923,7 @@ fn simulate_page_ocr_processing<P: OcrProvider>(
     let mut result = ocr_provider.process_image(&mock_image_data, &options)?;
 
     // Customize the result to indicate which page it came from
-    result.text = format!("Page {} text extracted via OCR", page_num);
+    result.text = format!("Page {page_num} text extracted via OCR");
 
     Ok(result)
 }
