@@ -1,0 +1,122 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: [ development, main ]
+  pull_request:
+    branches: [ development, main ]
+  schedule:
+    # Run benchmarks weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-bench-
+          ${{ runner.os }}-cargo-
+          
+    - name: Install CLI binary for benchmarks
+      run: |
+        cargo build --release --bin oxidize-pdf
+        
+    - name: Run core library benchmarks
+      run: |
+        cargo bench --package test-suite --bench core_benchmarks -- --output-format html
+        
+    - name: Run parser benchmarks
+      run: |
+        cargo bench --package test-suite --bench parser_bench -- --output-format html
+        
+    - name: Run memory benchmarks
+      run: |
+        cargo bench --package test-suite --bench memory_benchmarks -- --output-format html
+        
+    - name: Run CLI benchmarks
+      run: |
+        cargo bench --package test-suite --bench cli_benchmarks -- --output-format html
+        
+    - name: Archive benchmark results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: benchmark-results
+        path: |
+          target/criterion/
+          
+    - name: Performance regression check
+      if: github.event_name == 'pull_request'
+      run: |
+        echo "Performance regression detection would go here"
+        echo "Could compare with baseline from main branch"
+        echo "For now, just ensure benchmarks complete successfully"
+        
+  benchmark-comparison:
+    name: Compare with baseline
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout PR
+      uses: actions/checkout@v4
+      
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
+        
+    - name: Run PR benchmarks
+      run: |
+        cargo build --release --bin oxidize-pdf
+        cargo bench --package test-suite --bench core_benchmarks -- --save-baseline pr-benchmarks
+        
+    - name: Checkout main branch
+      run: |
+        git fetch origin main
+        git checkout main
+        
+    - name: Run main branch benchmarks
+      run: |
+        cargo build --release --bin oxidize-pdf
+        cargo bench --package test-suite --bench core_benchmarks -- --save-baseline main-benchmarks
+        
+    - name: Compare benchmarks
+      run: |
+        echo "Benchmark comparison between main and PR"
+        echo "This would typically use a tool like critcmp to compare results"
+        echo "For now, both benchmark runs are saved for manual inspection"
+        
+    - name: Upload comparison results
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-comparison
+        path: target/criterion/

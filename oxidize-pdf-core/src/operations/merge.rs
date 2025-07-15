@@ -445,3 +445,7 @@ mod tests {
         assert!(input_with_pages.pages.is_some());
     }
 }
+
+#[cfg(test)]
+#[path = "merge_tests.rs"]
+mod merge_tests;

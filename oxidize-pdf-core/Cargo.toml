@@ -30,8 +30,16 @@ serde_json = { workspace = true, optional = true }
 # Logging
 tracing = { workspace = true }
 
+# Hashing
+md5 = "0.7"
+
+# OCR dependencies (optional)
+tesseract = { version = "0.13", optional = true }
+leptonica-plumbing = { version = "1.0", optional = true }
+
 [dev-dependencies]
 tempfile = "3.8"
+criterion = { version = "0.5", features = ["html_reports"] }
 
 [[example]]
 name = "hello_world"
@@ -47,6 +55,12 @@ name = "text_wrapping"
 
 [[example]]
 name = "simple_text_wrap"
+
+[[example]]
+name = "extract_images"
+
+[[example]]
+name = "create_pdf_with_images"
 
 [[example]]
 name = "ai_ready_invoice"
@@ -67,11 +81,23 @@ name = "comprehensive_demo"
 [[example]]
 name = "parse_and_extract"
 
+[[example]]
+name = "tesseract_ocr_demo"
+required-features = ["ocr-tesseract"]
+
+[[bench]]
+name = "ocr_benchmarks"
+harness = false
+
 [features]
 default = ["compression"]
 
 # Basic features
-compression = ["flate2"]
+compression = ["dep:flate2"]
+
+# OCR features
+ocr-tesseract = ["tesseract", "leptonica-plumbing"]
+ocr-full = ["ocr-tesseract"]
 
 # Semantic marking (Community level - basic tagging)
 semantic = []
@@ -80,4 +106,4 @@ semantic = []
 pro = ["semantic", "serde", "serde_json"]
 
 # Enterprise features
-enterprise = ["pro"]
+enterprise = ["pro", "ocr-full"]

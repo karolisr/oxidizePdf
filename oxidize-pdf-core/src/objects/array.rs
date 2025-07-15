@@ -88,3 +88,6 @@ impl FromIterator<Object> for Array {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
