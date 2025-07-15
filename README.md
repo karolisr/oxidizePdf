@@ -18,7 +18,7 @@ A pure Rust PDF generation and manipulation library with **zero external PDF dep
 - 🖼️ **Image Support** - Embed JPEG images with automatic compression
 - 🎨 **Rich Graphics** - Vector graphics with shapes, paths, colors (RGB/CMYK/Gray)
 - 📝 **Advanced Text** - Multiple fonts, text flow with automatic wrapping, alignment
-- 🔍 **OCR Support** - Extract text from scanned PDFs using Tesseract OCR
+- 🔍 **OCR Support** - Extract text from scanned PDFs using Tesseract OCR (v0.1.3+)
 - 🗜️ **Compression** - Built-in FlateDecode compression for smaller files
 - 🔒 **Type Safe** - Leverage Rust's type system for safe PDF manipulation
 
@@ -28,10 +28,10 @@ Add oxidize-pdf to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-oxidize-pdf = "0.1"
+oxidize-pdf = "0.1.3"
 
 # For OCR support (optional)
-oxidize-pdf = { version = "0.1", features = ["ocr-tesseract"] }
+oxidize-pdf = { version = "0.1.3", features = ["ocr-tesseract"] }
 ```
 
 ### Basic PDF Generation
@@ -249,15 +249,17 @@ Download from: https://github.com/UB-Mannheim/tesseract/wiki
 - ✅ Rotate pages (90°, 180°, 270°)
 - ✅ Basic content preservation
 
-### OCR Support
-- ✅ Tesseract OCR integration
+### OCR Support (v0.1.3+)
+- ✅ Tesseract OCR integration with feature flag
 - ✅ Multi-language support (50+ languages)
 - ✅ Page analysis and scanned page detection
 - ✅ Configurable preprocessing (denoise, deskew, contrast)
 - ✅ Layout preservation with position information
 - ✅ Confidence scoring and filtering
-- ✅ Multiple page segmentation modes
+- ✅ Multiple page segmentation modes (PSM)
 - ✅ Character whitelisting/blacklisting
+- ✅ Mock OCR provider for testing
+- ✅ Parallel and batch processing
 
 ## Performance
 
@@ -277,6 +279,9 @@ Check out the [examples](https://github.com/bzsanti/oxidizePdf/tree/main/oxidize
 - `parse_pdf.rs` - PDF parsing and text extraction
 - `comprehensive_demo.rs` - All features demonstration
 - `tesseract_ocr_demo.rs` - OCR text extraction (requires `--features ocr-tesseract`)
+- `scanned_pdf_analysis.rs` - Analyze PDFs for scanned content
+- `extract_images.rs` - Extract embedded images from PDFs
+- `create_pdf_with_images.rs` - Advanced image embedding examples
 
 Run examples with:
 
@@ -336,14 +341,23 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 ## Roadmap
 
+### Community Edition (Open Source)
+- [ ] Basic transparency/opacity support (Q3 2025)
 - [ ] PNG image support
+- [ ] XRef stream support (PDF 1.5+)
 - [ ] TrueType/OpenType font embedding
+- [ ] Improved text extraction with CMap/ToUnicode
+
+### PRO/Enterprise Features
+- [ ] Advanced transparency (blend modes, groups)
 - [ ] Cloud OCR providers (Azure, AWS, Google Cloud)
 - [ ] OCR batch processing and parallel execution
 - [ ] PDF forms and annotations
 - [ ] Digital signatures
 - [ ] PDF/A compliance
 - [ ] Encryption support
+
+See our [detailed roadmap](ROADMAP.md) for more information.
 
 ## Support
 

@@ -10,7 +10,7 @@ oxidize-pdf uses **independent versioning** for each package, allowing them to e
 
 | Package | Version | Description | Status |
 |---------|---------|-------------|---------|
-| `oxidize-pdf` | 0.1.2 | Core PDF library | ✅ Published |
+| `oxidize-pdf` | 0.1.3 | Core PDF library with OCR support | ✅ Published |
 | `oxidize-pdf-cli` | 0.1.0 | Command-line tool | 🚧 Ready to publish |
 | `oxidize-pdf-api` | 0.1.0 | REST API server | 🚧 Ready to publish |
 
@@ -45,6 +45,7 @@ Each package follows [Semantic Versioning](https://semver.org/):
 ### Core Dependencies
 - `oxidize-pdf-cli` depends on `oxidize-pdf ^0.1.2`
 - `oxidize-pdf-api` depends on `oxidize-pdf ^0.1.2`
+- OCR features require `oxidize-pdf ^0.1.3` with `ocr-tesseract` feature
 
 ### Version Requirements
 - **Caret requirement** (`^0.1.2`): Compatible with 0.1.2 through 0.1.x, but not 0.2.0
@@ -69,7 +70,10 @@ Major releases may be coordinated across packages for:
 ```toml
 # In your Cargo.toml
 [dependencies]
-oxidize-pdf = "^0.1.2"  # Gets latest 0.1.x
+oxidize-pdf = "^0.1.3"  # Gets latest 0.1.x
+
+# With OCR support
+oxidize-pdf = { version = "^0.1.3", features = ["ocr-tesseract"] }
 ```
 
 ### For CLI Users

@@ -10,7 +10,7 @@
 //! - **Text Extraction**: Extract text with position and formatting information
 //! - **Image Extraction**: Extract images in JPEG, PNG, and TIFF formats
 //! - **Page Analysis**: Detect scanned vs text content with intelligent classification
-//! - **OCR Integration**: Pluggable OCR support for processing scanned documents
+//! - **OCR Integration**: Pluggable OCR support with Tesseract for processing scanned documents (v0.1.3+)
 //! - **Resource Access**: Work with fonts, images, and other PDF resources
 //! - **Pure Rust**: No C dependencies or external libraries
 //! - **100% Native**: Complete PDF implementation from scratch
@@ -98,6 +98,10 @@
 //! - [`operations`] - PDF manipulation (split, merge, rotate, extract images)
 //! - [`operations::page_analysis`] - Page content analysis and scanned page detection
 //! - [`text::extraction`] - Text extraction with positioning
+//!
+//! ### OCR Modules (v0.1.3+)
+//! - [`text::ocr`] - OCR trait system and types
+//! - [`text::tesseract_provider`] - Tesseract OCR provider (requires `ocr-tesseract` feature)
 //! - [`text::ocr`] - OCR integration for scanned documents
 //!
 //! ## Examples
