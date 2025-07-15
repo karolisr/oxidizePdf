@@ -43,6 +43,7 @@ The Community Edition provides essential PDF processing capabilities suitable fo
 - [ ] **Text Extraction** - Extract plain text from PDFs
 - [ ] **Image Extraction** - Extract embedded images
 - [ ] **Basic Metadata** - Read and write PDF metadata
+- [ ] **Basic Transparency** - Set opacity for colors and graphics (CA/ca parameters)
 - [ ] **CLI Tool** - Full-featured command-line interface
 - [ ] **Basic REST API** - Simple HTTP API for operations
 
@@ -65,7 +66,8 @@ The PRO Edition extends Community features with advanced capabilities for profes
 - [ ] **Confidence Scoring** - Mark extraction confidence levels
 
 #### Advanced Operations (Q2 2026)
-- [ ] **Advanced Watermarks** - Custom positioning, transparency, batch
+- [ ] **Advanced Transparency** - Blend modes, transparency groups, soft masks, knockout/isolated groups
+- [ ] **Advanced Watermarks** - Custom positioning, batch processing, complex effects
 - [ ] **Digital Signatures** - Sign PDFs with certificates
 - [ ] **Advanced Encryption** - AES-256, permissions management
 - [ ] **Form Handling** - Fill, extract, and flatten PDF forms
@@ -177,6 +179,36 @@ Private Repositories:
 - **Memory**: 50% less memory usage
 - **Accuracy**: 99.9% PDF spec compliance
 - **Community**: 1000+ GitHub stars by end of 2025
+- **User Adoption**: 10,000+ monthly active users by end of 2025
+- **Community Health**: Active contributors and low barrier to entry
+
+## 🌟 Community-First Philosophy
+
+We believe in building a strong foundation with our Community Edition that provides real value without artificial limitations. Features in Community Edition are chosen based on:
+
+- **Common Use Cases**: Features needed by 80% of users
+- **Standards Compliance**: Core PDF specification support
+- **Developer Experience**: Making PDF generation accessible
+
+Example of feature split:
+```rust
+// Community Edition - Basic transparency
+page.graphics()
+    .set_fill_color(Color::rgb(1.0, 0.0, 0.0))
+    .set_opacity(0.5)  // ✅ Simple opacity
+    .rectangle(100.0, 100.0, 200.0, 150.0)
+    .fill();
+
+// PRO Edition - Advanced transparency effects
+page.graphics()
+    .set_fill_color(Color::rgb(1.0, 0.0, 0.0))
+    .set_opacity(0.5)
+    .set_blend_mode(BlendMode::Multiply)  // ⭐ PRO
+    .begin_transparency_group()            // ⭐ PRO
+    .rectangle(100.0, 100.0, 200.0, 150.0)
+    .fill()
+    .end_transparency_group();            // ⭐ PRO
+```
 
 ## 🤖 AI-Ready PDFs Strategy
 
