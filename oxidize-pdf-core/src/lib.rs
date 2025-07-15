@@ -8,6 +8,9 @@
 //! - **PDF Parsing**: Complete parser supporting rendering and content extraction
 //! - **PDF Operations**: Split, merge, rotate, and extract pages
 //! - **Text Extraction**: Extract text with position and formatting information
+//! - **Image Extraction**: Extract images in JPEG, PNG, and TIFF formats
+//! - **Page Analysis**: Detect scanned vs text content with intelligent classification
+//! - **OCR Integration**: Pluggable OCR support for processing scanned documents
 //! - **Resource Access**: Work with fonts, images, and other PDF resources
 //! - **Pure Rust**: No C dependencies or external libraries
 //! - **100% Native**: Complete PDF implementation from scratch
@@ -92,8 +95,10 @@
 //!   - [`parser::PdfObject`] - Low-level PDF objects
 //!
 //! ### Manipulation Modules
-//! - [`operations`] - PDF manipulation (split, merge, rotate)
+//! - [`operations`] - PDF manipulation (split, merge, rotate, extract images)
+//! - [`operations::page_analysis`] - Page content analysis and scanned page detection
 //! - [`text::extraction`] - Text extraction with positioning
+//! - [`text::ocr`] - OCR integration for scanned documents
 //!
 //! ## Examples
 //!
@@ -182,6 +187,8 @@ pub use graphics::{Color, GraphicsContext, Image, ImageColorSpace, ImageFormat};
 pub use page::{Margins, Page};
 pub use text::{
     measure_text, split_into_words, Font, FontFamily, TextAlign, TextContext, TextFlowContext,
+    FragmentType, ImagePreprocessing, MockOcrProvider, OcrEngine, OcrError, OcrOptions,
+    OcrProcessingResult, OcrProvider, OcrResult, OcrTextFragment,
 };
 
 // Re-export parsing types
@@ -195,6 +202,42 @@ pub use operations::{merge_pdfs, rotate_pdf_pages, split_pdf};
 
 /// Current version of oxidize-pdf
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Scanned page analysis and OCR example
+///
+/// ```rust,no_run
+/// use oxidize_pdf::operations::page_analysis::{PageContentAnalyzer, PageType};
+/// use oxidize_pdf::text::{MockOcrProvider, OcrOptions};
+/// use oxidize_pdf::parser::PdfReader;
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let document = PdfReader::open_document("scanned.pdf")?;
+/// let analyzer = PageContentAnalyzer::new(document);
+///
+/// // Analyze pages for scanned content
+/// let analyses = analyzer.analyze_document()?;
+/// for analysis in analyses {
+///     match analysis.page_type {
+///         PageType::Scanned => {
+///             println!("Page {} is scanned - applying OCR", analysis.page_number);
+///             
+///             // Process with OCR
+///             let ocr_provider = MockOcrProvider::new();
+///             let ocr_result = analyzer.extract_text_from_scanned_page(
+///                 analysis.page_number, 
+///                 &ocr_provider
+///             )?;
+///             
+///             println!("OCR extracted: {}", ocr_result.text);
+///             println!("Confidence: {:.1}%", ocr_result.confidence * 100.0);
+///         }
+///         PageType::Text => println!("Page {} has vector text", analysis.page_number),
+///         PageType::Mixed => println!("Page {} has mixed content", analysis.page_number),
+///     }
+/// }
+/// # Ok(())
+/// # }
+/// ```
 
 /// Supported PDF versions
 pub mod pdf_version {

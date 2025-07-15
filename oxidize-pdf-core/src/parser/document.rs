@@ -742,6 +742,42 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// # Ok(())
     /// # }
     /// ```
+    /// Get page resources dictionary.
+    ///
+    /// This method returns the resources dictionary for a page, which may include
+    /// fonts, images (XObjects), patterns, color spaces, and other resources.
+    ///
+    /// # Arguments
+    ///
+    /// * `page` - The page to get resources from
+    ///
+    /// # Returns
+    ///
+    /// Optional resources dictionary if the page has resources.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let reader = PdfReader::open("document.pdf")?;
+    /// # let document = PdfDocument::new(reader);
+    /// let page = document.get_page(0)?;
+    /// if let Some(resources) = document.get_page_resources(&page)? {
+    ///     // Check for images (XObjects)
+    ///     if let Some(xobjects) = resources.get_dict("XObject") {
+    ///         for (name, _) in xobjects.iter() {
+    ///             println!("Found XObject: {}", name);
+    ///         }
+    ///     }
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_page_resources<'a>(&self, page: &'a ParsedPage) -> ParseResult<Option<&'a PdfDictionary>> {
+        Ok(page.get_resources())
+    }
+
     pub fn get_page_content_streams(&self, page: &ParsedPage) -> ParseResult<Vec<Vec<u8>>> {
         let mut streams = Vec::new();
 

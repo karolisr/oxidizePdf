@@ -3,12 +3,17 @@ mod extraction;
 mod flow;
 mod font;
 mod metrics;
+pub mod ocr;
 
 pub use encoding::TextEncoding;
 pub use extraction::{ExtractedText, ExtractionOptions, TextExtractor, TextFragment};
 pub use flow::{TextAlign, TextFlowContext};
 pub use font::{Font, FontFamily};
 pub use metrics::{measure_char, measure_text, split_into_words};
+pub use ocr::{
+    FragmentType, ImagePreprocessing, MockOcrProvider, OcrEngine, OcrError, OcrOptions,
+    OcrProcessingResult, OcrProvider, OcrResult, OcrTextFragment,
+};
 
 use crate::error::Result;
 use std::fmt::Write;

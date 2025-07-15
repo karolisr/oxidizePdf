@@ -390,3 +390,7 @@ mod tests {
         // For now, we're just testing the logic
     }
 }
+
+#[cfg(test)]
+#[path = "split_tests.rs"]
+mod split_tests;

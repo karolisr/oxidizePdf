@@ -8,6 +8,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+## [0.1.3] - 2025-01-15
+
+### Added
+
+#### OCR Support (Optical Character Recognition)
+- **OCR trait-based architecture** for extensible OCR provider implementations
+  - `OcrProvider` trait with methods for image processing and format support
+  - `OcrOptions` for configurable preprocessing and recognition settings
+  - `OcrProcessingResult` with confidence scores and text fragment positioning
+- **MockOcrProvider** for testing and development
+  - Simulates OCR processing without external dependencies
+  - Configurable processing delays and confidence levels
+  - Supports JPEG, PNG, and TIFF formats
+- **TesseractOcrProvider** for production OCR (requires `ocr-tesseract` feature)
+  - Full Tesseract 4.x/5.x integration with LSTM neural network support
+  - 14 Page Segmentation Modes (PSM) for different document layouts
+  - 4 OCR Engine Modes (OEM) including legacy and LSTM options
+  - Multi-language support (50+ languages including CJK)
+  - Character whitelist/blacklist configuration
+  - Custom Tesseract variable support
+- **Page content analysis integration**
+  - Automatic detection of scanned vs vector PDF pages
+  - `PageContentAnalyzer` with configurable thresholds
+  - Batch and parallel OCR processing methods
+  - Content type classification (Scanned, Text, Mixed)
+- **Feature flags for optional dependencies**
+  - `ocr-tesseract`: Enables Tesseract OCR provider
+  - `ocr-full`: Enables all OCR providers
+  - `enterprise`: Includes OCR support with other enterprise features
+
+#### Testing and Documentation
+- 89 new tests covering all OCR functionality
+  - Unit tests for configuration and error handling
+  - Integration tests for page analysis
+  - Performance tests for parallel processing
+- Comprehensive OCR benchmarks with Criterion.rs
+  - Provider comparison benchmarks
+  - Configuration impact analysis
+  - Memory usage profiling
+  - Concurrent processing performance
+- Public example `tesseract_ocr_demo.rs` demonstrating:
+  - Installation verification
+  - Multi-language OCR
+  - Performance comparison
+  - Real-world usage patterns
+- Complete API documentation for OCR module
+
+### Changed
+- Enhanced `AnalysisOptions` with OCR configuration support
+- Updated README with OCR features and installation instructions
+
+### Performance
+- Parallel OCR processing with configurable thread pools
+- Batch processing optimizations for multiple pages
+- Efficient memory management for large documents
+
 ## [0.1.2] - 2025-01-12
 
 ### Added

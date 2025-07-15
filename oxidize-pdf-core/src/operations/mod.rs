@@ -3,11 +3,15 @@
 //! This module provides high-level operations for manipulating PDF documents
 //! such as splitting, merging, rotating pages, and reordering.
 
+pub mod extract_images;
 pub mod merge;
+pub mod page_analysis;
 pub mod rotate;
 pub mod split;
 
+pub use extract_images::{extract_images_from_pdf, extract_images_from_pages, ExtractImagesOptions, ExtractedImage, ImageExtractor};
 pub use merge::{merge_pdf_files, merge_pdfs, MergeInput, MergeOptions, PdfMerger};
+pub use page_analysis::{AnalysisOptions, ContentAnalysis, PageContentAnalyzer, PageType};
 pub use rotate::{rotate_all_pages, rotate_pdf_pages, PageRotator, RotateOptions, RotationAngle};
 pub use split::{split_into_pages, split_pdf, PdfSplitter, SplitMode, SplitOptions};
 
@@ -50,6 +54,10 @@ pub enum OperationError {
     /// Core PDF error
     #[error("PDF error: {0}")]
     PdfError(#[from] PdfError),
+
+    /// General processing error
+    #[error("Processing error: {0}")]
+    ProcessingError(String),
 }
 
 /// Page range specification

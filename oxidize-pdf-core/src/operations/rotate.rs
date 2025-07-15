@@ -460,3 +460,7 @@ mod tests {
         assert_eq!(r3.combine(r4), RotationAngle::None);
     }
 }
+
+#[cfg(test)]
+#[path = "rotate_tests.rs"]
+mod rotate_tests;
