@@ -8,7 +8,7 @@ mod tests {
     use std::io::Cursor;
 
     /// Create a mock PDF reader with sample data
-    fn create_mock_reader() -> PdfReader<Cursor<Vec<u8>>> {
+    fn _create_mock_reader() -> PdfReader<Cursor<Vec<u8>>> {
         // Create a minimal valid PDF with proper structure
         let data = b"%PDF-1.4\n\
 1 0 obj\n\
@@ -297,7 +297,7 @@ startxref\n\
 
         // Test that content_streams returns empty vec when no Contents
         // We don't need a real reader for this test since there's no Contents key
-        let mut mock_data = Cursor::new(Vec::new());
+        let mock_data = Cursor::new(Vec::new());
         match PdfReader::new(mock_data) {
             Ok(mut reader) => {
                 let streams = page.content_streams(&mut reader).unwrap();

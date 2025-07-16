@@ -6,6 +6,7 @@
 pub mod extract_images;
 pub mod merge;
 pub mod page_analysis;
+pub mod page_extraction;
 pub mod rotate;
 pub mod split;
 
@@ -15,6 +16,10 @@ pub use extract_images::{
 };
 pub use merge::{merge_pdf_files, merge_pdfs, MergeInput, MergeOptions, PdfMerger};
 pub use page_analysis::{AnalysisOptions, ContentAnalysis, PageContentAnalyzer, PageType};
+pub use page_extraction::{
+    extract_page, extract_page_range, extract_page_range_to_file, extract_page_to_file,
+    extract_pages, extract_pages_to_file, PageExtractionOptions, PageExtractor,
+};
 pub use rotate::{rotate_all_pages, rotate_pdf_pages, PageRotator, RotateOptions, RotationAngle};
 pub use split::{split_into_pages, split_pdf, PdfSplitter, SplitMode, SplitOptions};
 
@@ -183,6 +188,9 @@ impl PageRange {
         }
     }
 }
+
+#[cfg(test)]
+mod error_tests;
 
 #[cfg(test)]
 mod tests {
