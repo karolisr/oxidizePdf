@@ -425,6 +425,35 @@ impl<R: Read> Lexer<R> {
             }
         }
 
+        // Handle scientific notation (e/E)
+        if let Some(ch) = self.peek_char()? {
+            if ch == b'e' || ch == b'E' {
+                self.consume_char()?;
+                number_str.push(ch as char);
+                
+                // Check for optional sign after e/E
+                if let Some(sign_ch) = self.peek_char()? {
+                    if sign_ch == b'+' || sign_ch == b'-' {
+                        self.consume_char()?;
+                        number_str.push(sign_ch as char);
+                    }
+                }
+                
+                // Read exponent digits
+                while let Some(digit_ch) = self.peek_char()? {
+                    if digit_ch.is_ascii_digit() {
+                        self.consume_char()?;
+                        number_str.push(digit_ch as char);
+                    } else {
+                        break;
+                    }
+                }
+                
+                // Scientific notation always results in a real number
+                has_dot = true;
+            }
+        }
+
         // Don't try to parse references here - let the parser handle it
         // References are just "num num R" and can be handled at a higher level
 

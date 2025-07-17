@@ -89,7 +89,7 @@ impl<'a> SemanticMarker<'a> {
 }
 
 // Simple UUID generation for entity IDs
-fn uuid_simple() -> String {
+pub fn uuid_simple() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)

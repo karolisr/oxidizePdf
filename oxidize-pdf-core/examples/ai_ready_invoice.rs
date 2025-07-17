@@ -5,7 +5,7 @@
 //!
 //! To run: cargo run --example ai_ready_invoice --features semantic
 
-use oxidize_pdf::{graphics::Rectangle, Color, Document, Font, Page};
+use oxidize_pdf::{Color, Document, Font, Page};
 
 #[cfg(feature = "semantic")]
 use oxidize_pdf::semantic::{EntityType, SemanticMarker};
@@ -41,16 +41,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         doc.save("ai_ready_invoice.pdf")?;
 
         println!("✅ Created AI-Ready PDF: ai_ready_invoice.pdf");
-
-        #[cfg(feature = "pro")]
-        {
-            // Export entity map for AI processing
-            let entities = doc.export_entities();
-            if let Ok(json) = entities.to_json() {
-                std::fs::write("invoice_entities.json", json)?;
-                println!("✅ Exported entity map: invoice_entities.json");
-            }
-        }
     }
 
     Ok(())
@@ -145,7 +135,7 @@ fn mark_semantic_regions(page: &mut Page) {
     marker
         .mark(
             EntityType::Heading,
-            Rectangle::new(50.0, 740.0, 200.0, 40.0),
+            (50.0, 740.0, 200.0, 40.0),
         )
         .with_metadata("type", "invoice_header")
         .with_confidence(0.99)
@@ -153,7 +143,7 @@ fn mark_semantic_regions(page: &mut Page) {
 
     // Mark invoice number
     marker
-        .mark_text(Rectangle::new(400.0, 740.0, 150.0, 20.0))
+        .mark_text((400.0, 740.0, 150.0, 20.0))
         .with_metadata("field", "invoice_number")
         .with_metadata("value", "INV-2024-001")
         .with_schema("https://schema.org/Invoice")
@@ -162,7 +152,7 @@ fn mark_semantic_regions(page: &mut Page) {
 
     // Mark invoice date
     marker
-        .mark_text(Rectangle::new(400.0, 720.0, 150.0, 20.0))
+        .mark_text((400.0, 720.0, 150.0, 20.0))
         .with_metadata("field", "invoice_date")
         .with_metadata("value", "2024-01-15")
         .with_metadata("format", "YYYY-MM-DD")
@@ -171,7 +161,7 @@ fn mark_semantic_regions(page: &mut Page) {
 
     // Mark company info
     marker
-        .mark_text(Rectangle::new(50.0, 640.0, 200.0, 60.0))
+        .mark_text((50.0, 640.0, 200.0, 60.0))
         .with_metadata("type", "company_info")
         .with_metadata("company_name", "Acme Corporation")
         .with_schema("https://schema.org/Organization")
@@ -180,7 +170,7 @@ fn mark_semantic_regions(page: &mut Page) {
 
     // Mark customer info
     marker
-        .mark_text(Rectangle::new(50.0, 540.0, 200.0, 80.0))
+        .mark_text((50.0, 540.0, 200.0, 80.0))
         .with_metadata("type", "customer_info")
         .with_metadata("customer_name", "John Doe")
         .with_schema("https://schema.org/Person")
@@ -189,7 +179,7 @@ fn mark_semantic_regions(page: &mut Page) {
 
     // Mark invoice table
     marker
-        .mark_table(Rectangle::new(50.0, 450.0, 500.0, 80.0))
+        .mark_table((50.0, 450.0, 500.0, 80.0))
         .with_metadata("type", "line_items")
         .with_metadata("rows", "1")
         .with_metadata("columns", "4")
@@ -198,7 +188,7 @@ fn mark_semantic_regions(page: &mut Page) {
 
     // Mark total amount
     marker
-        .mark_text(Rectangle::new(400.0, 390.0, 150.0, 25.0))
+        .mark_text((400.0, 390.0, 150.0, 25.0))
         .with_metadata("field", "total_amount")
         .with_metadata("value", "1000.00")
         .with_metadata("currency", "USD")

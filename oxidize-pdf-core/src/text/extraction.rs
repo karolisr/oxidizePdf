@@ -379,4 +379,133 @@ mod tests {
         assert_eq!(x, 15.0);
         assert_eq!(y, 25.0);
     }
+
+    #[test]
+    fn test_extraction_options_default() {
+        let options = ExtractionOptions::default();
+        assert!(!options.preserve_layout);
+        assert_eq!(options.space_threshold, 0.2);
+        assert_eq!(options.newline_threshold, 10.0);
+    }
+
+    #[test]
+    fn test_extraction_options_custom() {
+        let options = ExtractionOptions {
+            preserve_layout: true,
+            space_threshold: 0.5,
+            newline_threshold: 15.0,
+        };
+        assert!(options.preserve_layout);
+        assert_eq!(options.space_threshold, 0.5);
+        assert_eq!(options.newline_threshold, 15.0);
+    }
+
+    #[test]
+    fn test_text_fragment() {
+        let fragment = TextFragment {
+            text: "Hello".to_string(),
+            x: 100.0,
+            y: 200.0,
+            width: 50.0,
+            height: 12.0,
+            font_size: 10.0,
+        };
+        assert_eq!(fragment.text, "Hello");
+        assert_eq!(fragment.x, 100.0);
+        assert_eq!(fragment.y, 200.0);
+        assert_eq!(fragment.width, 50.0);
+        assert_eq!(fragment.height, 12.0);
+        assert_eq!(fragment.font_size, 10.0);
+    }
+
+    #[test]
+    fn test_extracted_text() {
+        let fragments = vec![
+            TextFragment {
+                text: "Hello".to_string(),
+                x: 100.0,
+                y: 200.0,
+                width: 50.0,
+                height: 12.0,
+                font_size: 10.0,
+            },
+            TextFragment {
+                text: "World".to_string(),
+                x: 160.0,
+                y: 200.0,
+                width: 50.0,
+                height: 12.0,
+                font_size: 10.0,
+            },
+        ];
+        
+        let extracted = ExtractedText {
+            text: "Hello World".to_string(),
+            fragments: fragments.clone(),
+        };
+        
+        assert_eq!(extracted.text, "Hello World");
+        assert_eq!(extracted.fragments.len(), 2);
+        assert_eq!(extracted.fragments[0].text, "Hello");
+        assert_eq!(extracted.fragments[1].text, "World");
+    }
+
+    #[test]
+    fn test_text_state_default() {
+        let state = TextState::default();
+        assert_eq!(state.text_matrix, [1.0, 0.0, 0.0, 1.0, 0.0, 0.0]);
+        assert_eq!(state.text_line_matrix, [1.0, 0.0, 0.0, 1.0, 0.0, 0.0]);
+        assert_eq!(state.ctm, [1.0, 0.0, 0.0, 1.0, 0.0, 0.0]);
+        assert_eq!(state.leading, 0.0);
+        assert_eq!(state.char_space, 0.0);
+        assert_eq!(state.word_space, 0.0);
+        assert_eq!(state.horizontal_scale, 100.0);
+        assert_eq!(state.text_rise, 0.0);
+        assert_eq!(state.font_size, 0.0);
+        assert!(state.font_name.is_none());
+        assert_eq!(state.render_mode, 0);
+    }
+
+    #[test]
+    fn test_matrix_operations() {
+        // Test rotation matrix
+        let rotation = [0.0, 1.0, -1.0, 0.0, 0.0, 0.0]; // 90 degree rotation
+        let (x, y) = transform_point(1.0, 0.0, &rotation);
+        assert_eq!(x, 0.0);
+        assert_eq!(y, 1.0);
+        
+        // Test scaling matrix
+        let scale = [2.0, 0.0, 0.0, 3.0, 0.0, 0.0];
+        let (x, y) = transform_point(5.0, 5.0, &scale);
+        assert_eq!(x, 10.0);
+        assert_eq!(y, 15.0);
+        
+        // Test complex transformation
+        let complex = [2.0, 1.0, 1.0, 2.0, 10.0, 20.0];
+        let (x, y) = transform_point(1.0, 1.0, &complex);
+        assert_eq!(x, 13.0); // 2*1 + 1*1 + 10
+        assert_eq!(y, 23.0); // 1*1 + 2*1 + 20
+    }
+
+    #[test]
+    fn test_text_extractor_new() {
+        let extractor = TextExtractor::new();
+        let options = extractor.options;
+        assert!(!options.preserve_layout);
+        assert_eq!(options.space_threshold, 0.2);
+        assert_eq!(options.newline_threshold, 10.0);
+    }
+
+    #[test]
+    fn test_text_extractor_with_options() {
+        let options = ExtractionOptions {
+            preserve_layout: true,
+            space_threshold: 0.3,
+            newline_threshold: 12.0,
+        };
+        let extractor = TextExtractor::with_options(options.clone());
+        assert_eq!(extractor.options.preserve_layout, options.preserve_layout);
+        assert_eq!(extractor.options.space_threshold, options.space_threshold);
+        assert_eq!(extractor.options.newline_threshold, options.newline_threshold);
+    }
 }

@@ -250,4 +250,47 @@ mod tests {
         assert!(PageRange::Single(10).get_indices(total).is_err());
         assert!(PageRange::Range(8, 15).get_indices(total).is_err());
     }
+
+    #[test]
+    fn test_module_exports() {
+        // Verify that all operation types are exported correctly
+        // This test just ensures the module structure is correct
+        
+        // We can create these types through their modules
+        use super::extract_images::ExtractImagesOptions;
+        use super::merge::MergeOptions;
+        use super::page_analysis::{AnalysisOptions, PageType};
+        use super::page_extraction::PageExtractionOptions;
+        use super::rotate::{RotateOptions, RotationAngle};
+        use super::split::{SplitOptions, SplitMode};
+        
+        // Just verify we can access these types
+        let _extract: ExtractImagesOptions;
+        let _merge: MergeOptions;
+        let _analysis: AnalysisOptions;
+        let _extraction: PageExtractionOptions;
+        let _rotate: RotateOptions;
+        let _split: SplitOptions;
+        let _angle: RotationAngle;
+        let _page_type: PageType;
+        let _mode: SplitMode;
+    }
+    
+    #[test]
+    fn test_operation_error_variants() {
+        let errors = vec![
+            OperationError::PageIndexOutOfBounds(5, 3),
+            OperationError::InvalidPageRange("test".to_string()),
+            OperationError::NoPagesToProcess,
+            OperationError::ResourceConflict("test".to_string()),
+            OperationError::InvalidRotation(45),
+            OperationError::ParseError("test".to_string()),
+            OperationError::ProcessingError("test".to_string()),
+        ];
+        
+        for error in errors {
+            let message = error.to_string();
+            assert!(!message.is_empty());
+        }
+    }
 }

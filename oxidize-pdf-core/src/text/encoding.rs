@@ -120,3 +120,241 @@ impl TextEncoding {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_text_encoding_variants() {
+        let encodings = [
+            TextEncoding::StandardEncoding,
+            TextEncoding::MacRomanEncoding,
+            TextEncoding::WinAnsiEncoding,
+            TextEncoding::PdfDocEncoding,
+        ];
+        
+        for encoding in &encodings {
+            assert_eq!(*encoding, *encoding);
+        }
+        
+        assert_ne!(TextEncoding::StandardEncoding, TextEncoding::WinAnsiEncoding);
+    }
+    
+    #[test]
+    fn test_standard_encoding_basic_ascii() {
+        let encoding = TextEncoding::StandardEncoding;
+        let text = "Hello World!";
+        
+        let encoded = encoding.encode(text);
+        let decoded = encoding.decode(&encoded);
+        
+        assert_eq!(text, decoded);
+    }
+    
+    #[test]
+    fn test_pdf_doc_encoding_basic_ascii() {
+        let encoding = TextEncoding::PdfDocEncoding;
+        let text = "Hello World!";
+        
+        let encoded = encoding.encode(text);
+        let decoded = encoding.decode(&encoded);
+        
+        assert_eq!(text, decoded);
+    }
+    
+    #[test]
+    fn test_mac_roman_encoding_basic_ascii() {
+        let encoding = TextEncoding::MacRomanEncoding;
+        let text = "Hello World!";
+        
+        let encoded = encoding.encode(text);
+        let decoded = encoding.decode(&encoded);
+        
+        assert_eq!(text, decoded);
+    }
+    
+    #[test]
+    fn test_win_ansi_encoding_basic_ascii() {
+        let encoding = TextEncoding::WinAnsiEncoding;
+        let text = "Hello World!";
+        
+        let encoded = encoding.encode(text);
+        let decoded = encoding.decode(&encoded);
+        
+        assert_eq!(text, decoded);
+    }
+    
+    #[test]
+    fn test_win_ansi_encoding_special_characters() {
+        let encoding = TextEncoding::WinAnsiEncoding;
+        
+        // Test Euro sign
+        let euro_text = "€";
+        let encoded = encoding.encode(euro_text);
+        assert_eq!(encoded, vec![0x80]);
+        let decoded = encoding.decode(&encoded);
+        assert_eq!(decoded, euro_text);
+        
+        // Test em dash
+        let dash_text = "—";
+        let encoded = encoding.encode(dash_text);
+        assert_eq!(encoded, vec![0x97]);
+        let decoded = encoding.decode(&encoded);
+        assert_eq!(decoded, dash_text);
+        
+        // Test single low quotation mark
+        let quote_text = "‚";
+        let encoded = encoding.encode(quote_text);
+        assert_eq!(encoded, vec![0x82]);
+        let decoded = encoding.decode(&encoded);
+        assert_eq!(decoded, quote_text);
+    }
+    
+    #[test]
+    fn test_win_ansi_encoding_latin_supplement() {
+        let encoding = TextEncoding::WinAnsiEncoding;
+        let text = "café";
+        
+        let encoded = encoding.encode(text);
+        let decoded = encoding.decode(&encoded);
+        
+        assert_eq!(text, decoded);
+    }
+    
+    #[test]
+    fn test_win_ansi_encoding_unmapped_character() {
+        let encoding = TextEncoding::WinAnsiEncoding;
+        
+        // Use a character that's not in Windows-1252
+        let text = "❤"; // Heart emoji
+        let encoded = encoding.encode(text);
+        assert_eq!(encoded, vec![b'?']); // Should be replaced with ?
+        
+        let decoded = encoding.decode(&encoded);
+        assert_eq!(decoded, "?");
+    }
+    
+    #[test]
+    fn test_win_ansi_encoding_round_trip_special_chars() {
+        let encoding = TextEncoding::WinAnsiEncoding;
+        
+        let special_chars = [
+            ("€", 0x80),  // Euro sign
+            ("‚", 0x82),  // Single low quotation mark
+            ("ƒ", 0x83),  // Latin small letter f with hook
+            ("„", 0x84),  // Double low quotation mark
+            ("…", 0x85),  // Horizontal ellipsis
+            ("†", 0x86),  // Dagger
+            ("‡", 0x87),  // Double dagger
+            ("‰", 0x89),  // Per mille sign
+            ("\u{2018}", 0x91),  // Left single quotation mark
+            ("\u{2019}", 0x92),  // Right single quotation mark
+            ("\u{201C}", 0x93),  // Left double quotation mark
+            ("\u{201D}", 0x94),  // Right double quotation mark
+            ("•", 0x95),  // Bullet
+            ("–", 0x96),  // En dash
+            ("—", 0x97),  // Em dash
+            ("™", 0x99),  // Trade mark sign
+        ];
+        
+        for (text, expected_byte) in &special_chars {
+            let encoded = encoding.encode(text);
+            assert_eq!(encoded, vec![*expected_byte], "Failed for character {}", text);
+            
+            let decoded = encoding.decode(&encoded);
+            assert_eq!(decoded, *text, "Round trip failed for character {}", text);
+        }
+    }
+    
+    #[test]
+    fn test_encoding_equality() {
+        assert_eq!(TextEncoding::StandardEncoding, TextEncoding::StandardEncoding);
+        assert_eq!(TextEncoding::WinAnsiEncoding, TextEncoding::WinAnsiEncoding);
+        
+        assert_ne!(TextEncoding::StandardEncoding, TextEncoding::WinAnsiEncoding);
+        assert_ne!(TextEncoding::MacRomanEncoding, TextEncoding::PdfDocEncoding);
+    }
+    
+    #[test]
+    fn test_encoding_debug() {
+        let encoding = TextEncoding::WinAnsiEncoding;
+        let debug_str = format!("{:?}", encoding);
+        assert_eq!(debug_str, "WinAnsiEncoding");
+    }
+    
+    #[test]
+    fn test_encoding_clone() {
+        let encoding1 = TextEncoding::PdfDocEncoding;
+        let encoding2 = encoding1;
+        assert_eq!(encoding1, encoding2);
+    }
+    
+    #[test]
+    fn test_encoding_copy() {
+        let encoding1 = TextEncoding::StandardEncoding;
+        let encoding2 = encoding1; // Copy semantics
+        assert_eq!(encoding1, encoding2);
+        
+        // Both variables should still be usable
+        assert_eq!(encoding1, TextEncoding::StandardEncoding);
+        assert_eq!(encoding2, TextEncoding::StandardEncoding);
+    }
+    
+    #[test]
+    fn test_empty_string_encoding() {
+        for encoding in &[
+            TextEncoding::StandardEncoding,
+            TextEncoding::MacRomanEncoding,
+            TextEncoding::WinAnsiEncoding,
+            TextEncoding::PdfDocEncoding,
+        ] {
+            let encoded = encoding.encode("");
+            assert!(encoded.is_empty());
+            
+            let decoded = encoding.decode(&[]);
+            assert!(decoded.is_empty());
+        }
+    }
+    
+    #[test]
+    fn test_win_ansi_decode_undefined_bytes() {
+        let encoding = TextEncoding::WinAnsiEncoding;
+        
+        // Test some undefined bytes in Windows-1252 (0x81, 0x8D, 0x8F, 0x90, 0x9D)
+        let undefined_bytes = [0x81, 0x8D, 0x8F, 0x90, 0x9D];
+        
+        for &byte in &undefined_bytes {
+            let decoded = encoding.decode(&[byte]);
+            assert_eq!(decoded, "?", "Undefined byte 0x{:02X} should decode to '?'", byte);
+        }
+    }
+    
+    #[test]
+    fn test_win_ansi_ascii_range() {
+        let encoding = TextEncoding::WinAnsiEncoding;
+        
+        // Test ASCII range (0x00-0x7F)
+        for byte in 0x20..=0x7E { // Printable ASCII
+            let text = char::from(byte).to_string();
+            let encoded = encoding.encode(&text);
+            assert_eq!(encoded, vec![byte]);
+            
+            let decoded = encoding.decode(&encoded);
+            assert_eq!(decoded, text);
+        }
+    }
+    
+    #[test]
+    fn test_win_ansi_latin1_overlap() {
+        let encoding = TextEncoding::WinAnsiEncoding;
+        
+        // Test Latin-1 range that overlaps with Windows-1252 (0xA0-0xFF)
+        let test_chars = "¡¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ";
+        
+        let encoded = encoding.encode(test_chars);
+        let decoded = encoding.decode(&encoded);
+        
+        assert_eq!(decoded, test_chars);
+    }
+}
