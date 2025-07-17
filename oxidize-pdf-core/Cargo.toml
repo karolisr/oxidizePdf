@@ -23,7 +23,7 @@ lazy_static = { workspace = true }
 # Compression (optional)
 flate2 = { workspace = true, optional = true }
 
-# Serialization (for PRO features)
+# Serialization
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 
@@ -100,10 +100,4 @@ ocr-tesseract = ["tesseract", "leptonica-plumbing"]
 ocr-full = ["ocr-tesseract"]
 
 # Semantic marking (Community level - basic tagging)
-semantic = []
-
-# PRO edition features (requires commercial license)
-pro = ["semantic", "serde", "serde_json"]
-
-# Enterprise features
-enterprise = ["pro", "ocr-full"]
+semantic = ["serde", "serde_json"]

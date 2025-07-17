@@ -1,9 +1,9 @@
 //! Example of creating an AI-Ready PDF with semantic entity marking
 //!
 //! This example demonstrates how to create a PDF with regions marked
-//! for AI/ML processing. Requires the "pro" feature flag.
+//! for AI/ML processing using the Community Edition semantic features.
 //!
-//! To run: cargo run --example ai_ready_invoice --features pro
+//! To run: cargo run --example ai_ready_invoice --features semantic
 
 use oxidize_pdf::{graphics::Rectangle, Color, Document, Font, Page};
 
