@@ -1484,6 +1484,7 @@ mod tests {
                 preserve_layout: true,
                 space_threshold: 0.5,
                 newline_threshold: 15.0,
+                ..Default::default()
             };
             
             let result = document.extract_text_with_options(options);

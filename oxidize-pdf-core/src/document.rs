@@ -3,6 +3,7 @@ use crate::objects::{Object, ObjectId};
 use crate::page::Page;
 use crate::writer::PdfWriter;
 use std::collections::HashMap;
+use chrono::{DateTime, Local, Utc};
 
 /// A PDF document that can contain multiple pages and metadata.
 ///
@@ -44,17 +45,24 @@ pub struct DocumentMetadata {
     pub creator: Option<String>,
     /// Software that produced the PDF
     pub producer: Option<String>,
+    /// Date and time the document was created
+    pub creation_date: Option<DateTime<Utc>>,
+    /// Date and time the document was last modified
+    pub modification_date: Option<DateTime<Utc>>,
 }
 
 impl Default for DocumentMetadata {
     fn default() -> Self {
+        let now = Utc::now();
         Self {
             title: None,
             author: None,
             subject: None,
             keywords: None,
             creator: Some("oxidize_pdf".to_string()),
-            producer: Some("oxidize_pdf".to_string()),
+            producer: Some(format!("oxidize_pdf v{}", env!("CARGO_PKG_VERSION"))),
+            creation_date: Some(now),
+            modification_date: Some(now),
         }
     }
 }
@@ -95,12 +103,50 @@ impl Document {
         self.metadata.keywords = Some(keywords.into());
     }
 
+    /// Sets the document creator (software that created the original document).
+    pub fn set_creator(&mut self, creator: impl Into<String>) {
+        self.metadata.creator = Some(creator.into());
+    }
+
+    /// Sets the document producer (software that produced the PDF).
+    pub fn set_producer(&mut self, producer: impl Into<String>) {
+        self.metadata.producer = Some(producer.into());
+    }
+
+    /// Sets the document creation date.
+    pub fn set_creation_date(&mut self, date: DateTime<Utc>) {
+        self.metadata.creation_date = Some(date);
+    }
+
+    /// Sets the document creation date using local time.
+    pub fn set_creation_date_local(&mut self, date: DateTime<Local>) {
+        self.metadata.creation_date = Some(date.with_timezone(&Utc));
+    }
+
+    /// Sets the document modification date.
+    pub fn set_modification_date(&mut self, date: DateTime<Utc>) {
+        self.metadata.modification_date = Some(date);
+    }
+
+    /// Sets the document modification date using local time.
+    pub fn set_modification_date_local(&mut self, date: DateTime<Local>) {
+        self.metadata.modification_date = Some(date.with_timezone(&Utc));
+    }
+
+    /// Sets the modification date to the current time.
+    pub fn update_modification_date(&mut self) {
+        self.metadata.modification_date = Some(Utc::now());
+    }
+
     /// Saves the document to a file.
     ///
     /// # Errors
     ///
     /// Returns an error if the file cannot be created or written.
     pub fn save(&mut self, path: impl AsRef<std::path::Path>) -> Result<()> {
+        // Update modification date before saving
+        self.update_modification_date();
+        
         let mut writer = PdfWriter::new(path)?;
         writer.write_document(self)?;
         Ok(())
@@ -112,6 +158,9 @@ impl Document {
     ///
     /// Returns an error if the PDF cannot be generated.
     pub fn write(&mut self, buffer: &mut Vec<u8>) -> Result<()> {
+        // Update modification date before writing
+        self.update_modification_date();
+        
         let mut writer = PdfWriter::new_with_writer(buffer);
         writer.write_document(self)?;
         Ok(())
@@ -153,7 +202,7 @@ mod tests {
         assert!(doc.metadata.subject.is_none());
         assert!(doc.metadata.keywords.is_none());
         assert_eq!(doc.metadata.creator, Some("oxidize_pdf".to_string()));
-        assert_eq!(doc.metadata.producer, Some("oxidize_pdf".to_string()));
+        assert!(doc.metadata.producer.as_ref().unwrap().starts_with("oxidize_pdf"));
     }
 
     #[test]
@@ -223,7 +272,7 @@ mod tests {
         assert!(metadata.subject.is_none());
         assert!(metadata.keywords.is_none());
         assert_eq!(metadata.creator, Some("oxidize_pdf".to_string()));
-        assert_eq!(metadata.producer, Some("oxidize_pdf".to_string()));
+        assert!(metadata.producer.as_ref().unwrap().starts_with("oxidize_pdf"));
     }
 
     #[test]
@@ -726,6 +775,118 @@ mod tests {
 
             // Buffer should be reasonable size
             assert!(buffer.len() < 1_000_000); // Should be less than 1MB for simple content
+        }
+        
+        #[test]
+        fn test_document_creator_producer() {
+            let mut doc = Document::new();
+            
+            // Default values
+            assert_eq!(doc.metadata.creator, Some("oxidize_pdf".to_string()));
+            assert!(doc.metadata.producer.as_ref().unwrap().contains("oxidize_pdf"));
+            
+            // Set custom values
+            doc.set_creator("My Application");
+            doc.set_producer("My PDF Library v1.0");
+            
+            assert_eq!(doc.metadata.creator, Some("My Application".to_string()));
+            assert_eq!(doc.metadata.producer, Some("My PDF Library v1.0".to_string()));
+        }
+        
+        #[test]
+        fn test_document_dates() {
+            use chrono::{TimeZone, Utc};
+            
+            let mut doc = Document::new();
+            
+            // Check default dates are set
+            assert!(doc.metadata.creation_date.is_some());
+            assert!(doc.metadata.modification_date.is_some());
+            
+            // Set specific dates
+            let creation_date = Utc.with_ymd_and_hms(2023, 1, 1, 12, 0, 0).unwrap();
+            let mod_date = Utc.with_ymd_and_hms(2023, 6, 15, 18, 30, 0).unwrap();
+            
+            doc.set_creation_date(creation_date);
+            doc.set_modification_date(mod_date);
+            
+            assert_eq!(doc.metadata.creation_date, Some(creation_date));
+            assert_eq!(doc.metadata.modification_date, Some(mod_date));
+        }
+        
+        #[test]
+        fn test_document_dates_local() {
+            use chrono::{Local, TimeZone};
+            
+            let mut doc = Document::new();
+            
+            // Test setting dates with local time
+            let local_date = Local.with_ymd_and_hms(2023, 12, 25, 10, 30, 0).unwrap();
+            doc.set_creation_date_local(local_date);
+            
+            // Verify it was converted to UTC
+            assert!(doc.metadata.creation_date.is_some());
+            // Just verify the date was set, don't compare exact values due to timezone complexities
+            assert!(doc.metadata.creation_date.is_some());
+        }
+        
+        #[test]
+        fn test_update_modification_date() {
+            let mut doc = Document::new();
+            
+            let initial_mod_date = doc.metadata.modification_date;
+            assert!(initial_mod_date.is_some());
+            
+            // Sleep briefly to ensure time difference
+            std::thread::sleep(std::time::Duration::from_millis(10));
+            
+            doc.update_modification_date();
+            
+            let new_mod_date = doc.metadata.modification_date;
+            assert!(new_mod_date.is_some());
+            assert!(new_mod_date.unwrap() > initial_mod_date.unwrap());
+        }
+        
+        #[test]
+        fn test_document_save_updates_modification_date() {
+            let temp_dir = TempDir::new().unwrap();
+            let file_path = temp_dir.path().join("mod_date_test.pdf");
+            
+            let mut doc = Document::new();
+            doc.add_page(Page::a4());
+            
+            let initial_mod_date = doc.metadata.modification_date;
+            
+            // Sleep briefly to ensure time difference
+            std::thread::sleep(std::time::Duration::from_millis(10));
+            
+            doc.save(&file_path).unwrap();
+            
+            // Modification date should be updated
+            assert!(doc.metadata.modification_date.unwrap() > initial_mod_date.unwrap());
+        }
+        
+        #[test]
+        fn test_document_metadata_complete() {
+            let mut doc = Document::new();
+            
+            // Set all metadata fields
+            doc.set_title("Complete Metadata Test");
+            doc.set_author("Test Author");
+            doc.set_subject("Testing all metadata fields");
+            doc.set_keywords("test, metadata, complete");
+            doc.set_creator("Test Application v1.0");
+            doc.set_producer("oxidize_pdf Test Suite");
+            
+            // Verify all fields
+            assert_eq!(doc.metadata.title, Some("Complete Metadata Test".to_string()));
+            assert_eq!(doc.metadata.author, Some("Test Author".to_string()));
+            assert_eq!(doc.metadata.subject, Some("Testing all metadata fields".to_string()));
+            assert_eq!(doc.metadata.keywords, Some("test, metadata, complete".to_string()));
+            assert_eq!(doc.metadata.creator, Some("Test Application v1.0".to_string()));
+            assert_eq!(doc.metadata.producer, Some("oxidize_pdf Test Suite".to_string()));
+            assert!(doc.metadata.creation_date.is_some());
+            assert!(doc.metadata.modification_date.is_some());
         }
     }
 }

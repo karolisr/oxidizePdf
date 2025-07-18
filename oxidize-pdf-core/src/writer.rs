@@ -4,6 +4,7 @@ use crate::objects::{Dictionary, Object, ObjectId};
 use std::collections::HashMap;
 use std::io::{BufWriter, Write};
 use std::path::Path;
+use chrono::{DateTime, Utc};
 
 pub struct PdfWriter<W: Write> {
     writer: W,
@@ -203,10 +204,16 @@ impl<W: Write> PdfWriter<W> {
         }
 
         // Add creation date
-        let now = chrono::Local::now();
-        let date_string = format!("D:{}", now.format("%Y%m%d%H%M%S%z"));
-        info_dict.set("CreationDate", Object::String(date_string.clone()));
-        info_dict.set("ModDate", Object::String(date_string));
+        if let Some(creation_date) = document.metadata.creation_date {
+            let date_string = format_pdf_date(creation_date);
+            info_dict.set("CreationDate", Object::String(date_string));
+        }
+        
+        // Add modification date
+        if let Some(mod_date) = document.metadata.modification_date {
+            let date_string = format_pdf_date(mod_date);
+            info_dict.set("ModDate", Object::String(date_string));
+        }
 
         self.write_object(info_id, Object::Dictionary(info_dict))?;
         Ok(info_id)
@@ -472,9 +479,54 @@ mod tests {
         assert!(content.contains("/Author (Test Author)"));
         assert!(content.contains("/Subject (Test Subject)"));
         assert!(content.contains("/Keywords (test, keywords)"));
-        assert!(content.contains("/Producer (oxidize_pdf)"));
+        assert!(content.contains("/Producer (oxidize_pdf"));
         assert!(content.contains("/Creator (oxidize_pdf)"));
         assert!(content.contains("/CreationDate"));
+        assert!(content.contains("/ModDate"));
+    }
+    
+    #[test]
+    fn test_write_info_with_dates() {
+        use chrono::{TimeZone, Utc};
+        
+        let mut buffer = Vec::new();
+        let mut document = Document::new();
+        
+        // Set specific dates
+        let creation_date = Utc.with_ymd_and_hms(2023, 1, 1, 12, 0, 0).unwrap();
+        let mod_date = Utc.with_ymd_and_hms(2023, 6, 15, 18, 30, 0).unwrap();
+        
+        document.set_creation_date(creation_date);
+        document.set_modification_date(mod_date);
+        document.set_creator("Test Creator");
+        document.set_producer("Test Producer");
+        
+        {
+            let mut writer = PdfWriter::new_with_writer(&mut buffer);
+            writer.write_info(&document).unwrap();
+        }
+        
+        let content = String::from_utf8_lossy(&buffer);
+        assert!(content.contains("/CreationDate (D:20230101"));
+        assert!(content.contains("/ModDate (D:20230615"));
+        assert!(content.contains("/Creator (Test Creator)"));
+        assert!(content.contains("/Producer (Test Producer)"));
+    }
+    
+    #[test]
+    fn test_format_pdf_date() {
+        use chrono::{TimeZone, Utc};
+        
+        let date = Utc.with_ymd_and_hms(2023, 12, 25, 15, 30, 45).unwrap();
+        let formatted = format_pdf_date(date);
+        
+        // Should start with D: and contain date/time components
+        assert!(formatted.starts_with("D:"));
+        assert!(formatted.contains("20231225"));
+        assert!(formatted.contains("153045"));
+        
+        // Should contain timezone offset
+        assert!(formatted.contains("+") || formatted.contains("-"));
     }
 
     #[test]
@@ -2094,4 +2146,28 @@ mod tests {
             assert!(result.is_ok() || result.is_err()); // Either outcome is acceptable for this test
         }
     }
+}
+
+/// Format a DateTime as a PDF date string (D:YYYYMMDDHHmmSSOHH'mm)
+fn format_pdf_date(date: DateTime<Utc>) -> String {
+    // Convert to local time to get the timezone offset
+    let local_date = date.with_timezone(&chrono::Local);
+    
+    // Format the date according to PDF specification
+    // D:YYYYMMDDHHmmSSOHH'mm where O is the relationship of local time to UTC (+ or -)
+    let formatted = local_date.format("D:%Y%m%d%H%M%S");
+    
+    // Get timezone offset
+    let offset = local_date.offset();
+    let offset_hours = offset.local_minus_utc() / 3600;
+    let offset_minutes = (offset.local_minus_utc() % 3600) / 60;
+    
+    let offset_sign = if offset_hours >= 0 { "+" } else { "-" };
+    
+    format!("{}{}{:02}'{:02}", 
+        formatted, 
+        offset_sign, 
+        offset_hours.abs(), 
+        offset_minutes.abs()
+    )
 }

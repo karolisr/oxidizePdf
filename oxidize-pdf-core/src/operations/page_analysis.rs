@@ -762,6 +762,7 @@ impl PageContentAnalyzer {
             preserve_layout: true,
             space_threshold: 0.2,
             newline_threshold: 10.0,
+            ..Default::default()
         });
 
         let extracted_text = extractor

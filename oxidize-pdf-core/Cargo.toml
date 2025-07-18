@@ -33,6 +33,16 @@ tracing = { workspace = true }
 # Hashing
 md5 = "0.7"
 
+# Parallel processing
+num_cpus = "1.16"
+
+# Platform-specific
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["memoryapi", "handleapi", "winnt"] }
+
 # OCR dependencies (optional)
 tesseract = { version = "0.13", optional = true }
 leptonica-plumbing = { version = "1.0", optional = true }
@@ -84,6 +94,21 @@ name = "parse_and_extract"
 [[example]]
 name = "tesseract_ocr_demo"
 required-features = ["ocr-tesseract"]
+
+[[example]]
+name = "memory_optimization"
+
+[[example]]
+name = "metadata"
+
+[[example]]
+name = "streaming_support"
+
+[[example]]
+name = "batch_processing"
+
+[[example]]
+name = "error_recovery"
 
 [[bench]]
 name = "ocr_benchmarks"

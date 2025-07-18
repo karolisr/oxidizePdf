@@ -171,13 +171,17 @@
 //! # }
 //! ```
 
+pub mod batch;
 pub mod document;
 pub mod error;
 pub mod graphics;
+pub mod memory;
 pub mod objects;
 pub mod operations;
 pub mod page;
 pub mod parser;
+pub mod recovery;
+pub mod streaming;
 pub mod text;
 pub mod writer;
 
@@ -203,6 +207,36 @@ pub use parser::{
 
 // Re-export operations
 pub use operations::{merge_pdfs, rotate_pdf_pages, split_pdf};
+
+// Re-export memory optimization types
+pub use memory::{LazyDocument, MemoryOptions, StreamProcessor, StreamingOptions};
+
+// Re-export streaming types
+pub use streaming::{
+    StreamingDocument, StreamingOptions as StreamOptions, StreamingPage,
+    ChunkProcessor, ChunkOptions, ChunkType, ContentChunk,
+    IncrementalParser, ParseEvent,
+    TextStreamer, TextStreamOptions, TextChunk,
+    process_in_chunks, stream_text,
+};
+
+// Re-export batch processing types
+pub use batch::{
+    BatchProcessor, BatchOptions, BatchJob, JobType, JobStatus,
+    BatchProgress, ProgressCallback, ProgressInfo,
+    BatchResult, JobResult, BatchSummary,
+    batch_process_files, batch_split_pdfs, batch_merge_pdfs,
+};
+
+// Re-export recovery types
+pub use recovery::{
+    RecoveryOptions, PdfRecovery, PartialRecovery, RecoveredPage,
+    CorruptionType, CorruptionReport, detect_corruption,
+    RepairStrategy, RepairResult, repair_document,
+    ObjectScanner, ScanResult,
+    ValidationError, ValidationResult, validate_pdf,
+    quick_recover, analyze_corruption,
+};
 
 /// Current version of oxidize-pdf
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

@@ -15,6 +15,8 @@ pub struct GraphicsContext {
     current_color: Color,
     stroke_color: Color,
     line_width: f64,
+    fill_opacity: f64,
+    stroke_opacity: f64,
 }
 
 impl Default for GraphicsContext {
@@ -30,6 +32,8 @@ impl GraphicsContext {
             current_color: Color::black(),
             stroke_color: Color::black(),
             line_width: 1.0,
+            fill_opacity: 1.0,
+            stroke_opacity: 1.0,
         }
     }
 
@@ -120,6 +124,26 @@ impl GraphicsContext {
 
     pub fn set_line_join(&mut self, join: LineJoin) -> &mut Self {
         writeln!(&mut self.operations, "{} j", join as u8).unwrap();
+        self
+    }
+
+    /// Set the opacity for both fill and stroke operations (0.0 to 1.0)
+    pub fn set_opacity(&mut self, opacity: f64) -> &mut Self {
+        let opacity = opacity.clamp(0.0, 1.0);
+        self.fill_opacity = opacity;
+        self.stroke_opacity = opacity;
+        self
+    }
+
+    /// Set the fill opacity (0.0 to 1.0)
+    pub fn set_fill_opacity(&mut self, opacity: f64) -> &mut Self {
+        self.fill_opacity = opacity.clamp(0.0, 1.0);
+        self
+    }
+
+    /// Set the stroke opacity (0.0 to 1.0)
+    pub fn set_stroke_opacity(&mut self, opacity: f64) -> &mut Self {
+        self.stroke_opacity = opacity.clamp(0.0, 1.0);
         self
     }
 
@@ -228,6 +252,31 @@ impl GraphicsContext {
         Ok(self.operations.as_bytes().to_vec())
     }
     
+    /// Check if transparency is used (opacity != 1.0)
+    pub fn uses_transparency(&self) -> bool {
+        self.fill_opacity < 1.0 || self.stroke_opacity < 1.0
+    }
+    
+    /// Generate the graphics state dictionary for transparency
+    pub fn generate_graphics_state_dict(&self) -> Option<String> {
+        if !self.uses_transparency() {
+            return None;
+        }
+        
+        let mut dict = String::from("<< /Type /ExtGState");
+        
+        if self.fill_opacity < 1.0 {
+            write!(&mut dict, " /ca {:.3}", self.fill_opacity).unwrap();
+        }
+        
+        if self.stroke_opacity < 1.0 {
+            write!(&mut dict, " /CA {:.3}", self.stroke_opacity).unwrap();
+        }
+        
+        dict.push_str(" >>");
+        Some(dict)
+    }
+    
     /// Get the current fill color
     pub fn fill_color(&self) -> Color {
         self.current_color
@@ -241,6 +290,16 @@ impl GraphicsContext {
     /// Get the current line width
     pub fn line_width(&self) -> f64 {
         self.line_width
+    }
+    
+    /// Get the current fill opacity
+    pub fn fill_opacity(&self) -> f64 {
+        self.fill_opacity
+    }
+    
+    /// Get the current stroke opacity
+    pub fn stroke_opacity(&self) -> f64 {
+        self.stroke_opacity
     }
     
     /// Get the operations string
@@ -264,6 +323,8 @@ mod tests {
         assert_eq!(ctx.fill_color(), Color::black());
         assert_eq!(ctx.stroke_color(), Color::black());
         assert_eq!(ctx.line_width(), 1.0);
+        assert_eq!(ctx.fill_opacity(), 1.0);
+        assert_eq!(ctx.stroke_opacity(), 1.0);
         assert!(ctx.operations().is_empty());
     }
     
@@ -571,12 +632,130 @@ mod tests {
         ctx.set_fill_color(Color::red());
         ctx.set_stroke_color(Color::blue());
         ctx.set_line_width(3.0);
+        ctx.set_opacity(0.5);
         ctx.rect(0.0, 0.0, 10.0, 10.0);
         
         let ctx_clone = ctx.clone();
         assert_eq!(ctx_clone.fill_color(), Color::red());
         assert_eq!(ctx_clone.stroke_color(), Color::blue());
         assert_eq!(ctx_clone.line_width(), 3.0);
+        assert_eq!(ctx_clone.fill_opacity(), 0.5);
+        assert_eq!(ctx_clone.stroke_opacity(), 0.5);
         assert_eq!(ctx_clone.operations(), ctx.operations());
+    }
+    
+    #[test]
+    fn test_set_opacity() {
+        let mut ctx = GraphicsContext::new();
+        
+        // Test setting opacity
+        ctx.set_opacity(0.5);
+        assert_eq!(ctx.fill_opacity(), 0.5);
+        assert_eq!(ctx.stroke_opacity(), 0.5);
+        
+        // Test clamping to valid range
+        ctx.set_opacity(1.5);
+        assert_eq!(ctx.fill_opacity(), 1.0);
+        assert_eq!(ctx.stroke_opacity(), 1.0);
+        
+        ctx.set_opacity(-0.5);
+        assert_eq!(ctx.fill_opacity(), 0.0);
+        assert_eq!(ctx.stroke_opacity(), 0.0);
+    }
+    
+    #[test]
+    fn test_set_fill_opacity() {
+        let mut ctx = GraphicsContext::new();
+        
+        ctx.set_fill_opacity(0.3);
+        assert_eq!(ctx.fill_opacity(), 0.3);
+        assert_eq!(ctx.stroke_opacity(), 1.0); // Should not affect stroke
+        
+        // Test clamping
+        ctx.set_fill_opacity(2.0);
+        assert_eq!(ctx.fill_opacity(), 1.0);
+    }
+    
+    #[test]
+    fn test_set_stroke_opacity() {
+        let mut ctx = GraphicsContext::new();
+        
+        ctx.set_stroke_opacity(0.7);
+        assert_eq!(ctx.stroke_opacity(), 0.7);
+        assert_eq!(ctx.fill_opacity(), 1.0); // Should not affect fill
+        
+        // Test clamping
+        ctx.set_stroke_opacity(-1.0);
+        assert_eq!(ctx.stroke_opacity(), 0.0);
+    }
+    
+    #[test]
+    fn test_uses_transparency() {
+        let mut ctx = GraphicsContext::new();
+        
+        // Initially no transparency
+        assert!(!ctx.uses_transparency());
+        
+        // With fill transparency
+        ctx.set_fill_opacity(0.5);
+        assert!(ctx.uses_transparency());
+        
+        // Reset and test stroke transparency
+        ctx.set_fill_opacity(1.0);
+        assert!(!ctx.uses_transparency());
+        ctx.set_stroke_opacity(0.8);
+        assert!(ctx.uses_transparency());
+        
+        // Both transparent
+        ctx.set_fill_opacity(0.5);
+        assert!(ctx.uses_transparency());
+    }
+    
+    #[test]
+    fn test_generate_graphics_state_dict() {
+        let mut ctx = GraphicsContext::new();
+        
+        // No transparency
+        assert_eq!(ctx.generate_graphics_state_dict(), None);
+        
+        // Fill opacity only
+        ctx.set_fill_opacity(0.5);
+        let dict = ctx.generate_graphics_state_dict().unwrap();
+        assert!(dict.contains("/Type /ExtGState"));
+        assert!(dict.contains("/ca 0.500"));
+        assert!(!dict.contains("/CA"));
+        
+        // Stroke opacity only
+        ctx.set_fill_opacity(1.0);
+        ctx.set_stroke_opacity(0.75);
+        let dict = ctx.generate_graphics_state_dict().unwrap();
+        assert!(dict.contains("/Type /ExtGState"));
+        assert!(dict.contains("/CA 0.750"));
+        assert!(!dict.contains("/ca"));
+        
+        // Both opacities
+        ctx.set_fill_opacity(0.25);
+        let dict = ctx.generate_graphics_state_dict().unwrap();
+        assert!(dict.contains("/Type /ExtGState"));
+        assert!(dict.contains("/ca 0.250"));
+        assert!(dict.contains("/CA 0.750"));
+    }
+    
+    #[test]
+    fn test_opacity_with_graphics_operations() {
+        let mut ctx = GraphicsContext::new();
+        
+        ctx.set_fill_color(Color::red())
+            .set_opacity(0.5)
+            .rect(10.0, 10.0, 100.0, 100.0)
+            .fill();
+        
+        assert_eq!(ctx.fill_opacity(), 0.5);
+        assert_eq!(ctx.stroke_opacity(), 0.5);
+        
+        let ops = ctx.operations();
+        assert!(ops.contains("10.00 10.00 100.00 100.00 re"));
+        assert!(ops.contains("1.000 0.000 0.000 rg")); // Red color
+        assert!(ops.contains("f")); // Fill
     }
 }

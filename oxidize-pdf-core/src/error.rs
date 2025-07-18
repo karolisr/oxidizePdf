@@ -22,6 +22,27 @@ pub enum PdfError {
 
     #[error("Invalid image: {0}")]
     InvalidImage(String),
+    
+    #[error("Invalid object reference: {0} {1} R")]
+    InvalidObjectReference(u32, u16),
+    
+    #[error("Parse error: {0}")]
+    ParseError(String),
+    
+    #[error("Invalid page number: {0}")]
+    InvalidPageNumber(u32),
+    
+    #[error("Invalid format: {0}")]
+    InvalidFormat(String),
+    
+    #[error("Invalid header")]
+    InvalidHeader,
+    
+    #[error("Content stream too large: {0} bytes")]
+    ContentStreamTooLarge(usize),
+    
+    #[error("Operation cancelled")]
+    OperationCancelled,
 }
 
 pub type Result<T> = std::result::Result<T, PdfError>;
@@ -81,18 +102,22 @@ mod tests {
     fn test_all_pdf_error_variants() {
         let errors = vec![
             PdfError::InvalidStructure("structure error".to_string()),
-            PdfError::InvalidReference("ref error".to_string()),
+            PdfError::InvalidObjectReference(1, 0),
             PdfError::EncodingError("encoding error".to_string()),
             PdfError::FontError("font error".to_string()),
             PdfError::CompressionError("compression error".to_string()),
             PdfError::InvalidImage("image error".to_string()),
+            PdfError::ParseError("parse error".to_string()),
+            PdfError::InvalidPageNumber(999),
+            PdfError::InvalidFormat("format error".to_string()),
+            PdfError::InvalidHeader,
+            PdfError::ContentStreamTooLarge(1024 * 1024),
         ];
 
         // Test that all variants can be created and displayed
         for error in errors {
             let error_string = error.to_string();
             assert!(!error_string.is_empty());
-            assert!(error_string.contains("error"));
         }
     }
 
@@ -166,7 +191,7 @@ mod tests {
             ("Invalid PDF structure: corrupted header", 
              PdfError::InvalidStructure("corrupted header".to_string())),
             ("Invalid object reference: 999 0 R", 
-             PdfError::InvalidReference("999 0 R".to_string())),
+             PdfError::InvalidObjectReference(999, 0)),
             ("Encoding error: unsupported encoding", 
              PdfError::EncodingError("unsupported encoding".to_string())),
             ("Font error: missing font", 
@@ -214,11 +239,16 @@ mod tests {
         // Test creating errors with string messages
         let errors = vec![
             PdfError::InvalidStructure("test".to_string()),
-            PdfError::InvalidReference("ref".to_string()),
+            PdfError::InvalidObjectReference(1, 0),
             PdfError::EncodingError("encoding".to_string()),
             PdfError::FontError("font".to_string()),
             PdfError::CompressionError("compression".to_string()),
             PdfError::InvalidImage("image".to_string()),
+            PdfError::ParseError("parse".to_string()),
+            PdfError::InvalidPageNumber(1),
+            PdfError::InvalidFormat("format".to_string()),
+            PdfError::InvalidHeader,
+            PdfError::ContentStreamTooLarge(1024),
         ];
         
         // Verify each error can be created and has the expected message structure
