@@ -379,7 +379,8 @@ mod integration_tests {
              Content-Disposition: form-data; name=\"other\"\r\n\
              \r\n\
              Some data\r\n\
-             ------boundary------\r\n".to_string();
+             ------boundary------\r\n"
+            .to_string();
 
         let response = app
             .oneshot(

@@ -138,6 +138,11 @@ impl Document {
         self.metadata.modification_date = Some(Utc::now());
     }
 
+    /// Gets the number of pages in the document.
+    pub fn page_count(&self) -> usize {
+        self.pages.len()
+    }
+
     /// Saves the document to a file.
     ///
     /// # Errors

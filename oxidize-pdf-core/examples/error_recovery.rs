@@ -151,9 +151,9 @@ fn example_basic_recovery() -> Result<(), Box<dyn std::error::Error>> {
     println!("Attempting to recover 'no_eof.pdf'...");
 
     match recovery.recover_document("output/recovery/no_eof.pdf") {
-        Ok(doc) => {
+        Ok(mut doc) => {
             println!("✓ Recovery successful!");
-            println!("  - Pages recovered: {}", doc.pages.len());
+            println!("  - Pages recovered: {}", doc.page_count());
 
             // Save recovered document
             doc.save("output/recovery/no_eof_recovered.pdf")?;
@@ -299,7 +299,6 @@ fn example_aggressive_recovery() -> Result<(), Box<dyn std::error::Error>> {
     let options = RecoveryOptions::default()
         .with_aggressive_recovery(true)
         .with_partial_content(true)
-        .with_rebuild_xref(true)
         .with_max_errors(200);
 
     let mut recovery = PdfRecovery::new(options);
@@ -307,9 +306,9 @@ fn example_aggressive_recovery() -> Result<(), Box<dyn std::error::Error>> {
     println!("Attempting aggressive recovery...");
 
     match recovery.recover_document("output/recovery/heavily_corrupted.pdf") {
-        Ok(doc) => {
+        Ok(mut doc) => {
             println!("✓ Aggressive recovery succeeded!");
-            println!("  - Pages: {}", doc.pages.len());
+            println!("  - Pages: {}", doc.page_count());
             doc.save("output/recovery/aggressive_recovered.pdf")?;
             println!("  - Saved as: aggressive_recovered.pdf");
         }

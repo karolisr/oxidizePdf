@@ -63,16 +63,14 @@ pub fn repair_document<P: AsRef<Path>>(
 ) -> Result<RepairResult> {
     let path = path.as_ref();
 
-    let result = match strategy {
+    match strategy {
         RepairStrategy::RebuildXRef => rebuild_xref(path, options),
         RepairStrategy::FixStructure => fix_structure(path, options),
         RepairStrategy::ExtractContent => extract_content(path, options),
         RepairStrategy::ReconstructFragments => reconstruct_fragments(path, options),
         RepairStrategy::MinimalRepair => minimal_repair(path, options),
         RepairStrategy::AggressiveRepair => aggressive_repair(path, options),
-    };
-
-    result
+    }
 }
 
 fn rebuild_xref<P: AsRef<Path>>(path: P, _options: &RecoveryOptions) -> Result<RepairResult> {
@@ -236,7 +234,7 @@ fn reconstruct_fragments<P: AsRef<Path>>(
 
     let mut doc = Document::new();
 
-    for (_i, fragment) in fragments.iter().enumerate() {
+    for fragment in fragments.iter() {
         if fragment.looks_like_page() {
             let page = Page::a4();
             doc.add_page(page);

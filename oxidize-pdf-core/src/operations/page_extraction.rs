@@ -348,8 +348,7 @@ pub fn extract_page_to_file<P: AsRef<Path>, Q: AsRef<Path>>(
     output_path: Q,
 ) -> OperationResult<()> {
     let mut doc = extract_page(input_path, page_index)?;
-    doc.save(output_path)
-        .map_err(|e| OperationError::PdfError(e))
+    doc.save(output_path).map_err(OperationError::PdfError)
 }
 
 /// Extract multiple pages from a PDF file and save them
@@ -359,8 +358,7 @@ pub fn extract_pages_to_file<P: AsRef<Path>, Q: AsRef<Path>>(
     output_path: Q,
 ) -> OperationResult<()> {
     let mut doc = extract_pages(input_path, page_indices)?;
-    doc.save(output_path)
-        .map_err(|e| OperationError::PdfError(e))
+    doc.save(output_path).map_err(OperationError::PdfError)
 }
 
 /// Extract a page range from a PDF file and save it
@@ -370,8 +368,7 @@ pub fn extract_page_range_to_file<P: AsRef<Path>, Q: AsRef<Path>>(
     output_path: Q,
 ) -> OperationResult<()> {
     let mut doc = extract_page_range(input_path, range)?;
-    doc.save(output_path)
-        .map_err(|e| OperationError::PdfError(e))
+    doc.save(output_path).map_err(OperationError::PdfError)
 }
 
 #[cfg(test)]

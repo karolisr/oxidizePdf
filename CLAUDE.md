@@ -5,6 +5,38 @@
 - Before pushing changes to origin, ensure all tests pass successfully
 - Aim for 95% coverage of documentation, unit tests, and integration tests, with a minimum acceptable threshold of 80%
 
+## CI/CD Pipeline Guidelines
+
+### Pre-commit Validation
+- Siempre ejecutar `cargo fmt --all` antes de commit
+- Verificar `cargo clippy --all -- -D warnings`
+- Validar tests locales con `cargo test --workspace`
+
+### Patrones de Error Comunes
+- Usar `std::io::Error::other()` en lugar de `Error::new(ErrorKind::Other, _)`
+- Evitar `.clone()` en tipos Copy (usar `*` para dereferenciar)
+- Preferir `.values()` sobre iteración `(_, value)` en maps
+- Usar `#[allow(dead_code)]` para features futuras planificadas
+
+### Comandos de Desarrollo
+- Build completo: `cargo build --workspace`
+- Tests completos: `cargo test --workspace`
+- Clippy estricto: `cargo clippy --all -- -D warnings`
+- Formato: `cargo fmt --all`
+
+### Troubleshooting CI/CD
+- Si fallan pipelines, ejecutar comandos localmente primero
+- Verificar que branch coincide con configuración CI (development/main)
+- Revisar logs específicos de GitHub Actions para errores detallados
+
+## Lecciones Aprendidas - Session 18/07/2025
+
+### Resolución de Pipelines CI/CD
+- Identificados patrones críticos de clippy que causan fallos
+- Implementados fixes automáticos para errores de formato
+- Documentados patrones comunes para prevención futura
+- Establecido workflow de validación local pre-commit
+
 ## Project Status - Session 18/07/2025 - Community Features Implementation
 
 ### Completed Today (Part 2) ✅

@@ -54,8 +54,15 @@ enum ParserState {
 pub struct IncrementalParser {
     state: ParserState,
     buffer: String,
+    #[allow(dead_code)]
     line_buffer: String,
     events: Vec<ParseEvent>,
+}
+
+impl Default for IncrementalParser {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl IncrementalParser {

@@ -93,6 +93,12 @@ pub struct BatchProgress {
     start_time: Instant,
 }
 
+impl Default for BatchProgress {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BatchProgress {
     /// Create a new progress tracker
     pub fn new() -> Self {
@@ -242,7 +248,7 @@ mod tests {
 
     #[test]
     fn test_progress_info() {
-        let mut info = ProgressInfo {
+        let info = ProgressInfo {
             total_jobs: 100,
             completed_jobs: 25,
             failed_jobs: 5,
@@ -254,12 +260,12 @@ mod tests {
 
         assert_eq!(info.percentage(), 25.0);
         assert!(!info.is_complete());
-        assert!(info.elapsed().as_millis() >= 0);
+        assert!(info.elapsed().as_millis() < u128::MAX); // Just check it's valid
     }
 
     #[test]
     fn test_progress_info_formatting() {
-        let mut info = ProgressInfo {
+        let info = ProgressInfo {
             total_jobs: 100,
             completed_jobs: 50,
             failed_jobs: 10,
@@ -312,7 +318,7 @@ mod tests {
     fn test_progress_bar() {
         let bar = ProgressBar::new(20);
 
-        let mut info = ProgressInfo {
+        let info = ProgressInfo {
             total_jobs: 100,
             completed_jobs: 50,
             failed_jobs: 0,
@@ -342,7 +348,7 @@ mod tests {
             called_clone.store(true, Ordering::SeqCst);
         };
 
-        let mut info = ProgressInfo {
+        let info = ProgressInfo {
             total_jobs: 1,
             completed_jobs: 1,
             failed_jobs: 0,
@@ -358,7 +364,7 @@ mod tests {
 
     #[test]
     fn test_eta_calculation() {
-        let mut info = ProgressInfo {
+        let info = ProgressInfo {
             total_jobs: 100,
             completed_jobs: 25,
             failed_jobs: 0,

@@ -249,19 +249,11 @@ impl Worker {
                         if let Some(_timeout) = job_timeout {
                             // In a real implementation, we'd use a timeout mechanism
                             // For now, just execute normally
-                            match job {
-                                BatchJob::Custom { operation, .. } => {
-                                    let _ = operation();
-                                }
-                                _ => {}
+                            if let BatchJob::Custom { operation, .. } = job {
+                                let _ = operation();
                             }
-                        } else {
-                            match job {
-                                BatchJob::Custom { operation, .. } => {
-                                    let _ = operation();
-                                }
-                                _ => {}
-                            }
+                        } else if let BatchJob::Custom { operation, .. } = job {
+                            let _ = operation();
                         }
                     }
                     Ok(WorkerMessage::Shutdown) => break,
@@ -309,7 +301,7 @@ fn execute_job(job: BatchJob) -> std::result::Result<Vec<PathBuf>, PdfError> {
         BatchJob::Merge { inputs, output } => {
             let merge_inputs: Vec<_> = inputs
                 .into_iter()
-                .map(|path| crate::operations::MergeInput::new(path))
+                .map(crate::operations::MergeInput::new)
                 .collect();
             let options = crate::operations::MergeOptions::default();
             merge_pdfs(merge_inputs, &output, options)

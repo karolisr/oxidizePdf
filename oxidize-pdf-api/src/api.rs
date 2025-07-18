@@ -266,15 +266,17 @@ pub async fn merge_pdfs_handler(mut multipart: Multipart) -> Result<Response, Ap
 
     for (i, file_data) in pdf_files.iter().enumerate() {
         let temp_file = NamedTempFile::new().map_err(|e| {
-            AppError::Io(std::io::Error::other(
-                format!("Failed to create temp file {}: {e}", i),
-            ))
+            AppError::Io(std::io::Error::other(format!(
+                "Failed to create temp file {}: {e}",
+                i
+            )))
         })?;
 
         std::fs::write(temp_file.path(), file_data).map_err(|e| {
-            AppError::Io(std::io::Error::other(
-                format!("Failed to write temp file {}: {e}", i),
-            ))
+            AppError::Io(std::io::Error::other(format!(
+                "Failed to write temp file {}: {e}",
+                i
+            )))
         })?;
 
         merge_inputs.push(MergeInput::new(temp_file.path()));
@@ -283,9 +285,9 @@ pub async fn merge_pdfs_handler(mut multipart: Multipart) -> Result<Response, Ap
 
     // Create temporary output file
     let output_temp_file = NamedTempFile::new().map_err(|e| {
-        AppError::Io(std::io::Error::other(
-            format!("Failed to create output temp file: {e}"),
-        ))
+        AppError::Io(std::io::Error::other(format!(
+            "Failed to create output temp file: {e}"
+        )))
     })?;
 
     // Perform merge
@@ -294,9 +296,9 @@ pub async fn merge_pdfs_handler(mut multipart: Multipart) -> Result<Response, Ap
 
     // Read output file
     let output_data = std::fs::read(output_temp_file.path()).map_err(|e| {
-        AppError::Io(std::io::Error::other(
-            format!("Failed to read output file: {e}"),
-        ))
+        AppError::Io(std::io::Error::other(format!(
+            "Failed to read output file: {e}"
+        )))
     })?;
 
     let response = MergePdfResponse {

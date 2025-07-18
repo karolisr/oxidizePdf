@@ -366,7 +366,9 @@ impl TextExtractor {
 
         for fragment in fragments.iter_mut() {
             let fragment_y = fragment.y;
-            if (last_y - fragment_y).abs() > self.options.newline_threshold && !current_line.is_empty() {
+            if (last_y - fragment_y).abs() > self.options.newline_threshold
+                && !current_line.is_empty()
+            {
                 lines.push(current_line);
                 current_line = Vec::new();
             }

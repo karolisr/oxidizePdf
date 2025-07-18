@@ -59,7 +59,7 @@ fn create_sample_pdfs() -> Result<(), Box<dyn std::error::Error>> {
 
             // Add some graphics
             page.graphics()
-                .set_fill_color(Color::rgb(0.2 * i as f32, 0.1, 0.8))
+                .set_fill_color(Color::rgb((0.2 * i as f32) as f64, 0.1, 0.8))
                 .rectangle(50.0, 600.0, 200.0, 100.0)
                 .fill();
 
@@ -195,7 +195,7 @@ fn example_custom_batch() -> Result<(), Box<dyn std::error::Error>> {
                 let num_pages = 4; // Each sample has 4 pages
                 total_clone.fetch_add(num_pages, Ordering::SeqCst);
 
-                for page in 1..=num_pages {
+                for _page in 1..=num_pages {
                     // Simulate processing each page
                     std::thread::sleep(Duration::from_millis(50));
                     processed_clone.fetch_add(1, Ordering::SeqCst);

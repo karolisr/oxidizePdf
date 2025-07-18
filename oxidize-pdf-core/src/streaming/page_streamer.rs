@@ -12,7 +12,9 @@ pub struct StreamingPage {
     pub(crate) number: u32,
     pub(crate) width: f64,
     pub(crate) height: f64,
+    #[allow(dead_code)]
     pub(crate) content_offset: u64,
+    #[allow(dead_code)]
     pub(crate) content_length: usize,
 }
 
@@ -57,9 +59,11 @@ impl StreamingPage {
 
 /// Streams pages from a PDF document
 pub struct PageStreamer<R: Read + Seek> {
+    #[allow(dead_code)]
     reader: R,
     current_page: u32,
     total_pages: Option<u32>,
+    #[allow(dead_code)]
     buffer: Vec<u8>,
 }
 
@@ -75,6 +79,7 @@ impl<R: Read + Seek> PageStreamer<R> {
     }
 
     /// Get the next page in the stream
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Result<Option<StreamingPage>> {
         // In a real implementation, this would parse the next page
         if self.current_page >= 3 {
