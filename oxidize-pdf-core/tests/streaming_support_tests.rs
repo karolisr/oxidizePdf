@@ -1,11 +1,8 @@
 //! Integration tests for streaming support features
 
 use oxidize_pdf::{
-    StreamingDocument, StreamOptions, StreamingPage,
-    ChunkProcessor, ChunkOptions, ChunkType,
-    IncrementalParser, ParseEvent,
-    TextStreamer, TextStreamOptions,
-    process_in_chunks, stream_text,
+    process_in_chunks, stream_text, ChunkOptions, ChunkProcessor, ChunkType, IncrementalParser,
+    ParseEvent, StreamOptions, StreamingDocument, StreamingPage, TextStreamOptions, TextStreamer,
 };
 use std::io::Cursor;
 
@@ -14,7 +11,7 @@ fn test_streaming_document_basic() {
     let data = b"%PDF-1.7\n";
     let cursor = Cursor::new(data);
     let options = StreamOptions::default();
-    
+
     let doc = StreamingDocument::new(cursor, options);
     assert!(doc.is_ok());
 }
@@ -24,9 +21,9 @@ fn test_streaming_document_pages() {
     let data = b"%PDF-1.7\n";
     let cursor = Cursor::new(data);
     let options = StreamOptions::default();
-    
+
     let mut doc = StreamingDocument::new(cursor, options).unwrap();
-    
+
     // Process up to 5 pages
     let mut page_count = 0;
     for _ in 0..5 {
@@ -39,7 +36,7 @@ fn test_streaming_document_pages() {
             Err(_) => panic!("Error processing page"),
         }
     }
-    
+
     assert!(page_count > 0);
 }
 
@@ -50,7 +47,7 @@ fn test_streaming_options_profiles() {
     assert_eq!(minimal.buffer_size, 64 * 1024);
     assert_eq!(minimal.page_cache_size, 1);
     assert_eq!(minimal.memory_limit, 10 * 1024 * 1024);
-    
+
     // Test fast processing profile
     let fast = oxidize_pdf::streaming::StreamingOptions::fast_processing();
     assert_eq!(fast.buffer_size, 1024 * 1024);
@@ -61,21 +58,23 @@ fn test_streaming_options_profiles() {
 #[test]
 fn test_incremental_parser() {
     let mut parser = IncrementalParser::new();
-    
+
     // Feed PDF header
     parser.feed(b"%PDF-1.7\n").unwrap();
     let events = parser.take_events();
-    
+
     assert_eq!(events.len(), 1);
     match &events[0] {
         ParseEvent::Header { version } => assert_eq!(version, "1.7"),
         _ => panic!("Expected Header event"),
     }
-    
+
     // Feed object
-    parser.feed(b"1 0 obj\n<< /Type /Catalog >>\nendobj\n").unwrap();
+    parser
+        .feed(b"1 0 obj\n<< /Type /Catalog >>\nendobj\n")
+        .unwrap();
     let events = parser.take_events();
-    
+
     assert!(events.len() >= 2);
     assert!(matches!(events[0], ParseEvent::ObjectStart { .. }));
 }
@@ -86,13 +85,13 @@ fn test_chunk_processor() {
         max_chunk_size: 50,
         ..Default::default()
     };
-    
+
     let mut processor = ChunkProcessor::new(options);
-    
+
     // Process text content
     let content = b"BT /F1 12 Tf 100 700 Td (This is a long text that should be chunked) Tj ET";
     let chunks = processor.process_content(content).unwrap();
-    
+
     assert!(chunks.len() > 1); // Should be split into multiple chunks
     assert!(chunks.iter().all(|c| c.size <= 50));
     assert!(chunks[0].chunk_type == ChunkType::Text);
@@ -102,13 +101,13 @@ fn test_chunk_processor() {
 fn test_text_streamer() {
     let options = TextStreamOptions::default();
     let mut streamer = TextStreamer::new(options);
-    
+
     // Process text content
     let content = b"BT /F1 14 Tf 100 700 Td (Hello) Tj ET \
                     BT /F1 12 Tf 100 650 Td (World) Tj ET";
-    
+
     let chunks = streamer.process_chunk(content).unwrap();
-    
+
     assert_eq!(chunks.len(), 2);
     assert_eq!(chunks[0].text, "Hello");
     assert_eq!(chunks[0].font_size, 14.0);
@@ -120,14 +119,20 @@ fn test_text_streamer() {
 fn test_text_extraction_sorted() {
     let mut options = TextStreamOptions::default();
     options.sort_by_position = true;
-    
+
     let mut streamer = TextStreamer::new(options);
-    
+
     // Add text in reverse order (bottom to top)
-    streamer.process_chunk(b"BT /F1 12 Tf 100 100 Td (Bottom) Tj ET").unwrap();
-    streamer.process_chunk(b"BT /F1 12 Tf 100 400 Td (Middle) Tj ET").unwrap();
-    streamer.process_chunk(b"BT /F1 12 Tf 100 700 Td (Top) Tj ET").unwrap();
-    
+    streamer
+        .process_chunk(b"BT /F1 12 Tf 100 100 Td (Bottom) Tj ET")
+        .unwrap();
+    streamer
+        .process_chunk(b"BT /F1 12 Tf 100 400 Td (Middle) Tj ET")
+        .unwrap();
+    streamer
+        .process_chunk(b"BT /F1 12 Tf 100 700 Td (Top) Tj ET")
+        .unwrap();
+
     let text = streamer.extract_text();
     assert_eq!(text, "Top Middle Bottom");
 }
@@ -136,19 +141,20 @@ fn test_text_extraction_sorted() {
 fn test_process_in_chunks_callback() {
     let data = b"BT /F1 12 Tf (Text content) Tj ET";
     let cursor = Cursor::new(data);
-    
+
     let options = ChunkOptions {
         buffer_size: 10, // Small buffer to force multiple reads
         ..Default::default()
     };
-    
+
     let mut chunk_count = 0;
     process_in_chunks(cursor, options, |chunk| {
         chunk_count += 1;
         assert!(!chunk.data.is_empty());
         Ok(())
-    }).unwrap();
-    
+    })
+    .unwrap();
+
     assert!(chunk_count > 0);
 }
 
@@ -157,13 +163,14 @@ fn test_stream_text_callback() {
     let stream1 = b"BT /F1 12 Tf 100 700 Td (First) Tj ET".to_vec();
     let stream2 = b"BT /F1 14 Tf 100 650 Td (Second) Tj ET".to_vec();
     let streams = vec![stream1, stream2];
-    
+
     let mut collected_text = Vec::new();
     stream_text(streams, |chunk| {
         collected_text.push(chunk.text);
         Ok(())
-    }).unwrap();
-    
+    })
+    .unwrap();
+
     assert_eq!(collected_text.len(), 2);
     assert_eq!(collected_text[0], "First");
     assert_eq!(collected_text[1], "Second");
@@ -173,17 +180,16 @@ fn test_stream_text_callback() {
 fn test_memory_management() {
     let data = b"%PDF-1.7\n";
     let cursor = Cursor::new(data);
-    
-    let options = StreamOptions::default()
-        .with_memory_limit(1024); // Very low limit
-    
+
+    let options = StreamOptions::default().with_memory_limit(1024); // Very low limit
+
     let mut doc = StreamingDocument::new(cursor, options).unwrap();
-    
+
     // Process multiple pages
     for _ in 0..10 {
         let _ = doc.next_page();
     }
-    
+
     // Memory usage should be controlled
     assert!(doc.memory_usage() <= 2048); // Allow some overhead
 }
@@ -192,12 +198,11 @@ fn test_memory_management() {
 fn test_page_cache_eviction() {
     let data = b"%PDF-1.7\n";
     let cursor = Cursor::new(data);
-    
-    let options = StreamOptions::default()
-        .with_page_cache_size(2); // Only cache 2 pages
-    
+
+    let options = StreamOptions::default().with_page_cache_size(2); // Only cache 2 pages
+
     let mut doc = StreamingDocument::new(cursor, options).unwrap();
-    
+
     // Process 5 pages
     let mut pages = Vec::new();
     for _ in 0..5 {
@@ -205,7 +210,7 @@ fn test_page_cache_eviction() {
             pages.push(page.number());
         }
     }
-    
+
     // Clear cache and verify it works
     doc.clear_cache();
     assert_eq!(doc.memory_usage(), 0);
@@ -215,14 +220,14 @@ fn test_page_cache_eviction() {
 fn test_chunk_type_filtering() {
     let mut options = ChunkOptions::default();
     options.chunk_types = vec![ChunkType::Image]; // Only process images
-    
+
     let mut processor = ChunkProcessor::new(options);
-    
+
     // Text content should be filtered out
     let text_content = b"BT /F1 12 Tf (Text) Tj ET";
     let text_chunks = processor.process_content(text_content).unwrap();
     assert_eq!(text_chunks.len(), 0);
-    
+
     // Image content should be processed
     let image_content = b"\xFF\xD8\xFF\xE0"; // JPEG header
     let image_chunks = processor.process_content(image_content).unwrap();
@@ -239,14 +244,14 @@ fn test_streaming_page_methods() {
         content_offset: 1024,
         content_length: 2048,
     };
-    
+
     assert_eq!(page.number(), 5);
     assert_eq!(page.width(), 612.0);
     assert_eq!(page.height(), 792.0);
-    
+
     let media_box = page.media_box();
     assert_eq!(media_box, [0.0, 0.0, 612.0, 792.0]);
-    
+
     let text = page.extract_text_streaming().unwrap();
     assert!(text.contains("page 6")); // 0-indexed, so page 5 is "page 6"
 }
@@ -255,14 +260,14 @@ fn test_streaming_page_methods() {
 fn test_text_chunk_with_font_filter() {
     let mut options = TextStreamOptions::default();
     options.min_font_size = 12.0;
-    
+
     let mut streamer = TextStreamer::new(options);
-    
+
     // Small font - should be filtered
     let small = b"BT /F1 8 Tf 100 700 Td (Small) Tj ET";
     let small_chunks = streamer.process_chunk(small).unwrap();
     assert_eq!(small_chunks.len(), 0);
-    
+
     // Large font - should pass
     let large = b"BT /F1 16 Tf 100 650 Td (Large) Tj ET";
     let large_chunks = streamer.process_chunk(large).unwrap();

@@ -4,7 +4,7 @@
 mod tests {
     use super::super::api::*;
     use axum::{
-        body::{Body, to_bytes},
+        body::{to_bytes, Body},
         http::{Request, StatusCode},
     };
     use serde_json::json;
@@ -56,7 +56,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        
+
         let content_type = response
             .headers()
             .get("content-type")
@@ -67,7 +67,10 @@ mod tests {
             .headers()
             .get("content-disposition")
             .and_then(|v| v.to_str().ok());
-        assert_eq!(content_disposition, Some("attachment; filename=\"generated.pdf\""));
+        assert_eq!(
+            content_disposition,
+            Some("attachment; filename=\"generated.pdf\"")
+        );
 
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         assert!(!body.is_empty());
@@ -97,7 +100,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        
+
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         assert!(!body.is_empty());
         assert!(body.starts_with(b"%PDF"));
@@ -125,7 +128,7 @@ mod tests {
 
         // Should still succeed with empty text
         assert_eq!(response.status(), StatusCode::OK);
-        
+
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         assert!(body.starts_with(b"%PDF"));
     }
@@ -181,7 +184,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        
+
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         assert!(body.starts_with(b"%PDF"));
     }
@@ -253,7 +256,10 @@ mod tests {
 
         // Should handle negative font size gracefully (might succeed or return error)
         // For now, just check that we get a response
-        assert!(response.status() == StatusCode::OK || response.status() == StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(
+            response.status() == StatusCode::OK
+                || response.status() == StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 
     #[tokio::test]
@@ -273,7 +279,10 @@ mod tests {
                 Request::builder()
                     .uri("/api/extract")
                     .method("POST")
-                    .header("content-type", format!("multipart/form-data; boundary={boundary}"))
+                    .header(
+                        "content-type",
+                        format!("multipart/form-data; boundary={boundary}"),
+                    )
                     .body(Body::from(body))
                     .unwrap(),
             )
@@ -281,12 +290,16 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-        
+
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert!(json["error"].is_string());
         let error_msg = json["error"].as_str().unwrap();
-        assert!(error_msg.contains("No file provided"), "Error was: {}", error_msg);
+        assert!(
+            error_msg.contains("No file provided"),
+            "Error was: {}",
+            error_msg
+        );
     }
 
     #[tokio::test]
@@ -307,7 +320,10 @@ mod tests {
                 Request::builder()
                     .uri("/api/extract")
                     .method("POST")
-                    .header("content-type", format!("multipart/form-data; boundary={boundary}"))
+                    .header(
+                        "content-type",
+                        format!("multipart/form-data; boundary={boundary}"),
+                    )
                     .body(Body::from(body))
                     .unwrap(),
             )
@@ -315,12 +331,16 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-        
+
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert!(json["error"].is_string());
         let error_msg = json["error"].as_str().unwrap();
-        assert!(error_msg.contains("Failed to parse PDF"), "Error was: {}", error_msg);
+        assert!(
+            error_msg.contains("Failed to parse PDF"),
+            "Error was: {}",
+            error_msg
+        );
     }
 
     #[tokio::test]
@@ -346,13 +366,17 @@ mod tests {
             .await
             .unwrap();
 
-        let pdf_bytes = to_bytes(create_response.into_body(), usize::MAX).await.unwrap();
+        let pdf_bytes = to_bytes(create_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
 
         // Now test extracting text from this PDF
         let boundary = "boundary123456";
         let mut body = Vec::new();
         body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
-        body.extend_from_slice(b"Content-Disposition: form-data; name=\"file\"; filename=\"test.pdf\"\r\n");
+        body.extend_from_slice(
+            b"Content-Disposition: form-data; name=\"file\"; filename=\"test.pdf\"\r\n",
+        );
         body.extend_from_slice(b"Content-Type: application/pdf\r\n\r\n");
         body.extend_from_slice(&pdf_bytes);
         body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
@@ -362,7 +386,10 @@ mod tests {
                 Request::builder()
                     .uri("/api/extract")
                     .method("POST")
-                    .header("content-type", format!("multipart/form-data; boundary={boundary}"))
+                    .header(
+                        "content-type",
+                        format!("multipart/form-data; boundary={boundary}"),
+                    )
                     .body(Body::from(body))
                     .unwrap(),
             )
@@ -370,14 +397,17 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        
+
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert!(json["text"].is_string());
         assert!(json["pages"].is_number());
         assert_eq!(json["pages"], 1);
         // The extracted text should contain our original text
-        assert!(json["text"].as_str().unwrap().contains("Test content for extraction"));
+        assert!(json["text"]
+            .as_str()
+            .unwrap()
+            .contains("Test content for extraction"));
     }
 
     #[tokio::test]
@@ -455,7 +485,7 @@ mod tests {
         let pdf_error = oxidize_pdf::PdfError::InvalidStructure("test".to_string());
         let app_error: AppError = pdf_error.into();
         match app_error {
-            AppError::Pdf(_) => {},
+            AppError::Pdf(_) => {}
             _ => panic!("Expected AppError::Pdf"),
         }
     }
@@ -465,7 +495,7 @@ mod tests {
         let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
         let app_error: AppError = io_error.into();
         match app_error {
-            AppError::Io(_) => {},
+            AppError::Io(_) => {}
             _ => panic!("Expected AppError::Io"),
         }
     }

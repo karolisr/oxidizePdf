@@ -1,10 +1,10 @@
 use crate::document::Document;
 use crate::error::Result;
 use crate::objects::{Dictionary, Object, ObjectId};
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::io::{BufWriter, Write};
 use std::path::Path;
-use chrono::{DateTime, Utc};
 
 pub struct PdfWriter<W: Write> {
     writer: W,
@@ -208,7 +208,7 @@ impl<W: Write> PdfWriter<W> {
             let date_string = format_pdf_date(creation_date);
             info_dict.set("CreationDate", Object::String(date_string));
         }
-        
+
         // Add modification date
         if let Some(mod_date) = document.metadata.modification_date {
             let date_string = format_pdf_date(mod_date);
@@ -391,9 +391,9 @@ mod tests {
     fn test_write_header() {
         let mut buffer = Vec::new();
         let mut writer = PdfWriter::new_with_writer(&mut buffer);
-        
+
         writer.write_header().unwrap();
-        
+
         // Check PDF version
         assert!(buffer.starts_with(b"%PDF-1.7\n"));
         // Check binary comment
@@ -410,13 +410,13 @@ mod tests {
     fn test_write_catalog() {
         let mut buffer = Vec::new();
         let mut writer = PdfWriter::new_with_writer(&mut buffer);
-        
+
         let catalog_id = writer.write_catalog().unwrap();
-        
+
         assert_eq!(catalog_id.number(), 1);
         assert_eq!(catalog_id.generation(), 0);
         assert!(!buffer.is_empty());
-        
+
         let content = String::from_utf8_lossy(&buffer);
         assert!(content.contains("1 0 obj"));
         assert!(content.contains("/Type /Catalog"));
@@ -428,12 +428,12 @@ mod tests {
     fn test_write_empty_document() {
         let mut buffer = Vec::new();
         let mut document = Document::new();
-        
+
         {
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_document(&mut document).unwrap();
         }
-        
+
         // Verify PDF structure
         let content = String::from_utf8_lossy(&buffer);
         assert!(content.starts_with("%PDF-1.7\n"));
@@ -447,12 +447,12 @@ mod tests {
         let mut document = Document::new();
         document.add_page(Page::a4());
         document.add_page(Page::letter());
-        
+
         {
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_document(&mut document).unwrap();
         }
-        
+
         let content = String::from_utf8_lossy(&buffer);
         assert!(content.contains("/Type /Pages"));
         assert!(content.contains("/Count 2"));
@@ -467,13 +467,13 @@ mod tests {
         document.set_author("Test Author");
         document.set_subject("Test Subject");
         document.set_keywords("test, keywords");
-        
+
         {
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             let info_id = writer.write_info(&document).unwrap();
             assert!(info_id.number() > 0);
         }
-        
+
         let content = String::from_utf8_lossy(&buffer);
         assert!(content.contains("/Title (Test Title)"));
         assert!(content.contains("/Author (Test Author)"));
@@ -484,47 +484,47 @@ mod tests {
         assert!(content.contains("/CreationDate"));
         assert!(content.contains("/ModDate"));
     }
-    
+
     #[test]
     fn test_write_info_with_dates() {
         use chrono::{TimeZone, Utc};
-        
+
         let mut buffer = Vec::new();
         let mut document = Document::new();
-        
+
         // Set specific dates
         let creation_date = Utc.with_ymd_and_hms(2023, 1, 1, 12, 0, 0).unwrap();
         let mod_date = Utc.with_ymd_and_hms(2023, 6, 15, 18, 30, 0).unwrap();
-        
+
         document.set_creation_date(creation_date);
         document.set_modification_date(mod_date);
         document.set_creator("Test Creator");
         document.set_producer("Test Producer");
-        
+
         {
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_info(&document).unwrap();
         }
-        
+
         let content = String::from_utf8_lossy(&buffer);
         assert!(content.contains("/CreationDate (D:20230101"));
         assert!(content.contains("/ModDate (D:20230615"));
         assert!(content.contains("/Creator (Test Creator)"));
         assert!(content.contains("/Producer (Test Producer)"));
     }
-    
+
     #[test]
     fn test_format_pdf_date() {
         use chrono::{TimeZone, Utc};
-        
+
         let date = Utc.with_ymd_and_hms(2023, 12, 25, 15, 30, 45).unwrap();
         let formatted = format_pdf_date(date);
-        
+
         // Should start with D: and contain date/time components
         assert!(formatted.starts_with("D:"));
         assert!(formatted.contains("20231225"));
         assert!(formatted.contains("153045"));
-        
+
         // Should contain timezone offset
         assert!(formatted.contains("+") || formatted.contains("-"));
     }
@@ -534,13 +534,13 @@ mod tests {
         let mut buffer = Vec::new();
         let obj_id = ObjectId::new(5, 0);
         let obj = Object::String("Hello PDF".to_string());
-        
+
         {
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_object(obj_id, obj).unwrap();
             assert!(writer.xref_positions.contains_key(&obj_id));
         }
-        
+
         let content = String::from_utf8_lossy(&buffer);
         assert!(content.contains("5 0 obj"));
         assert!(content.contains("(Hello PDF)"));
@@ -551,14 +551,14 @@ mod tests {
     fn test_write_xref() {
         let mut buffer = Vec::new();
         let mut writer = PdfWriter::new_with_writer(&mut buffer);
-        
+
         // Add some objects to xref
         writer.xref_positions.insert(ObjectId::new(1, 0), 15);
         writer.xref_positions.insert(ObjectId::new(2, 0), 94);
         writer.xref_positions.insert(ObjectId::new(3, 0), 152);
-        
+
         writer.write_xref().unwrap();
-        
+
         let content = String::from_utf8_lossy(&buffer);
         assert!(content.contains("xref"));
         assert!(content.contains("0 4")); // 0 to 3
@@ -572,15 +572,15 @@ mod tests {
     fn test_write_trailer() {
         let mut buffer = Vec::new();
         let mut writer = PdfWriter::new_with_writer(&mut buffer);
-        
+
         writer.xref_positions.insert(ObjectId::new(1, 0), 15);
         writer.xref_positions.insert(ObjectId::new(2, 0), 94);
-        
+
         let catalog_id = ObjectId::new(1, 0);
         let info_id = ObjectId::new(2, 0);
-        
+
         writer.write_trailer(catalog_id, info_id, 1234).unwrap();
-        
+
         let content = String::from_utf8_lossy(&buffer);
         assert!(content.contains("trailer"));
         assert!(content.contains("/Size 3"));
@@ -594,19 +594,19 @@ mod tests {
     #[test]
     fn test_write_bytes() {
         let mut buffer = Vec::new();
-        
+
         {
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             assert_eq!(writer.current_position, 0);
-            
+
             writer.write_bytes(b"Hello").unwrap();
             assert_eq!(writer.current_position, 5);
-            
+
             writer.write_bytes(b" World").unwrap();
             assert_eq!(writer.current_position, 11);
         }
-        
+
         assert_eq!(buffer, b"Hello World");
     }
 
@@ -616,16 +616,16 @@ mod tests {
         let mut document = Document::new();
         document.set_title("Complete Test");
         document.add_page(Page::a4());
-        
+
         {
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_document(&mut document).unwrap();
         }
-        
+
         // Verify complete PDF structure
         assert!(buffer.starts_with(b"%PDF-1.7\n"));
         assert!(buffer.ends_with(b"%%EOF\n"));
-        
+
         let content = String::from_utf8_lossy(&buffer);
         assert!(content.contains("obj"));
         assert!(content.contains("endobj"));
@@ -639,11 +639,11 @@ mod tests {
     // Integration tests for Writer ↔ Document ↔ Page interactions
     mod integration_tests {
         use super::*;
-        use crate::text::Font;
         use crate::graphics::Color;
         use crate::graphics::Image;
-        use tempfile::TempDir;
+        use crate::text::Font;
         use std::fs;
+        use tempfile::TempDir;
 
         #[test]
         fn test_writer_document_integration() {
@@ -658,14 +658,16 @@ mod tests {
 
             // Add multiple pages with different content
             let mut page1 = Page::a4();
-            page1.text()
+            page1
+                .text()
                 .set_font(Font::Helvetica, 16.0)
                 .at(100.0, 750.0)
                 .write("Page 1 Content")
                 .unwrap();
 
             let mut page2 = Page::letter();
-            page2.text()
+            page2
+                .text()
                 .set_font(Font::TimesRoman, 14.0)
                 .at(100.0, 750.0)
                 .write("Page 2 Content")
@@ -776,8 +778,10 @@ mod tests {
             page.add_image("test_image2", image2);
 
             // Draw images
-            page.draw_image("test_image1", 100.0, 600.0, 200.0, 100.0).unwrap();
-            page.draw_image("test_image2", 350.0, 600.0, 100.0, 100.0).unwrap();
+            page.draw_image("test_image1", 100.0, 600.0, 200.0, 100.0)
+                .unwrap();
+            page.draw_image("test_image2", 350.0, 600.0, 100.0, 100.0)
+                .unwrap();
 
             // Add text labels
             page.text()
@@ -848,7 +852,7 @@ mod tests {
             // Both should contain the same structural elements
             let buffer_str = String::from_utf8_lossy(&buffer);
             let file_str = String::from_utf8_lossy(&file_content);
-            
+
             assert!(buffer_str.contains("obj"));
             assert!(file_str.contains("obj"));
             assert!(buffer_str.contains("xref"));
@@ -868,7 +872,7 @@ mod tests {
             // Create many pages with content
             for i in 0..20 {
                 let mut page = Page::a4();
-                
+
                 // Add title
                 page.text()
                     .set_font(Font::HelveticaBold, 16.0)
@@ -942,7 +946,7 @@ mod tests {
             // Verify metadata in PDF
             let content = fs::read(&file_path).unwrap();
             let content_str = String::from_utf8_lossy(&content);
-            
+
             assert!(content_str.contains("/Title (Metadata Handling Test)"));
             assert!(content_str.contains("/Author (Test Author)"));
             assert!(content_str.contains("/Subject (Testing metadata handling in writer)"));
@@ -1039,7 +1043,7 @@ mod tests {
             document.set_title("Content Stream Test");
 
             let mut page = Page::a4();
-            
+
             // Add content that will generate a content stream
             page.text()
                 .set_font(Font::Helvetica, 12.0)
@@ -1062,7 +1066,7 @@ mod tests {
             assert!(content.contains("stream"));
             assert!(content.contains("endstream"));
             assert!(content.contains("/Length"));
-            
+
             // Should contain content stream operations (may be compressed)
             assert!(content.contains("stream\n")); // Should have at least one stream
             assert!(content.contains("endstream")); // Should have matching endstream
@@ -1075,7 +1079,7 @@ mod tests {
             document.set_title("Font Resource Test");
 
             let mut page = Page::a4();
-            
+
             // Use different fonts to test font resource generation
             page.text()
                 .set_font(Font::Helvetica, 12.0)
@@ -1141,7 +1145,7 @@ mod tests {
             let xref_start = content.find("xref").unwrap();
             let xref_section = &content[xref_start..];
             assert!(xref_section.contains("0000000000 65535 f")); // Free object entry
-            
+
             // Should contain 'n' entries for used objects
             let n_count = xref_section.matches(" n ").count();
             assert!(n_count > 0); // Should have some object entries
@@ -1157,8 +1161,8 @@ mod tests {
     #[cfg(test)]
     mod comprehensive_tests {
         use super::*;
-        use crate::text::Font;
         use crate::page::Page;
+        use crate::text::Font;
         use std::io::{self, ErrorKind, Write};
 
         // Mock writer that simulates IO errors
@@ -1201,7 +1205,7 @@ mod tests {
             let failing_writer = FailingWriter::new(5, ErrorKind::PermissionDenied);
             let mut writer = PdfWriter::new_with_writer(failing_writer);
             let mut document = Document::new();
-            
+
             let result = writer.write_document(&mut document);
             assert!(result.is_err());
         }
@@ -1211,14 +1215,18 @@ mod tests {
         fn test_write_empty_collections() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             // Empty array
-            writer.write_object(ObjectId::new(1, 0), Object::Array(vec![])).unwrap();
-            
+            writer
+                .write_object(ObjectId::new(1, 0), Object::Array(vec![]))
+                .unwrap();
+
             // Empty dictionary
             let empty_dict = Dictionary::new();
-            writer.write_object(ObjectId::new(2, 0), Object::Dictionary(empty_dict)).unwrap();
-            
+            writer
+                .write_object(ObjectId::new(2, 0), Object::Dictionary(empty_dict))
+                .unwrap();
+
             let content = String::from_utf8_lossy(&buffer);
             assert!(content.contains("[]")); // Empty array
             assert!(content.contains("<<\n>>")); // Empty dictionary
@@ -1229,15 +1237,15 @@ mod tests {
         fn test_write_deeply_nested_structures() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             // Create deeply nested array
             let mut nested = Object::Array(vec![Object::Integer(1)]);
             for _ in 0..10 {
                 nested = Object::Array(vec![nested]);
             }
-            
+
             writer.write_object(ObjectId::new(1, 0), nested).unwrap();
-            
+
             let content = String::from_utf8_lossy(&buffer);
             assert!(content.contains("[[[[[[[[[["));
             assert!(content.contains("]]]]]]]]]]"));
@@ -1248,23 +1256,15 @@ mod tests {
         fn test_write_large_integers() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
-            let test_cases = vec![
-                i64::MAX,
-                i64::MIN,
-                0,
-                -1,
-                1,
-                999999999999999,
-            ];
-            
+
+            let test_cases = vec![i64::MAX, i64::MIN, 0, -1, 1, 999999999999999];
+
             for (i, &value) in test_cases.iter().enumerate() {
-                writer.write_object(
-                    ObjectId::new(i as u32 + 1, 0),
-                    Object::Integer(value)
-                ).unwrap();
+                writer
+                    .write_object(ObjectId::new(i as u32 + 1, 0), Object::Integer(value))
+                    .unwrap();
             }
-            
+
             let content = String::from_utf8_lossy(&buffer);
             for value in test_cases {
                 assert!(content.contains(&value.to_string()));
@@ -1276,28 +1276,19 @@ mod tests {
         fn test_write_float_edge_cases() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             let test_cases = vec![
-                0.0,
-                -0.0,
-                1.0,
-                -1.0,
-                0.123456,
-                -0.123456,
-                1234.56789,
-                0.000001,
-                1000000.0,
+                0.0, -0.0, 1.0, -1.0, 0.123456, -0.123456, 1234.56789, 0.000001, 1000000.0,
             ];
-            
+
             for (i, &value) in test_cases.iter().enumerate() {
-                writer.write_object(
-                    ObjectId::new(i as u32 + 1, 0),
-                    Object::Real(value)
-                ).unwrap();
+                writer
+                    .write_object(ObjectId::new(i as u32 + 1, 0), Object::Real(value))
+                    .unwrap();
             }
-            
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Check formatting rules
             assert!(content.contains("0")); // 0.0 should be "0"
             assert!(content.contains("1")); // 1.0 should be "1"
@@ -1310,7 +1301,7 @@ mod tests {
         fn test_write_special_characters_in_strings() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             let test_strings = vec![
                 "Simple string",
                 "String with (parentheses)",
@@ -1320,21 +1311,23 @@ mod tests {
                 "String with \rcarriage return",
                 "Unicode: café",
                 "Emoji: 🎯",
-                "",  // Empty string
+                "", // Empty string
             ];
-            
+
             for (i, s) in test_strings.iter().enumerate() {
-                writer.write_object(
-                    ObjectId::new(i as u32 + 1, 0),
-                    Object::String(s.to_string())
-                ).unwrap();
+                writer
+                    .write_object(
+                        ObjectId::new(i as u32 + 1, 0),
+                        Object::String(s.to_string()),
+                    )
+                    .unwrap();
             }
-            
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Verify strings are properly enclosed
             assert!(content.contains("(Simple string)"));
-            assert!(content.contains("()"));  // Empty string
+            assert!(content.contains("()")); // Empty string
         }
 
         // Test 7: Escape sequences in names
@@ -1342,7 +1335,7 @@ mod tests {
         fn test_write_names_with_special_chars() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             let test_names = vec![
                 "SimpleName",
                 "Name With Spaces",
@@ -1350,18 +1343,20 @@ mod tests {
                 "Name/With/Slash",
                 "Name(With)Parens",
                 "Name[With]Brackets",
-                "",  // Empty name
+                "", // Empty name
             ];
-            
+
             for (i, name) in test_names.iter().enumerate() {
-                writer.write_object(
-                    ObjectId::new(i as u32 + 1, 0),
-                    Object::Name(name.to_string())
-                ).unwrap();
+                writer
+                    .write_object(
+                        ObjectId::new(i as u32 + 1, 0),
+                        Object::Name(name.to_string()),
+                    )
+                    .unwrap();
             }
-            
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Names should be prefixed with /
             assert!(content.contains("/SimpleName"));
             assert!(content.contains("/")); // Empty name should be just /
@@ -1372,31 +1367,26 @@ mod tests {
         fn test_write_binary_streams() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             // Create stream with binary data
             let mut dict = Dictionary::new();
             let binary_data: Vec<u8> = (0..=255).collect();
             dict.set("Length", Object::Integer(binary_data.len() as i64));
-            
-            writer.write_object(
-                ObjectId::new(1, 0),
-                Object::Stream(dict, binary_data)
-            ).unwrap();
-            
+
+            writer
+                .write_object(ObjectId::new(1, 0), Object::Stream(dict, binary_data))
+                .unwrap();
+
             let content = buffer;
-            
+
             // Verify stream structure
             assert!(content.windows(6).any(|w| w == b"stream"));
             assert!(content.windows(9).any(|w| w == b"endstream"));
-            
+
             // Verify binary data is present
-            let stream_start = content.windows(6)
-                .position(|w| w == b"stream")
-                .unwrap() + 7; // "stream\n"
-            let stream_end = content.windows(9)
-                .position(|w| w == b"endstream")
-                .unwrap();
-            
+            let stream_start = content.windows(6).position(|w| w == b"stream").unwrap() + 7; // "stream\n"
+            let stream_end = content.windows(9).position(|w| w == b"endstream").unwrap();
+
             assert!(stream_end > stream_start);
             // Allow for line ending differences
             let data_length = stream_end - stream_start;
@@ -1408,15 +1398,14 @@ mod tests {
         fn test_write_zero_length_stream() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             let mut dict = Dictionary::new();
             dict.set("Length", Object::Integer(0));
-            
-            writer.write_object(
-                ObjectId::new(1, 0),
-                Object::Stream(dict, vec![])
-            ).unwrap();
-            
+
+            writer
+                .write_object(ObjectId::new(1, 0), Object::Stream(dict, vec![]))
+                .unwrap();
+
             let content = String::from_utf8_lossy(&buffer);
             assert!(content.contains("/Length 0"));
             assert!(content.contains("stream\n\nendstream"));
@@ -1427,15 +1416,17 @@ mod tests {
         fn test_write_duplicate_dictionary_keys() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             let mut dict = Dictionary::new();
             dict.set("Key", Object::Integer(1));
             dict.set("Key", Object::Integer(2)); // Overwrite
-            
-            writer.write_object(ObjectId::new(1, 0), Object::Dictionary(dict)).unwrap();
-            
+
+            writer
+                .write_object(ObjectId::new(1, 0), Object::Dictionary(dict))
+                .unwrap();
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Should only have the last value
             assert!(content.contains("/Key 2"));
             assert!(!content.contains("/Key 1"));
@@ -1446,17 +1437,17 @@ mod tests {
         fn test_write_unicode_metadata() {
             let mut buffer = Vec::new();
             let mut document = Document::new();
-            
+
             document.set_title("Título en Español");
             document.set_author("作者");
             document.set_subject("Тема документа");
             document.set_keywords("מילות מפתח");
-            
+
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_document(&mut document).unwrap();
-            
+
             let content = buffer;
-            
+
             // Verify metadata is present in some form
             let content_str = String::from_utf8_lossy(&content);
             assert!(content_str.contains("Title") || content_str.contains("Título"));
@@ -1468,13 +1459,12 @@ mod tests {
         fn test_write_very_long_strings() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             let long_string = "A".repeat(10000);
-            writer.write_object(
-                ObjectId::new(1, 0),
-                Object::String(long_string.clone())
-            ).unwrap();
-            
+            writer
+                .write_object(ObjectId::new(1, 0), Object::String(long_string.clone()))
+                .unwrap();
+
             let content = String::from_utf8_lossy(&buffer);
             assert!(content.contains(&format!("({})", long_string)));
         }
@@ -1484,10 +1474,10 @@ mod tests {
         fn test_write_maximum_object_id() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             let max_id = ObjectId::new(u32::MAX, 65535);
             writer.write_object(max_id, Object::Null).unwrap();
-            
+
             let content = String::from_utf8_lossy(&buffer);
             assert!(content.contains(&format!("{} 65535 obj", u32::MAX)));
         }
@@ -1497,44 +1487,44 @@ mod tests {
         fn test_write_complex_page() {
             let mut buffer = Vec::new();
             let mut document = Document::new();
-            
+
             let mut page = Page::a4();
-            
+
             // Add various content
             page.text()
                 .set_font(Font::Helvetica, 12.0)
                 .at(100.0, 700.0)
                 .write("Text with Helvetica")
                 .unwrap();
-                
+
             page.text()
                 .set_font(Font::TimesRoman, 14.0)
                 .at(100.0, 650.0)
                 .write("Text with Times")
                 .unwrap();
-                
+
             page.graphics()
                 .set_fill_color(crate::graphics::Color::Rgb(1.0, 0.0, 0.0))
                 .rect(50.0, 50.0, 100.0, 100.0)
                 .fill();
-                
+
             page.graphics()
                 .set_stroke_color(crate::graphics::Color::Rgb(0.0, 0.0, 1.0))
                 .move_to(200.0, 200.0)
                 .line_to(300.0, 300.0)
                 .stroke();
-            
+
             document.add_page(page);
-            
+
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_document(&mut document).unwrap();
-            
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Verify multiple fonts
             assert!(content.contains("/Helvetica"));
             assert!(content.contains("/Times-Roman"));
-            
+
             // Verify graphics operations (content is compressed, so check for stream presence)
             assert!(content.contains("stream"));
             assert!(content.contains("endstream"));
@@ -1546,7 +1536,7 @@ mod tests {
         fn test_write_many_pages_document() {
             let mut buffer = Vec::new();
             let mut document = Document::new();
-            
+
             for i in 0..100 {
                 let mut page = Page::a4();
                 page.text()
@@ -1556,15 +1546,15 @@ mod tests {
                     .unwrap();
                 document.add_page(page);
             }
-            
+
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_document(&mut document).unwrap();
-            
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Verify page count
             assert!(content.contains("/Count 100"));
-            
+
             // Verify some page content exists
             assert!(content.contains("(Page 1)"));
             assert!(content.contains("(Page 50)"));
@@ -1577,12 +1567,12 @@ mod tests {
             let failing_writer = FailingWriter::new(1000, ErrorKind::Other);
             let mut writer = PdfWriter::new_with_writer(failing_writer);
             let mut document = Document::new();
-            
+
             // Add some content to ensure we get past header
             for _ in 0..5 {
                 document.add_page(Page::a4());
             }
-            
+
             let result = writer.write_document(&mut document);
             assert!(result.is_err());
         }
@@ -1592,18 +1582,18 @@ mod tests {
         fn test_position_tracking_accuracy() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             // Write several objects and verify positions
             let ids = vec![
                 ObjectId::new(1, 0),
                 ObjectId::new(2, 0),
                 ObjectId::new(3, 0),
             ];
-            
+
             for id in &ids {
                 writer.write_object(*id, Object::Null).unwrap();
             }
-            
+
             // Verify positions were tracked
             for id in &ids {
                 assert!(writer.xref_positions.contains_key(id));
@@ -1617,14 +1607,16 @@ mod tests {
         fn test_write_object_reference_cycles() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             // Create dictionary with self-reference
             let mut dict = Dictionary::new();
             dict.set("Self", Object::Reference(ObjectId::new(1, 0)));
             dict.set("Other", Object::Reference(ObjectId::new(2, 0)));
-            
-            writer.write_object(ObjectId::new(1, 0), Object::Dictionary(dict)).unwrap();
-            
+
+            writer
+                .write_object(ObjectId::new(1, 0), Object::Dictionary(dict))
+                .unwrap();
+
             let content = String::from_utf8_lossy(&buffer);
             assert!(content.contains("/Self 1 0 R"));
             assert!(content.contains("/Other 2 0 R"));
@@ -1635,17 +1627,17 @@ mod tests {
         fn test_write_different_page_sizes() {
             let mut buffer = Vec::new();
             let mut document = Document::new();
-            
+
             // Add pages with different sizes
             document.add_page(Page::a4());
             document.add_page(Page::letter());
             document.add_page(Page::new(200.0, 300.0)); // Custom size
-            
+
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_document(&mut document).unwrap();
-            
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Verify different MediaBox values
             assert!(content.contains("[0 0 595")); // A4 width
             assert!(content.contains("[0 0 612")); // Letter width
@@ -1657,16 +1649,16 @@ mod tests {
         fn test_write_empty_metadata() {
             let mut buffer = Vec::new();
             let mut document = Document::new();
-            
+
             // Set empty strings
             document.set_title("");
             document.set_author("");
-            
+
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_document(&mut document).unwrap();
-            
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Should have empty strings
             assert!(content.contains("/Title ()"));
             assert!(content.contains("/Author ()"));
@@ -1678,7 +1670,7 @@ mod tests {
             let failing_writer = FailingWriter::new(0, ErrorKind::PermissionDenied);
             let mut writer = PdfWriter::new_with_writer(failing_writer);
             let mut document = Document::new();
-            
+
             let result = writer.write_document(&mut document);
             assert!(result.is_err());
         }
@@ -1688,20 +1680,22 @@ mod tests {
         fn test_write_xref_many_objects() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             // Create many objects
             for i in 1..=1000 {
-                writer.xref_positions.insert(ObjectId::new(i, 0), (i * 100) as u64);
+                writer
+                    .xref_positions
+                    .insert(ObjectId::new(i, 0), (i * 100) as u64);
             }
-            
+
             writer.write_xref().unwrap();
-            
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Verify xref structure
             assert!(content.contains("xref"));
             assert!(content.contains("0 1001")); // 0 + 1000 objects
-            
+
             // Verify proper formatting of positions
             assert!(content.contains("0000000000 65535 f"));
             assert!(content.contains(" n "));
@@ -1712,17 +1706,16 @@ mod tests {
         fn test_write_stream_with_filter() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             let mut dict = Dictionary::new();
             dict.set("Length", Object::Integer(100));
             dict.set("Filter", Object::Name("FlateDecode".to_string()));
-            
+
             let data = vec![0u8; 100];
-            writer.write_object(
-                ObjectId::new(1, 0),
-                Object::Stream(dict, data)
-            ).unwrap();
-            
+            writer
+                .write_object(ObjectId::new(1, 0), Object::Stream(dict, data))
+                .unwrap();
+
             let content = String::from_utf8_lossy(&buffer);
             assert!(content.contains("/Filter /FlateDecode"));
             assert!(content.contains("/Length 100"));
@@ -1733,7 +1726,7 @@ mod tests {
         fn test_write_mixed_type_arrays() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             let array = vec![
                 Object::Integer(42),
                 Object::Real(3.14),
@@ -1743,9 +1736,11 @@ mod tests {
                 Object::Null,
                 Object::Reference(ObjectId::new(5, 0)),
             ];
-            
-            writer.write_object(ObjectId::new(1, 0), Object::Array(array)).unwrap();
-            
+
+            writer
+                .write_object(ObjectId::new(1, 0), Object::Array(array))
+                .unwrap();
+
             let content = String::from_utf8_lossy(&buffer);
             assert!(content.contains("[42 3.14 (Hello) /World true null 5 0 R]"));
         }
@@ -1755,18 +1750,20 @@ mod tests {
         fn test_write_nested_dictionaries() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             let mut inner = Dictionary::new();
             inner.set("Inner", Object::Integer(1));
-            
+
             let mut middle = Dictionary::new();
             middle.set("Middle", Object::Dictionary(inner));
-            
+
             let mut outer = Dictionary::new();
             outer.set("Outer", Object::Dictionary(middle));
-            
-            writer.write_object(ObjectId::new(1, 0), Object::Dictionary(outer)).unwrap();
-            
+
+            writer
+                .write_object(ObjectId::new(1, 0), Object::Dictionary(outer))
+                .unwrap();
+
             let content = String::from_utf8_lossy(&buffer);
             assert!(content.contains("/Outer <<"));
             assert!(content.contains("/Middle <<"));
@@ -1778,10 +1775,10 @@ mod tests {
         fn test_write_max_generation_number() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             let id = ObjectId::new(1, 65535);
             writer.write_object(id, Object::Null).unwrap();
-            
+
             let content = String::from_utf8_lossy(&buffer);
             assert!(content.contains("1 65535 obj"));
         }
@@ -1791,11 +1788,11 @@ mod tests {
         fn test_write_consistent_line_endings() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             writer.write_header().unwrap();
-            
+
             let content = buffer;
-            
+
             // PDF should use \n consistently
             assert!(content.windows(2).filter(|w| w == b"\r\n").count() == 0);
             assert!(content.windows(1).filter(|w| w == b"\n").count() > 0);
@@ -1808,29 +1805,29 @@ mod tests {
                 buffer: Vec<u8>,
                 flush_count: std::cell::RefCell<usize>,
             }
-            
+
             impl Write for FlushCounter {
                 fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
                     self.buffer.extend_from_slice(buf);
                     Ok(buf.len())
                 }
-                
+
                 fn flush(&mut self) -> io::Result<()> {
                     *self.flush_count.borrow_mut() += 1;
                     Ok(())
                 }
             }
-            
+
             let flush_counter = FlushCounter {
                 buffer: Vec::new(),
                 flush_count: std::cell::RefCell::new(0),
             };
-            
+
             let mut writer = PdfWriter::new_with_writer(flush_counter);
             let mut document = Document::new();
-            
+
             writer.write_document(&mut document).unwrap();
-            
+
             // Verify flush was called
             assert!(*writer.writer.flush_count.borrow() > 0);
         }
@@ -1840,21 +1837,25 @@ mod tests {
         fn test_write_pdf_special_characters() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             // Test parentheses in strings
-            writer.write_object(
-                ObjectId::new(1, 0),
-                Object::String("Text with ) and ( parentheses".to_string())
-            ).unwrap();
-            
+            writer
+                .write_object(
+                    ObjectId::new(1, 0),
+                    Object::String("Text with ) and ( parentheses".to_string()),
+                )
+                .unwrap();
+
             // Test backslash
-            writer.write_object(
-                ObjectId::new(2, 0),
-                Object::String("Text with \\ backslash".to_string())
-            ).unwrap();
-            
+            writer
+                .write_object(
+                    ObjectId::new(2, 0),
+                    Object::String("Text with \\ backslash".to_string()),
+                )
+                .unwrap();
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Should properly handle special characters
             assert!(content.contains("(Text with ) and ( parentheses)"));
             assert!(content.contains("(Text with \\ backslash)"));
@@ -1865,28 +1866,28 @@ mod tests {
         fn test_write_resource_dictionary() {
             let mut buffer = Vec::new();
             let mut document = Document::new();
-            
+
             let mut page = Page::a4();
-            
+
             // Add multiple resources
             page.text()
                 .set_font(Font::Helvetica, 12.0)
                 .at(100.0, 700.0)
                 .write("Test")
                 .unwrap();
-                
+
             page.graphics()
                 .set_fill_color(crate::graphics::Color::Rgb(1.0, 0.0, 0.0))
                 .rect(50.0, 50.0, 100.0, 100.0)
                 .fill();
-            
+
             document.add_page(page);
-            
+
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_document(&mut document).unwrap();
-            
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Verify resource dictionary structure
             assert!(content.contains("/Resources"));
             assert!(content.contains("/Font"));
@@ -1899,16 +1900,20 @@ mod tests {
         fn test_error_recovery_after_failed_write() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             // Attempt to write an object
-            writer.write_object(ObjectId::new(1, 0), Object::Null).unwrap();
-            
+            writer
+                .write_object(ObjectId::new(1, 0), Object::Null)
+                .unwrap();
+
             // Verify state is still consistent
             assert!(writer.xref_positions.contains_key(&ObjectId::new(1, 0)));
             assert!(writer.current_position > 0);
-            
+
             // Should be able to continue writing
-            writer.write_object(ObjectId::new(2, 0), Object::Null).unwrap();
+            writer
+                .write_object(ObjectId::new(2, 0), Object::Null)
+                .unwrap();
             assert!(writer.xref_positions.contains_key(&ObjectId::new(2, 0)));
         }
 
@@ -1917,11 +1922,11 @@ mod tests {
         fn test_memory_efficiency_large_document() {
             let mut buffer = Vec::new();
             let mut document = Document::new();
-            
+
             // Create document with repetitive content
             for i in 0..50 {
                 let mut page = Page::a4();
-                
+
                 // Add lots of text
                 for j in 0..20 {
                     page.text()
@@ -1930,14 +1935,14 @@ mod tests {
                         .write(&format!("Line {} on page {}", j, i))
                         .unwrap();
                 }
-                
+
                 document.add_page(page);
             }
-            
+
             let _initial_capacity = buffer.capacity();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_document(&mut document).unwrap();
-            
+
             // Verify reasonable memory usage
             assert!(buffer.len() > 0);
             assert!(buffer.capacity() <= buffer.len() * 2); // No excessive allocation
@@ -1948,16 +1953,14 @@ mod tests {
         fn test_trailer_dictionary_content() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             // Write minimal content
-            writer.write_trailer(
-                ObjectId::new(1, 0),
-                ObjectId::new(2, 0),
-                1000
-            ).unwrap();
-            
+            writer
+                .write_trailer(ObjectId::new(1, 0), ObjectId::new(2, 0), 1000)
+                .unwrap();
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Verify trailer structure
             assert!(content.contains("trailer"));
             assert!(content.contains("/Size"));
@@ -1969,36 +1972,36 @@ mod tests {
         }
 
         // Test 34: Write bytes handles partial writes
-        #[test] 
+        #[test]
         fn test_write_bytes_partial_writes() {
             struct PartialWriter {
                 buffer: Vec<u8>,
                 max_per_write: usize,
             }
-            
+
             impl Write for PartialWriter {
                 fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
                     let to_write = buf.len().min(self.max_per_write);
                     self.buffer.extend_from_slice(&buf[..to_write]);
                     Ok(to_write)
                 }
-                
+
                 fn flush(&mut self) -> io::Result<()> {
                     Ok(())
                 }
             }
-            
+
             let partial_writer = PartialWriter {
                 buffer: Vec::new(),
                 max_per_write: 10,
             };
-            
+
             let mut writer = PdfWriter::new_with_writer(partial_writer);
-            
+
             // Write large data
             let large_data = vec![b'A'; 100];
             writer.write_bytes(&large_data).unwrap();
-            
+
             // Verify all data was written
             assert_eq!(writer.writer.buffer.len(), 100);
             assert!(writer.writer.buffer.iter().all(|&b| b == b'A'));
@@ -2009,18 +2012,18 @@ mod tests {
         fn test_object_id_conflict_handling() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             let id = ObjectId::new(1, 0);
-            
+
             // Write same ID twice
             writer.write_object(id, Object::Integer(1)).unwrap();
             writer.write_object(id, Object::Integer(2)).unwrap();
-            
+
             // Position should be updated
             assert!(writer.xref_positions.contains_key(&id));
-            
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Both objects should be written
             assert!(content.matches("1 0 obj").count() == 2);
         }
@@ -2030,21 +2033,21 @@ mod tests {
         fn test_content_stream_encoding() {
             let mut buffer = Vec::new();
             let mut document = Document::new();
-            
+
             let mut page = Page::a4();
-            
+
             // Add text with special characters
             page.text()
                 .set_font(Font::Helvetica, 12.0)
                 .at(100.0, 700.0)
                 .write("Special: €£¥")
                 .unwrap();
-            
+
             document.add_page(page);
-            
+
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_document(&mut document).unwrap();
-            
+
             // Content should be written (exact encoding depends on implementation)
             assert!(buffer.len() > 0);
         }
@@ -2054,14 +2057,14 @@ mod tests {
         fn test_pdf_version_header() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             writer.write_header().unwrap();
-            
+
             let content = &buffer;
-            
+
             // Verify PDF version
             assert!(content.starts_with(b"%PDF-1.7\n"));
-            
+
             // Verify binary marker
             assert_eq!(content[9], b'%');
             assert_eq!(content[10], 0xE2);
@@ -2076,9 +2079,9 @@ mod tests {
         fn test_page_content_operations_order() {
             let mut buffer = Vec::new();
             let mut document = Document::new();
-            
+
             let mut page = Page::a4();
-            
+
             // Add operations in specific order
             page.graphics()
                 .save_state()
@@ -2086,14 +2089,14 @@ mod tests {
                 .rect(50.0, 50.0, 100.0, 100.0)
                 .fill()
                 .restore_state();
-            
+
             document.add_page(page);
-            
+
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
             writer.write_document(&mut document).unwrap();
-            
+
             let content = String::from_utf8_lossy(&buffer);
-            
+
             // Operations should maintain order
             // Note: Exact content depends on compression
             assert!(content.contains("stream"));
@@ -2105,16 +2108,15 @@ mod tests {
         fn test_invalid_utf8_handling() {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
-            
+
             // Create string with invalid UTF-8
             let invalid_utf8 = vec![0xFF, 0xFE, 0xFD];
             let string = String::from_utf8_lossy(&invalid_utf8).to_string();
-            
-            writer.write_object(
-                ObjectId::new(1, 0),
-                Object::String(string)
-            ).unwrap();
-            
+
+            writer
+                .write_object(ObjectId::new(1, 0), Object::String(string))
+                .unwrap();
+
             // Should not panic and should write something
             assert!(buffer.len() > 0);
         }
@@ -2124,24 +2126,24 @@ mod tests {
         fn test_roundtrip_write_parse() {
             use crate::parser::PdfReader;
             use std::io::Cursor;
-            
+
             let mut buffer = Vec::new();
             let mut document = Document::new();
-            
+
             document.set_title("Round-trip Test");
             document.add_page(Page::a4());
-            
+
             // Write document
             {
                 let mut writer = PdfWriter::new_with_writer(&mut buffer);
                 writer.write_document(&mut document).unwrap();
             }
-            
+
             // Try to parse what we wrote
             let cursor = Cursor::new(buffer);
             let result = PdfReader::new(cursor);
-            
-            // Even if parsing fails (due to simplified writer), 
+
+            // Even if parsing fails (due to simplified writer),
             // we should have written valid PDF structure
             assert!(result.is_ok() || result.is_err()); // Either outcome is acceptable for this test
         }
@@ -2152,22 +2154,23 @@ mod tests {
 fn format_pdf_date(date: DateTime<Utc>) -> String {
     // Convert to local time to get the timezone offset
     let local_date = date.with_timezone(&chrono::Local);
-    
+
     // Format the date according to PDF specification
     // D:YYYYMMDDHHmmSSOHH'mm where O is the relationship of local time to UTC (+ or -)
     let formatted = local_date.format("D:%Y%m%d%H%M%S");
-    
+
     // Get timezone offset
     let offset = local_date.offset();
     let offset_hours = offset.local_minus_utc() / 3600;
     let offset_minutes = (offset.local_minus_utc() % 3600) / 60;
-    
+
     let offset_sign = if offset_hours >= 0 { "+" } else { "-" };
-    
-    format!("{}{}{:02}'{:02}", 
-        formatted, 
-        offset_sign, 
-        offset_hours.abs(), 
+
+    format!(
+        "{}{}{:02}'{:02}",
+        formatted,
+        offset_sign,
+        offset_hours.abs(),
         offset_minutes.abs()
     )
 }

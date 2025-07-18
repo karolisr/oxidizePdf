@@ -24,7 +24,7 @@
 //!     .with_partial_content(true);
 //!
 //! let recovery = PdfRecovery::new(options);
-//! 
+//!
 //! match recovery.recover_document("corrupted.pdf") {
 //!     Ok(doc) => {
 //!         println!("Recovered {} pages", doc.page_count());
@@ -56,10 +56,10 @@ pub mod scanner;
 pub mod validator;
 
 // Re-export main types
-pub use corruption::{CorruptionType, CorruptionReport, detect_corruption};
-pub use repair::{RepairStrategy, RepairResult, repair_document};
+pub use corruption::{detect_corruption, CorruptionReport, CorruptionType};
+pub use repair::{repair_document, RepairResult, RepairStrategy};
 pub use scanner::{ObjectScanner, ScanResult};
-pub use validator::{ValidationError, ValidationResult, validate_pdf};
+pub use validator::{validate_pdf, ValidationError, ValidationResult};
 
 /// Options for PDF recovery
 #[derive(Debug, Clone)]
@@ -100,19 +100,19 @@ impl RecoveryOptions {
         self.aggressive_recovery = aggressive;
         self
     }
-    
+
     /// Enable partial content recovery
     pub fn with_partial_content(mut self, partial: bool) -> Self {
         self.partial_content = partial;
         self
     }
-    
+
     /// Set maximum error threshold
     pub fn with_max_errors(mut self, max: usize) -> Self {
         self.max_errors = max;
         self
     }
-    
+
     /// Set memory limit
     pub fn with_memory_limit(mut self, limit: usize) -> Self {
         self.memory_limit = limit;
@@ -136,49 +136,56 @@ impl PdfRecovery {
             warnings: Vec::new(),
         }
     }
-    
+
     /// Attempt to recover a corrupted PDF document
     pub fn recover_document<P: AsRef<Path>>(&mut self, path: P) -> Result<Document> {
         let path = path.as_ref();
-        
+
         // First, try standard parsing
         match PdfReader::open_document(path) {
             Ok(doc) => {
-                self.warnings.push("Document opened normally, no recovery needed".to_string());
+                self.warnings
+                    .push("Document opened normally, no recovery needed".to_string());
                 return self.convert_to_document(doc);
             }
             Err(e) => {
-                self.warnings.push(format!("Standard parsing failed: {}", e));
+                self.warnings
+                    .push(format!("Standard parsing failed: {}", e));
             }
         }
-        
+
         // Detect corruption type
         let corruption = detect_corruption(path)?;
-        self.warnings.push(format!("Detected corruption: {:?}", corruption.corruption_type));
-        
+        self.warnings.push(format!(
+            "Detected corruption: {:?}",
+            corruption.corruption_type
+        ));
+
         // Apply repair strategy
         let strategy = RepairStrategy::for_corruption(&corruption.corruption_type);
         let repair_result = repair_document(path, strategy, &self.options)?;
-        
+
         if let Some(doc) = repair_result.recovered_document {
             Ok(doc)
         } else {
-            Err(PdfError::InvalidStructure("Failed to recover document".to_string()))
+            Err(PdfError::InvalidStructure(
+                "Failed to recover document".to_string(),
+            ))
         }
     }
-    
+
     /// Attempt partial recovery of a corrupted PDF
     pub fn recover_partial<P: AsRef<Path>>(&mut self, path: P) -> Result<PartialRecovery> {
         let path = path.as_ref();
         let mut partial = PartialRecovery::default();
-        
+
         // Scan for valid objects
         let mut scanner = ObjectScanner::new();
         let scan_result = scanner.scan_file(path)?;
-        
+
         partial.total_objects = scan_result.total_objects;
         partial.recovered_objects = scan_result.valid_objects;
-        
+
         // Try to recover individual pages
         for page_num in 0..scan_result.estimated_pages {
             if let Ok(page_content) = self.recover_page(path, page_num) {
@@ -190,52 +197,54 @@ impl PdfRecovery {
                 });
             }
         }
-        
+
         // Recover metadata if possible
         if let Ok(metadata) = self.recover_metadata(path) {
             partial.metadata = Some(metadata);
         }
-        
+
         partial.recovery_warnings = self.warnings.clone();
-        
+
         Ok(partial)
     }
-    
+
     /// Get recovery warnings
     pub fn warnings(&self) -> &[String] {
         &self.warnings
     }
-    
+
     /// Clear warnings
     pub fn clear_warnings(&mut self) {
         self.warnings.clear();
         self.error_count = 0;
     }
-    
-    fn convert_to_document<R: Read + Seek>(&self, pdf_doc: crate::parser::PdfDocument<R>) -> Result<Document> {
+
+    fn convert_to_document<R: Read + Seek>(
+        &self,
+        pdf_doc: crate::parser::PdfDocument<R>,
+    ) -> Result<Document> {
         let mut doc = Document::new();
-        
+
         // Convert pages
-        let page_count = pdf_doc.page_count().map_err(|e| PdfError::InvalidStructure(e.to_string()))?;
+        let page_count = pdf_doc
+            .page_count()
+            .map_err(|e| PdfError::InvalidStructure(e.to_string()))?;
         for i in 0..page_count {
             if let Ok(page) = pdf_doc.get_page(i) {
                 // Simple conversion - would need proper implementation
-                let mut new_page = crate::Page::new(
-                    page.width() as f64,
-                    page.height() as f64,
-                );
+                let new_page = crate::Page::new(page.width(), page.height());
                 doc.add_page(new_page);
             }
         }
-        
+
         Ok(doc)
     }
-    
+
     fn recover_page<P: AsRef<Path>>(&mut self, _path: P, _page_num: u32) -> Result<String> {
         // Simplified page recovery
         Ok(format!("Recovered content for page {}", _page_num))
     }
-    
+
     fn recover_metadata<P: AsRef<Path>>(&mut self, _path: P) -> Result<HashMap<String, String>> {
         let mut metadata = HashMap::new();
         metadata.insert("Title".to_string(), "Recovered Document".to_string());
@@ -286,28 +295,26 @@ pub fn analyze_corruption<P: AsRef<Path>>(path: P) -> Result<CorruptionReport> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_recovery_options() {
         let options = RecoveryOptions::default();
         assert!(!options.aggressive_recovery);
         assert!(options.partial_content);
         assert_eq!(options.max_errors, 100);
-        
-        let options = options
-            .with_aggressive_recovery(true)
-            .with_max_errors(50);
+
+        let options = options.with_aggressive_recovery(true).with_max_errors(50);
         assert!(options.aggressive_recovery);
         assert_eq!(options.max_errors, 50);
     }
-    
+
     #[test]
     fn test_pdf_recovery_creation() {
         let recovery = PdfRecovery::new(RecoveryOptions::default());
         assert_eq!(recovery.error_count, 0);
         assert!(recovery.warnings.is_empty());
     }
-    
+
     #[test]
     fn test_partial_recovery_default() {
         let partial = PartialRecovery::default();

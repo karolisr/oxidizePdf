@@ -49,10 +49,12 @@ pub mod page_streamer;
 pub mod text_streamer;
 
 // Re-export main types
-pub use chunk_processor::{ChunkProcessor, ChunkOptions, ChunkType, ContentChunk, process_in_chunks};
-pub use incremental_parser::{IncrementalParser, ParseEvent, process_incrementally};
+pub use chunk_processor::{
+    process_in_chunks, ChunkOptions, ChunkProcessor, ChunkType, ContentChunk,
+};
+pub use incremental_parser::{process_incrementally, IncrementalParser, ParseEvent};
 pub use page_streamer::{PageStreamer, StreamingPage};
-pub use text_streamer::{TextStreamer, TextStreamOptions, TextChunk, stream_text};
+pub use text_streamer::{stream_text, TextChunk, TextStreamOptions, TextStreamer};
 
 /// Options for streaming operations
 #[derive(Debug, Clone)]
@@ -72,11 +74,11 @@ pub struct StreamingOptions {
 impl Default for StreamingOptions {
     fn default() -> Self {
         Self {
-            buffer_size: 256 * 1024,           // 256KB
-            page_cache_size: 3,                // Keep 3 pages
+            buffer_size: 256 * 1024,                   // 256KB
+            page_cache_size: 3,                        // Keep 3 pages
             max_content_stream_size: 10 * 1024 * 1024, // 10MB
             progressive_hints: true,
-            memory_limit: 100 * 1024 * 1024,   // 100MB
+            memory_limit: 100 * 1024 * 1024, // 100MB
         }
     }
 }
@@ -92,7 +94,7 @@ impl StreamingOptions {
             memory_limit: 10 * 1024 * 1024,
         }
     }
-    
+
     /// Create options optimized for speed
     pub fn fast_processing() -> Self {
         Self {
@@ -103,17 +105,17 @@ impl StreamingOptions {
             memory_limit: 500 * 1024 * 1024,
         }
     }
-    
+
     pub fn with_buffer_size(mut self, size: usize) -> Self {
         self.buffer_size = size;
         self
     }
-    
+
     pub fn with_page_cache_size(mut self, size: usize) -> Self {
         self.page_cache_size = size;
         self
     }
-    
+
     pub fn with_memory_limit(mut self, limit: usize) -> Self {
         self.memory_limit = limit;
         self
@@ -134,7 +136,7 @@ impl<R: Read + Seek> StreamingDocument<R> {
     /// Create a new streaming document
     pub fn new(reader: R, options: StreamingOptions) -> Result<Self> {
         let buf_reader = BufReader::with_capacity(options.buffer_size, reader);
-        
+
         Ok(Self {
             reader: buf_reader,
             options,
@@ -144,7 +146,7 @@ impl<R: Read + Seek> StreamingDocument<R> {
             memory_used: 0,
         })
     }
-    
+
     /// Get the next page for processing
     pub fn next_page(&mut self) -> Result<Option<StreamingPage>> {
         // Check if we've processed all pages
@@ -158,12 +160,12 @@ impl<R: Read + Seek> StreamingDocument<R> {
                 return Ok(None);
             }
         }
-        
+
         // Check memory limit
         if self.memory_used > self.options.memory_limit {
             self.evict_pages();
         }
-        
+
         // In a real implementation, this would parse the next page
         // For now, return a mock page
         let page = StreamingPage {
@@ -173,17 +175,17 @@ impl<R: Read + Seek> StreamingDocument<R> {
             content_offset: 0,
             content_length: 0,
         };
-        
+
         self.current_page += 1;
-        
+
         // Cache the page if there's room
         if self.page_cache.len() < self.options.page_cache_size {
             self.page_cache.push_back(page.clone());
         }
-        
+
         Ok(Some(page))
     }
-    
+
     /// Process all pages with a callback
     pub fn process_pages<F>(&mut self, mut callback: F) -> Result<()>
     where
@@ -194,18 +196,18 @@ impl<R: Read + Seek> StreamingDocument<R> {
         }
         Ok(())
     }
-    
+
     /// Get current memory usage
     pub fn memory_usage(&self) -> usize {
         self.memory_used
     }
-    
+
     /// Clear page cache to free memory
     pub fn clear_cache(&mut self) {
         self.page_cache.clear();
         self.memory_used = 0;
     }
-    
+
     fn evict_pages(&mut self) {
         // Evict oldest pages until we're under the memory limit
         while self.memory_used > self.options.memory_limit && !self.page_cache.is_empty() {
@@ -238,7 +240,7 @@ pub struct StreamingStats {
 mod tests {
     use super::*;
     use std::io::Cursor;
-    
+
     #[test]
     fn test_streaming_options_default() {
         let options = StreamingOptions::default();
@@ -246,7 +248,7 @@ mod tests {
         assert_eq!(options.page_cache_size, 3);
         assert!(options.progressive_hints);
     }
-    
+
     #[test]
     fn test_streaming_options_minimal() {
         let options = StreamingOptions::minimal_memory();
@@ -255,7 +257,7 @@ mod tests {
         assert!(!options.progressive_hints);
         assert_eq!(options.memory_limit, 10 * 1024 * 1024);
     }
-    
+
     #[test]
     fn test_streaming_options_fast() {
         let options = StreamingOptions::fast_processing();
@@ -263,88 +265,88 @@ mod tests {
         assert_eq!(options.page_cache_size, 10);
         assert!(options.progressive_hints);
     }
-    
+
     #[test]
     fn test_streaming_options_builder() {
         let options = StreamingOptions::default()
             .with_buffer_size(512 * 1024)
             .with_page_cache_size(5)
             .with_memory_limit(50 * 1024 * 1024);
-        
+
         assert_eq!(options.buffer_size, 512 * 1024);
         assert_eq!(options.page_cache_size, 5);
         assert_eq!(options.memory_limit, 50 * 1024 * 1024);
     }
-    
+
     #[test]
     fn test_streaming_document_creation() {
         let data = b"%PDF-1.7\n";
         let cursor = Cursor::new(data);
         let options = StreamingOptions::default();
-        
+
         let doc = StreamingDocument::new(cursor, options);
         assert!(doc.is_ok());
     }
-    
+
     #[test]
     fn test_next_page() {
         let data = b"%PDF-1.7\n";
         let cursor = Cursor::new(data);
         let options = StreamingOptions::default();
-        
+
         let mut doc = StreamingDocument::new(cursor, options).unwrap();
-        
+
         // Should get at least one page
         let page = doc.next_page().unwrap();
         assert!(page.is_some());
-        
+
         let page = page.unwrap();
         assert_eq!(page.number(), 0);
         assert_eq!(page.width(), 595.0);
         assert_eq!(page.height(), 842.0);
     }
-    
+
     #[test]
     fn test_process_pages() {
         let data = b"%PDF-1.7\n";
         let cursor = Cursor::new(data);
         let options = StreamingOptions::default();
-        
+
         let mut doc = StreamingDocument::new(cursor, options).unwrap();
         let mut page_count = 0;
-        
+
         doc.process_pages(|page| {
             page_count += 1;
             assert!(page.number() < 1000); // Sanity check with higher limit
             Ok(())
-        }).unwrap();
-        
+        })
+        .unwrap();
+
         assert!(page_count > 0);
     }
-    
+
     #[test]
     fn test_memory_management() {
         let data = b"%PDF-1.7\n";
         let cursor = Cursor::new(data);
-        let options = StreamingOptions::default()
-            .with_memory_limit(1024); // Very small limit
-        
+        let options = StreamingOptions::default().with_memory_limit(1024); // Very small limit
+
         let mut doc = StreamingDocument::new(cursor, options).unwrap();
-        
+
         // Process multiple pages
         for _ in 0..5 {
             let _ = doc.next_page();
         }
-        
+
         // Cache should be limited
         assert!(doc.page_cache.len() <= 3);
-        
+
         // Clear cache
         doc.clear_cache();
         assert_eq!(doc.page_cache.len(), 0);
         assert_eq!(doc.memory_usage(), 0);
     }
-    
+
     #[test]
     fn test_streaming_stats() {
         let stats = StreamingStats::default();

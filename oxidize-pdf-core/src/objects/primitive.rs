@@ -166,7 +166,7 @@ mod tests {
     fn test_object_id_display() {
         let id = ObjectId::new(10, 0);
         assert_eq!(format!("{}", id), "10 0 R");
-        
+
         let id2 = ObjectId::new(999, 65535);
         assert_eq!(format!("{}", id2), "999 65535 R");
     }
@@ -177,7 +177,7 @@ mod tests {
         let id2 = ObjectId::new(1, 0);
         let id3 = ObjectId::new(2, 0);
         let id4 = ObjectId::new(1, 1);
-        
+
         assert_eq!(id1, id2);
         assert_ne!(id1, id3);
         assert_ne!(id1, id4);
@@ -200,7 +200,7 @@ mod tests {
     fn test_object_boolean() {
         let obj_true = Object::Boolean(true);
         let obj_false = Object::Boolean(false);
-        
+
         assert!(!obj_true.is_null());
         assert_eq!(obj_true.as_bool(), Some(true));
         assert_eq!(obj_false.as_bool(), Some(false));
@@ -210,7 +210,7 @@ mod tests {
     #[test]
     fn test_object_integer() {
         let obj = Object::Integer(42);
-        
+
         assert_eq!(obj.as_integer(), Some(42));
         assert_eq!(obj.as_real(), Some(42.0));
         assert!(obj.as_bool().is_none());
@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn test_object_real() {
         let obj = Object::Real(3.14159);
-        
+
         assert_eq!(obj.as_real(), Some(3.14159));
         assert!(obj.as_integer().is_none());
         assert!(obj.as_bool().is_none());
@@ -229,7 +229,7 @@ mod tests {
     #[test]
     fn test_object_string() {
         let obj = Object::String("Hello PDF".to_string());
-        
+
         assert_eq!(obj.as_string(), Some("Hello PDF"));
         assert!(obj.as_name().is_none());
         assert!(obj.as_integer().is_none());
@@ -238,7 +238,7 @@ mod tests {
     #[test]
     fn test_object_name() {
         let obj = Object::Name("Type".to_string());
-        
+
         assert_eq!(obj.as_name(), Some("Type"));
         assert!(obj.as_string().is_none());
         assert!(obj.as_integer().is_none());
@@ -246,13 +246,9 @@ mod tests {
 
     #[test]
     fn test_object_array() {
-        let arr = vec![
-            Object::Integer(1),
-            Object::Integer(2),
-            Object::Integer(3),
-        ];
+        let arr = vec![Object::Integer(1), Object::Integer(2), Object::Integer(3)];
         let obj = Object::Array(arr.clone());
-        
+
         assert_eq!(obj.as_array(), Some(&arr));
         assert!(obj.as_dict().is_none());
     }
@@ -262,7 +258,7 @@ mod tests {
         let mut dict = Dictionary::new();
         dict.set("Key", "Value");
         let obj = Object::Dictionary(dict.clone());
-        
+
         assert_eq!(obj.as_dict(), Some(&dict));
         assert!(obj.as_array().is_none());
     }
@@ -273,7 +269,7 @@ mod tests {
         dict.set("Length", 5);
         let data = vec![1, 2, 3, 4, 5];
         let obj = Object::Stream(dict, data);
-        
+
         // Stream doesn't have as_stream method, but we can pattern match
         if let Object::Stream(d, data) = obj {
             assert_eq!(d.get("Length"), Some(&Object::Integer(5)));
@@ -287,7 +283,7 @@ mod tests {
     fn test_object_reference() {
         let id = ObjectId::new(10, 0);
         let obj = Object::Reference(id);
-        
+
         // Reference doesn't have as_reference method, but we can pattern match
         if let Object::Reference(ref_id) = obj {
             assert_eq!(ref_id, id);
@@ -300,7 +296,7 @@ mod tests {
     fn test_from_bool() {
         let obj: Object = true.into();
         assert_eq!(obj, Object::Boolean(true));
-        
+
         let obj2: Object = false.into();
         assert_eq!(obj2, Object::Boolean(false));
     }
@@ -309,10 +305,10 @@ mod tests {
     fn test_from_integers() {
         let obj: Object = 42i32.into();
         assert_eq!(obj, Object::Integer(42));
-        
+
         let obj2: Object = 9999i64.into();
         assert_eq!(obj2, Object::Integer(9999));
-        
+
         let obj3: Object = (-100i32).into();
         assert_eq!(obj3, Object::Integer(-100));
     }
@@ -325,7 +321,7 @@ mod tests {
         } else {
             panic!("Expected Real object");
         }
-        
+
         let obj2: Object = 2.71828f64.into();
         assert_eq!(obj2, Object::Real(2.71828));
     }
@@ -334,7 +330,7 @@ mod tests {
     fn test_from_strings() {
         let obj: Object = "Hello".into();
         assert_eq!(obj, Object::String("Hello".to_string()));
-        
+
         let obj2: Object = String::from("World").into();
         assert_eq!(obj2, Object::String("World".to_string()));
     }
@@ -351,7 +347,7 @@ mod tests {
         let mut dict = Dictionary::new();
         dict.set("Test", 123);
         let obj: Object = dict.clone().into();
-        
+
         if let Object::Dictionary(d) = obj {
             assert_eq!(d.get("Test"), Some(&Object::Integer(123)));
         } else {
@@ -366,7 +362,13 @@ mod tests {
         assert_ne!(Object::Boolean(true), Object::Boolean(false));
         assert_eq!(Object::Integer(42), Object::Integer(42));
         assert_ne!(Object::Integer(42), Object::Integer(43));
-        assert_eq!(Object::String("A".to_string()), Object::String("A".to_string()));
-        assert_ne!(Object::String("A".to_string()), Object::String("B".to_string()));
+        assert_eq!(
+            Object::String("A".to_string()),
+            Object::String("A".to_string())
+        );
+        assert_ne!(
+            Object::String("A".to_string()),
+            Object::String("B".to_string())
+        );
     }
 }

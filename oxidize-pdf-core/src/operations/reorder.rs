@@ -229,7 +229,8 @@ impl PageReorderer {
                     page.graphics().fill();
                 }
                 ContentOperation::Rectangle(x, y, w, h) => {
-                    page.graphics().rectangle(*x as f64, *y as f64, *w as f64, *h as f64);
+                    page.graphics()
+                        .rectangle(*x as f64, *y as f64, *w as f64, *h as f64);
                 }
                 ContentOperation::SetLineWidth(width) => {
                     page.graphics().set_line_width(*width as f64);
@@ -273,8 +274,7 @@ pub fn reverse_pdf_pages<P: AsRef<Path>, Q: AsRef<Path>>(
 
     let page_count = document
         .page_count()
-        .map_err(|e| OperationError::ParseError(e.to_string()))?
-        as usize;
+        .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
 
     // Create reverse order
     let page_order: Vec<usize> = (0..page_count).rev().collect();
@@ -294,8 +294,7 @@ pub fn move_pdf_page<P: AsRef<Path>, Q: AsRef<Path>>(
 
     let page_count = document
         .page_count()
-        .map_err(|e| OperationError::ParseError(e.to_string()))?
-        as usize;
+        .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
 
     if from_index >= page_count || to_index >= page_count {
         return Err(OperationError::InvalidPageRange(
@@ -323,8 +322,7 @@ pub fn swap_pdf_pages<P: AsRef<Path>, Q: AsRef<Path>>(
 
     let page_count = document
         .page_count()
-        .map_err(|e| OperationError::ParseError(e.to_string()))?
-        as usize;
+        .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
 
     if page1 >= page_count || page2 >= page_count {
         return Err(OperationError::InvalidPageRange(

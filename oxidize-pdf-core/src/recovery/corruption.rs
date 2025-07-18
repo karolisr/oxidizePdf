@@ -85,10 +85,10 @@ pub struct FileStats {
 pub fn detect_corruption<P: AsRef<Path>>(path: P) -> Result<CorruptionReport> {
     let mut file = File::open(path)?;
     let mut reader = BufReader::new(&mut file);
-    
+
     let file_size = reader.seek(SeekFrom::End(0))?;
     reader.seek(SeekFrom::Start(0))?;
-    
+
     let mut report = CorruptionReport {
         corruption_type: CorruptionType::Unknown,
         severity: 0,
@@ -99,33 +99,33 @@ pub fn detect_corruption<P: AsRef<Path>>(path: P) -> Result<CorruptionReport> {
             ..Default::default()
         },
     };
-    
+
     // Check PDF header
     if !check_header(&mut reader, &mut report)? {
         report.corruption_type = CorruptionType::InvalidHeader;
         report.severity = 10;
         return Ok(report);
     }
-    
+
     // Check for EOF marker
     check_eof(&mut reader, &mut report)?;
-    
+
     // Scan for cross-reference tables
     scan_xref(&mut reader, &mut report)?;
-    
+
     // Analyze object structure
     analyze_objects(&mut reader, &mut report)?;
-    
+
     // Determine overall corruption type
     determine_corruption_type(&mut report);
-    
+
     Ok(report)
 }
 
 fn check_header<R: Read + Seek>(reader: &mut R, report: &mut CorruptionReport) -> Result<bool> {
     let mut header = [0u8; 8];
     reader.seek(SeekFrom::Start(0))?;
-    
+
     match reader.read_exact(&mut header) {
         Ok(_) => {
             if &header[0..5] == b"%PDF-" {
@@ -152,16 +152,16 @@ fn check_eof<R: Read + Seek>(reader: &mut R, report: &mut CorruptionReport) -> R
     // Check last 1024 bytes for %%EOF
     let check_size = 1024.min(report.file_stats.file_size);
     let start_pos = report.file_stats.file_size.saturating_sub(check_size);
-    
+
     reader.seek(SeekFrom::Start(start_pos))?;
     let mut buffer = vec![0u8; check_size as usize];
     reader.read_exact(&mut buffer)?;
-    
+
     if !buffer.windows(5).any(|w| w == b"%%EOF") {
         report.errors.push("Missing %%EOF marker".to_string());
         report.severity = report.severity.max(5);
     }
-    
+
     Ok(())
 }
 
@@ -169,30 +169,32 @@ fn scan_xref<R: Read + Seek>(reader: &mut R, report: &mut CorruptionReport) -> R
     reader.seek(SeekFrom::Start(0))?;
     let mut buffer = Vec::new();
     reader.read_to_end(&mut buffer)?;
-    
+
     // Look for xref tables
     let mut xref_count = 0;
     let mut pos = 0;
-    
+
     while let Some(xref_pos) = find_pattern(&buffer[pos..], b"xref") {
         let absolute_pos = pos + xref_pos;
         xref_count += 1;
-        
+
         report.recoverable_sections.push(RecoverableSection {
             section_type: SectionType::XRef,
             start_offset: absolute_pos as u64,
             end_offset: (absolute_pos + 100) as u64, // Estimate
             confidence: 0.8,
         });
-        
+
         pos = absolute_pos + 4;
     }
-    
+
     if xref_count == 0 {
-        report.errors.push("No cross-reference tables found".to_string());
+        report
+            .errors
+            .push("No cross-reference tables found".to_string());
         report.severity = report.severity.max(8);
     }
-    
+
     Ok(())
 }
 
@@ -200,44 +202,44 @@ fn analyze_objects<R: Read + Seek>(reader: &mut R, report: &mut CorruptionReport
     reader.seek(SeekFrom::Start(0))?;
     let mut buffer = Vec::new();
     reader.read_to_end(&mut buffer)?;
-    
+
     // Count objects
     let mut object_count = 0;
     let mut page_count = 0;
     let mut pos = 0;
-    
+
     // Look for object definitions
     while pos < buffer.len() {
         if let Some(obj_pos) = find_pattern(&buffer[pos..], b" obj") {
             let absolute_pos = pos + obj_pos;
             object_count += 1;
-            
+
             // Check if it's a page object
             if find_pattern(&buffer[absolute_pos..absolute_pos + 200], b"/Type /Page").is_some() {
                 page_count += 1;
             }
-            
+
             pos = absolute_pos + 4;
         } else {
             break;
         }
     }
-    
+
     report.file_stats.estimated_objects = object_count;
     report.file_stats.found_pages = page_count;
     report.file_stats.readable_bytes = buffer.len() as u64;
-    
+
     if object_count == 0 {
         report.errors.push("No PDF objects found".to_string());
         report.severity = 10;
     }
-    
+
     Ok(())
 }
 
 fn determine_corruption_type(report: &mut CorruptionReport) {
     let mut types = Vec::new();
-    
+
     for error in &report.errors {
         if error.contains("header") {
             types.push(CorruptionType::InvalidHeader);
@@ -247,7 +249,7 @@ fn determine_corruption_type(report: &mut CorruptionReport) {
             types.push(CorruptionType::CorruptXRef);
         }
     }
-    
+
     if types.is_empty() && report.severity > 0 {
         report.corruption_type = CorruptionType::Unknown;
     } else if types.len() == 1 {
@@ -258,7 +260,8 @@ fn determine_corruption_type(report: &mut CorruptionReport) {
 }
 
 fn find_pattern(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    haystack.windows(needle.len())
+    haystack
+        .windows(needle.len())
         .position(|window| window == needle)
 }
 
@@ -272,26 +275,26 @@ pub fn is_corrupted<P: AsRef<Path>>(path: P) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_corruption_type() {
         let corruption = CorruptionType::InvalidHeader;
         assert_eq!(corruption, CorruptionType::InvalidHeader);
-        
+
         let multiple = CorruptionType::Multiple(vec![
             CorruptionType::InvalidHeader,
             CorruptionType::CorruptXRef,
         ]);
         assert!(matches!(multiple, CorruptionType::Multiple(_)));
     }
-    
+
     #[test]
     fn test_find_pattern() {
         let haystack = b"Hello PDF world";
         assert_eq!(find_pattern(haystack, b"PDF"), Some(6));
         assert_eq!(find_pattern(haystack, b"XYZ"), None);
     }
-    
+
     #[test]
     fn test_file_stats_default() {
         let stats = FileStats::default();

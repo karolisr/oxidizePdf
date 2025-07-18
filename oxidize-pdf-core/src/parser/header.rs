@@ -241,7 +241,7 @@ mod tests {
         assert!(PdfVersion::new(1, 4).is_supported());
         assert!(PdfVersion::new(1, 7).is_supported());
         assert!(PdfVersion::new(2, 0).is_supported());
-        
+
         // Unsupported versions
         assert!(!PdfVersion::new(0, 9).is_supported());
         assert!(!PdfVersion::new(1, 8).is_supported());
@@ -254,7 +254,7 @@ mod tests {
         let v1 = PdfVersion::new(1, 5);
         let v2 = PdfVersion::new(1, 5);
         let v3 = PdfVersion::new(1, 6);
-        
+
         assert_eq!(v1, v2);
         assert_ne!(v1, v3);
     }
@@ -263,7 +263,7 @@ mod tests {
     fn test_header_with_crlf() {
         let input = b"%PDF-1.6\r\n";
         let header = PdfHeader::parse(Cursor::new(input)).unwrap();
-        
+
         assert_eq!(header.version.major, 1);
         assert_eq!(header.version.minor, 6);
     }
@@ -272,7 +272,7 @@ mod tests {
     fn test_header_with_cr_only() {
         let input = b"%PDF-1.3\r";
         let header = PdfHeader::parse(Cursor::new(input)).unwrap();
-        
+
         assert_eq!(header.version.major, 1);
         assert_eq!(header.version.minor, 3);
     }
@@ -281,7 +281,7 @@ mod tests {
     fn test_header_with_extra_whitespace() {
         let input = b"%PDF-1.5   \n";
         let header = PdfHeader::parse(Cursor::new(input)).unwrap();
-        
+
         assert_eq!(header.version.major, 1);
         assert_eq!(header.version.minor, 5);
     }
@@ -290,7 +290,7 @@ mod tests {
     fn test_header_no_newline() {
         let input = b"%PDF-1.2";
         let header = PdfHeader::parse(Cursor::new(input)).unwrap();
-        
+
         assert_eq!(header.version.major, 1);
         assert_eq!(header.version.minor, 2);
     }
@@ -299,7 +299,7 @@ mod tests {
     fn test_malformed_version_single_digit() {
         let input = b"%PDF-1\n";
         let result = PdfHeader::parse(Cursor::new(input));
-        
+
         assert!(matches!(result, Err(ParseError::InvalidHeader)));
     }
 
@@ -307,7 +307,7 @@ mod tests {
     fn test_malformed_version_too_many_parts() {
         let input = b"%PDF-1.4.2\n";
         let result = PdfHeader::parse(Cursor::new(input));
-        
+
         assert!(matches!(result, Err(ParseError::InvalidHeader)));
     }
 
@@ -315,7 +315,7 @@ mod tests {
     fn test_malformed_version_non_numeric() {
         let input = b"%PDF-1.x\n";
         let result = PdfHeader::parse(Cursor::new(input));
-        
+
         assert!(matches!(result, Err(ParseError::InvalidHeader)));
     }
 
@@ -323,7 +323,7 @@ mod tests {
     fn test_empty_input() {
         let input = b"";
         let result = PdfHeader::parse(Cursor::new(input));
-        
+
         assert!(matches!(result, Err(ParseError::InvalidHeader)));
     }
 
@@ -332,7 +332,7 @@ mod tests {
         // Create a header line that's over 100 characters
         let long_header = format!("%PDF-1.0{}", "x".repeat(200));
         let result = PdfHeader::parse(Cursor::new(long_header.as_bytes()));
-        
+
         assert!(matches!(result, Err(ParseError::InvalidHeader)));
     }
 
@@ -340,7 +340,7 @@ mod tests {
     fn test_binary_marker_insufficient_bytes() {
         let input = b"%PDF-1.4\n%\xE2\xE3\n";
         let header = PdfHeader::parse(Cursor::new(input)).unwrap();
-        
+
         assert!(!header.has_binary_marker); // Only 2 binary bytes, need 4+
     }
 
@@ -348,7 +348,7 @@ mod tests {
     fn test_binary_marker_exact_threshold() {
         let input = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
         let header = PdfHeader::parse(Cursor::new(input)).unwrap();
-        
+
         assert!(header.has_binary_marker); // Exactly 4 binary bytes
     }
 
@@ -356,7 +356,7 @@ mod tests {
     fn test_binary_marker_more_than_threshold() {
         let input = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\x80\x81\n";
         let header = PdfHeader::parse(Cursor::new(input)).unwrap();
-        
+
         assert!(header.has_binary_marker); // More than 4 binary bytes
     }
 
@@ -364,7 +364,7 @@ mod tests {
     fn test_binary_marker_no_comment() {
         let input = b"%PDF-1.4\n1 0 obj\n";
         let header = PdfHeader::parse(Cursor::new(input)).unwrap();
-        
+
         assert!(!header.has_binary_marker); // No % comment
     }
 
@@ -372,7 +372,7 @@ mod tests {
     fn test_binary_marker_ascii_only() {
         let input = b"%PDF-1.4\n%This is a comment\n";
         let header = PdfHeader::parse(Cursor::new(input)).unwrap();
-        
+
         assert!(!header.has_binary_marker); // ASCII only comment
     }
 
@@ -380,7 +380,7 @@ mod tests {
     fn test_binary_marker_mixed_content() {
         let input = b"%PDF-1.4\n%Some text \xE2\xE3\xCF\xD3 more text\n";
         let header = PdfHeader::parse(Cursor::new(input)).unwrap();
-        
+
         assert!(header.has_binary_marker); // Mixed content with sufficient binary
     }
 
@@ -392,23 +392,30 @@ mod tests {
             long_line.push(0x80);
         }
         long_line.push(b'\n');
-        
+
         let header = PdfHeader::parse(Cursor::new(long_line)).unwrap();
-        
+
         assert!(header.has_binary_marker); // Should still detect binary marker
     }
 
     #[test]
     fn test_version_all_supported_ranges() {
         let supported_versions = vec![
-            (1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7),
-            (2, 0)
+            (1, 0),
+            (1, 1),
+            (1, 2),
+            (1, 3),
+            (1, 4),
+            (1, 5),
+            (1, 6),
+            (1, 7),
+            (2, 0),
         ];
-        
+
         for (major, minor) in supported_versions {
             let input = format!("%PDF-{}.{}\n", major, minor);
             let header = PdfHeader::parse(Cursor::new(input.as_bytes())).unwrap();
-            
+
             assert_eq!(header.version.major, major);
             assert_eq!(header.version.minor, minor);
             assert!(header.version.is_supported());
@@ -419,16 +426,19 @@ mod tests {
     fn test_clone_and_debug() {
         let version = PdfVersion::new(1, 4);
         let cloned_version = version.clone();
-        
+
         assert_eq!(version, cloned_version);
-        assert_eq!(format!("{:?}", version), "PdfVersion { major: 1, minor: 4 }");
-        
+        assert_eq!(
+            format!("{:?}", version),
+            "PdfVersion { major: 1, minor: 4 }"
+        );
+
         let header = PdfHeader {
             version: version.clone(),
             has_binary_marker: true,
         };
         let cloned_header = header.clone();
-        
+
         assert_eq!(header.version, cloned_header.version);
         assert_eq!(header.has_binary_marker, cloned_header.has_binary_marker);
     }

@@ -1032,27 +1032,28 @@ mod comprehensive_tests {
     use super::*;
     use crate::parser::{PdfDocument, PdfReader};
     use crate::text::{MockOcrProvider, OcrError, OcrOptions, OcrProvider};
-    use std::sync::Mutex;
-    use std::time::Duration;
     use std::fs::File;
     use std::io::Write;
+    use std::sync::Mutex;
+    use std::time::Duration;
     use tempfile::NamedTempFile;
 
     // Helper function to create a mock PDF document for testing
     fn create_mock_document() -> crate::parser::document::PdfDocument<std::fs::File> {
         // Create a document using the Document builder instead of raw PDF
         use crate::{Document, Page};
-        
+
         let mut doc = Document::new();
         doc.add_page(Page::a4());
-        
+
         // Save to temporary file
         let temp_file = NamedTempFile::new().expect("Failed to create temp file");
         doc.save(temp_file.path()).expect("Failed to save PDF");
-        
+
         // Open with File reader
         let file = std::fs::File::open(temp_file.path()).expect("Failed to open PDF file");
-        let reader = crate::parser::reader::PdfReader::new(file).expect("Failed to create PDF reader");
+        let reader =
+            crate::parser::reader::PdfReader::new(file).expect("Failed to create PDF reader");
         crate::parser::document::PdfDocument::new(reader)
     }
 
@@ -1099,7 +1100,7 @@ mod comprehensive_tests {
         };
 
         let analyzer = PageContentAnalyzer::with_options(doc, custom_options);
-        
+
         // Verify the analyzer was created (we can't directly access options)
         let page_count_result = analyzer.document.page_count();
         assert!(page_count_result.is_ok());
@@ -1110,11 +1111,13 @@ mod comprehensive_tests {
     #[test]
     fn test_multiple_analyzers() {
         // Create multiple analyzers sequentially
-        let analyzers: Vec<_> = (0..3).map(|_| {
-            let doc = create_mock_document();
-            PageContentAnalyzer::new(doc)
-        }).collect();
-        
+        let analyzers: Vec<_> = (0..3)
+            .map(|_| {
+                let doc = create_mock_document();
+                PageContentAnalyzer::new(doc)
+            })
+            .collect();
+
         // Test each analyzer works correctly
         for (i, analyzer) in analyzers.iter().enumerate() {
             let result = analyzer.document.page_count();
@@ -1135,9 +1138,9 @@ mod comprehensive_tests {
             text_threshold: 0.65,
             ocr_options: None,
         };
-        
+
         let analyzer = PageContentAnalyzer::with_options(doc, custom_options);
-        
+
         // The analyzer should be created successfully with custom options
         let result = analyzer.analyze_page(0);
         assert!(result.is_ok());
@@ -1177,16 +1180,18 @@ startxref
 
         // Create a temporary file
         let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-        temp_file.write_all(pdf_data).expect("Failed to write PDF data");
+        temp_file
+            .write_all(pdf_data)
+            .expect("Failed to write PDF data");
         temp_file.flush().expect("Failed to flush");
 
         // Get path and open as File
         let path = temp_file.path().to_owned();
         let file = File::open(&path).expect("Failed to open temp file");
-        
+
         // Keep the temp file alive by forgetting it
         std::mem::forget(temp_file);
-        
+
         // If parsing fails, we'll just test that the analyzer handles empty results gracefully
         let result = PdfReader::new(file);
         if result.is_err() {
@@ -1194,15 +1199,15 @@ startxref
             assert!(true); // Empty document case is handled
             return;
         }
-        
+
         let reader = result.unwrap();
         let doc = PdfDocument::new(reader);
         let analyzer = PageContentAnalyzer::new(doc);
-        
+
         let analysis_result = analyzer.analyze_document();
         assert!(analysis_result.is_ok());
         assert_eq!(analysis_result.unwrap().len(), 0);
-        
+
         let scanned_pages = analyzer.find_scanned_pages();
         assert!(scanned_pages.is_ok());
         assert_eq!(scanned_pages.unwrap().len(), 0);
@@ -1213,12 +1218,12 @@ startxref
     fn test_invalid_page_number_handling() {
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
-        
+
         // Try to analyze a non-existent page
         let result = analyzer.analyze_page(999);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Page"));
-        
+
         // Try is_scanned_page with invalid index
         let result = analyzer.is_scanned_page(100);
         assert!(result.is_err());
@@ -1230,11 +1235,14 @@ startxref
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
         let ocr_provider = MockOcrProvider::new();
-        
+
         // Since our mock document is text-based, OCR should fail
         let result = analyzer.extract_text_from_scanned_page(0, &ocr_provider);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("not a scanned page"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("not a scanned page"));
     }
 
     // Test 9: OCR processing fallback scenarios
@@ -1243,11 +1251,11 @@ startxref
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
         let ocr_provider = MockOcrProvider::new();
-        
+
         // Test sequential processing (fallback for thread-unsafe providers)
         let result = analyzer.process_scanned_pages_with_ocr(&ocr_provider);
         assert!(result.is_ok());
-        
+
         // Test batch with size 1 (similar to sequential)
         let result = analyzer.process_scanned_pages_batch(&ocr_provider, 1);
         assert!(result.is_ok());
@@ -1259,11 +1267,11 @@ startxref
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
         let ocr_provider = MockOcrProvider::new();
-        
+
         // Test with empty scanned pages list
         let result = analyzer.find_scanned_pages();
         assert!(result.is_ok());
-        
+
         // Test batch processing with size 0
         let result = analyzer.process_scanned_pages_batch(&ocr_provider, 0);
         assert!(result.is_ok());
@@ -1275,15 +1283,15 @@ startxref
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
         let ocr_provider = MockOcrProvider::new();
-        
+
         // Test with batch size 1
         let result = analyzer.process_scanned_pages_batch(&ocr_provider, 1);
         assert!(result.is_ok());
-        
+
         // Test with batch size 5
         let result = analyzer.process_scanned_pages_batch(&ocr_provider, 5);
         assert!(result.is_ok());
-        
+
         // Test with batch size larger than pages
         let result = analyzer.process_scanned_pages_batch(&ocr_provider, 100);
         assert!(result.is_ok());
@@ -1294,12 +1302,12 @@ startxref
     fn test_analyze_specific_pages() {
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
-        
+
         // Analyze only page 0
         let result = analyzer.analyze_pages(&[0]);
         assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 1);
-        
+
         // Try to analyze invalid pages
         let result = analyzer.analyze_pages(&[0, 99]);
         assert!(result.is_err());
@@ -1319,14 +1327,14 @@ startxref
             image_count: 0,
             character_count: 0,
         };
-        
+
         assert!(!analysis.is_scanned());
         assert!(!analysis.is_text_heavy());
         assert!(analysis.is_mixed_content());
         // dominant_content_ratio returns the max of text_ratio and image_ratio only
         // In this case, both are 0.0, so it should return 0.0
         assert_eq!(analysis.dominant_content_ratio(), 0.0);
-        
+
         // Test with equal ratios
         let analysis2 = ContentAnalysis {
             page_number: 1,
@@ -1338,7 +1346,7 @@ startxref
             image_count: 5,
             character_count: 100,
         };
-        
+
         assert!(analysis2.is_mixed_content());
         assert_eq!(analysis2.dominant_content_ratio(), 0.33); // Max of text_ratio and image_ratio
     }
@@ -1347,19 +1355,19 @@ startxref
     #[test]
     fn test_ocr_provider_mock_customization() {
         let mut provider = MockOcrProvider::new();
-        
+
         // Test setting custom text
         provider.set_mock_text("Custom OCR result for testing".to_string());
         provider.set_confidence(0.99);
         provider.set_processing_delay(10);
-        
+
         let options = OcrOptions::default();
         let mock_image = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46]; // JPEG header (8 bytes)
-        
+
         let start = std::time::Instant::now();
         let result = provider.process_image(&mock_image, &options);
         let elapsed = start.elapsed();
-        
+
         assert!(result.is_ok());
         let ocr_result = result.unwrap();
         assert!(ocr_result.text.contains("Custom OCR result"));
@@ -1372,7 +1380,7 @@ startxref
     fn test_simulate_page_ocr_processing() {
         let provider = MockOcrProvider::new();
         let result = simulate_page_ocr_processing(5, &provider);
-        
+
         assert!(result.is_ok());
         let ocr_result = result.unwrap();
         assert!(ocr_result.text.contains("Page 5"));
@@ -1384,33 +1392,42 @@ startxref
     fn test_process_scanned_pages_error_handling() {
         // Create a custom OCR provider that always fails
         struct FailingOcrProvider;
-        
+
         impl OcrProvider for FailingOcrProvider {
-            fn process_image(&self, _: &[u8], _: &OcrOptions) -> Result<OcrProcessingResult, OcrError> {
+            fn process_image(
+                &self,
+                _: &[u8],
+                _: &OcrOptions,
+            ) -> Result<OcrProcessingResult, OcrError> {
                 Err(OcrError::ProcessingFailed("Simulated failure".to_string()))
             }
-            
-            fn process_page(&self, _: &ContentAnalysis, _: &[u8], _: &OcrOptions) -> Result<OcrProcessingResult, OcrError> {
+
+            fn process_page(
+                &self,
+                _: &ContentAnalysis,
+                _: &[u8],
+                _: &OcrOptions,
+            ) -> Result<OcrProcessingResult, OcrError> {
                 Err(OcrError::ProcessingFailed("Simulated failure".to_string()))
             }
-            
+
             fn supported_formats(&self) -> Vec<crate::graphics::ImageFormat> {
                 vec![]
             }
-            
+
             fn engine_name(&self) -> &str {
                 "Failing"
             }
-            
+
             fn engine_type(&self) -> crate::text::OcrEngine {
                 crate::text::OcrEngine::Mock
             }
         }
-        
+
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
         let failing_provider = FailingOcrProvider;
-        
+
         // This should handle errors gracefully
         let result = analyzer.process_scanned_pages_with_ocr(&failing_provider);
         assert!(result.is_ok());
@@ -1422,11 +1439,11 @@ startxref
     fn test_page_area_calculation() {
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
-        
+
         // Get the first page
         let page = analyzer.document.get_page(0).unwrap();
         let area = analyzer.calculate_page_area(&page);
-        
+
         assert!(area.is_ok());
         let area_value = area.unwrap();
         assert!(area_value > 0.0);
@@ -1438,15 +1455,15 @@ startxref
     #[test]
     fn test_determine_page_type_exact_thresholds() {
         let analyzer = PageContentAnalyzer::new(create_mock_document());
-        
+
         // Test just above scanned threshold (image_ratio > 0.8 AND text_ratio < 0.1)
         let page_type = analyzer.determine_page_type(0.09, 0.81);
         assert_eq!(page_type, PageType::Scanned);
-        
+
         // Test just above text threshold (text_ratio > 0.7 AND image_ratio < 0.2)
         let page_type = analyzer.determine_page_type(0.71, 0.19);
         assert_eq!(page_type, PageType::Text);
-        
+
         // Test at exact thresholds (should be Mixed)
         let page_type = analyzer.determine_page_type(0.7, 0.8);
         assert_eq!(page_type, PageType::Mixed);
@@ -1458,7 +1475,7 @@ startxref
         let mut engine_options = std::collections::HashMap::new();
         engine_options.insert("tesseract_psm".to_string(), "3".to_string());
         engine_options.insert("custom_param".to_string(), "value".to_string());
-        
+
         let ocr_options = OcrOptions {
             language: "ja".to_string(),
             min_confidence: 0.9,
@@ -1467,7 +1484,7 @@ startxref
             engine_options,
             ..Default::default()
         };
-        
+
         let analysis_options = AnalysisOptions {
             min_text_fragment_size: 1,
             min_image_size: 10,
@@ -1475,7 +1492,7 @@ startxref
             text_threshold: 0.5,
             ocr_options: Some(ocr_options),
         };
-        
+
         assert!(analysis_options.ocr_options.is_some());
         let ocr_opts = analysis_options.ocr_options.unwrap();
         assert_eq!(ocr_opts.language, "ja");
@@ -1496,7 +1513,7 @@ startxref
             image_count: 3,
             character_count: 500,
         };
-        
+
         let total = analysis.text_ratio + analysis.image_ratio + analysis.blank_space_ratio;
         assert!((total - 1.0).abs() < 0.001);
     }
@@ -1519,11 +1536,14 @@ startxref
     fn test_extract_page_image_data_no_xobjects() {
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
-        
+
         // Our mock document doesn't have image XObjects
         let result = analyzer.extract_page_image_data(0);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("No image data found"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No image data found"));
     }
 
     // Test 23: Analyze text content with minimum fragment size
@@ -1535,7 +1555,7 @@ startxref
             ..Default::default()
         };
         let analyzer = PageContentAnalyzer::with_options(doc, custom_options);
-        
+
         let result = analyzer.analyze_text_content(0);
         assert!(result.is_ok());
         // With high threshold, small fragments should be filtered out
@@ -1547,11 +1567,11 @@ startxref
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
         let provider = MockOcrProvider::new();
-        
+
         // Test with default OCR options
         let result = analyzer.process_scanned_pages_with_ocr(&provider);
         assert!(result.is_ok());
-        
+
         // Test finding and processing scanned pages automatically
         let scanned = analyzer.find_scanned_pages();
         assert!(scanned.is_ok());
@@ -1567,20 +1587,20 @@ startxref
             sharpen: true,
             scale_factor: 1.5,
         };
-        
+
         let ocr_options = OcrOptions {
             preprocessing,
             ..Default::default()
         };
-        
+
         let analysis_options = AnalysisOptions {
             ocr_options: Some(ocr_options),
             ..Default::default()
         };
-        
+
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::with_options(doc, analysis_options);
-        
+
         // Verify analyzer was created with custom preprocessing
         assert!(analyzer.options.ocr_options.is_some());
     }
@@ -1591,11 +1611,11 @@ startxref
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
         let provider = MockOcrProvider::new();
-        
+
         let start = std::time::Instant::now();
         let result = analyzer.process_scanned_pages_batch(&provider, 1);
         let _elapsed = start.elapsed();
-        
+
         assert!(result.is_ok());
         // Should have at least the delay between batches
         // Note: May not have delay if no scanned pages found
@@ -1605,19 +1625,19 @@ startxref
     #[test]
     fn test_page_type_all_combinations() {
         let analyzer = PageContentAnalyzer::new(create_mock_document());
-        
+
         // High image, low text = Scanned
         assert_eq!(analyzer.determine_page_type(0.05, 0.85), PageType::Scanned);
         assert_eq!(analyzer.determine_page_type(0.0, 0.95), PageType::Scanned);
-        
+
         // High text, low image = Text
         assert_eq!(analyzer.determine_page_type(0.75, 0.15), PageType::Text);
         assert_eq!(analyzer.determine_page_type(0.85, 0.0), PageType::Text);
-        
+
         // Balanced = Mixed
         assert_eq!(analyzer.determine_page_type(0.4, 0.4), PageType::Mixed);
         assert_eq!(analyzer.determine_page_type(0.3, 0.3), PageType::Mixed);
-        
+
         // Edge cases
         assert_eq!(analyzer.determine_page_type(0.5, 0.5), PageType::Mixed);
         assert_eq!(analyzer.determine_page_type(0.15, 0.75), PageType::Mixed);
@@ -1627,19 +1647,19 @@ startxref
     #[test]
     fn test_multiple_analyzers_shared_results() {
         let mut all_results = Vec::new();
-        
+
         // Create multiple analyzers and collect results
         for i in 0..3 {
             let doc = create_mock_document();
             let analyzer = PageContentAnalyzer::new(doc);
-            
+
             if let Ok(analysis) = analyzer.analyze_page(0) {
                 all_results.push((i, analysis.page_type));
             }
         }
-        
+
         assert_eq!(all_results.len(), 3);
-        
+
         // Verify all analyzers produced consistent results
         for (i, page_type) in &all_results {
             println!("Analyzer {} detected page type: {:?}", i, page_type);
@@ -1652,45 +1672,56 @@ startxref
         // Create analyzer that will encounter errors
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
-        
+
         // Use a provider that fails intermittently
         struct IntermittentOcrProvider {
             fail_count: Mutex<usize>,
         }
-        
+
         impl OcrProvider for IntermittentOcrProvider {
-            fn process_image(&self, data: &[u8], opts: &OcrOptions) -> Result<OcrProcessingResult, OcrError> {
+            fn process_image(
+                &self,
+                data: &[u8],
+                opts: &OcrOptions,
+            ) -> Result<OcrProcessingResult, OcrError> {
                 let mut count = self.fail_count.lock().unwrap();
                 *count += 1;
-                
+
                 if *count % 2 == 0 {
-                    Err(OcrError::ProcessingFailed("Intermittent failure".to_string()))
+                    Err(OcrError::ProcessingFailed(
+                        "Intermittent failure".to_string(),
+                    ))
                 } else {
                     MockOcrProvider::new().process_image(data, opts)
                 }
             }
-            
-            fn process_page(&self, _analysis: &ContentAnalysis, data: &[u8], opts: &OcrOptions) -> Result<OcrProcessingResult, OcrError> {
+
+            fn process_page(
+                &self,
+                _analysis: &ContentAnalysis,
+                data: &[u8],
+                opts: &OcrOptions,
+            ) -> Result<OcrProcessingResult, OcrError> {
                 self.process_image(data, opts)
             }
-            
+
             fn supported_formats(&self) -> Vec<crate::graphics::ImageFormat> {
                 MockOcrProvider::new().supported_formats()
             }
-            
+
             fn engine_name(&self) -> &str {
                 "Intermittent"
             }
-            
+
             fn engine_type(&self) -> crate::text::OcrEngine {
                 crate::text::OcrEngine::Mock
             }
         }
-        
+
         let provider = IntermittentOcrProvider {
             fail_count: Mutex::new(0),
         };
-        
+
         let result = analyzer.process_scanned_pages_batch(&provider, 2);
         assert!(result.is_ok());
         // Some pages may fail, but the batch should continue
@@ -1701,13 +1732,13 @@ startxref
     fn test_memory_stress_multiple_analyses() {
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
-        
+
         // Perform many analyses to test memory handling
         for _ in 0..100 {
             let result = analyzer.analyze_page(0);
             assert!(result.is_ok());
         }
-        
+
         // Analyze document multiple times
         for _ in 0..10 {
             let result = analyzer.analyze_document();
@@ -1722,16 +1753,16 @@ startxref
             language: "unknown_lang".to_string(),
             ..Default::default()
         };
-        
+
         let analysis_options = AnalysisOptions {
             ocr_options: Some(ocr_options),
             ..Default::default()
         };
-        
+
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::with_options(doc, analysis_options);
         let provider = MockOcrProvider::new();
-        
+
         // Should handle unknown language gracefully
         let result = analyzer.process_scanned_pages_with_ocr(&provider);
         assert!(result.is_ok());
@@ -1742,20 +1773,20 @@ startxref
     fn test_ocr_timeout_simulation() {
         let mut provider = MockOcrProvider::new();
         provider.set_processing_delay(100); // 100ms delay
-        
+
         let ocr_options = OcrOptions {
             timeout_seconds: 1, // Very short timeout for testing
             ..Default::default()
         };
-        
+
         let analysis_options = AnalysisOptions {
             ocr_options: Some(ocr_options),
             ..Default::default()
         };
-        
+
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::with_options(doc, analysis_options);
-        
+
         // Process should complete within timeout
         let result = analyzer.process_scanned_pages_with_ocr(&provider);
         assert!(result.is_ok());
@@ -1766,7 +1797,7 @@ startxref
     fn test_zero_sized_image_filtering() {
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
-        
+
         // analyze_image_content should filter out zero-sized images
         let result = analyzer.analyze_image_content(0);
         assert!(result.is_ok());
@@ -1780,7 +1811,7 @@ startxref
     fn test_page_numbers_boundary() {
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
-        
+
         // Test with maximum safe page numbers
         let page_numbers = vec![0, usize::MAX];
         let result = analyzer.analyze_pages(&page_numbers);
@@ -1791,22 +1822,22 @@ startxref
     #[test]
     fn test_ocr_confidence_boundaries() {
         let mut provider = MockOcrProvider::new();
-        
+
         // Create a valid minimal JPEG header
         let jpeg_data = [
             0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
         ];
-        
+
         // Test with 0% confidence
         provider.set_confidence(0.0);
         let result = provider.process_image(&jpeg_data, &OcrOptions::default());
         assert!(result.is_ok());
-        
+
         // Test with 100% confidence
         provider.set_confidence(1.0);
         let result = provider.process_image(&jpeg_data, &OcrOptions::default());
         assert!(result.is_ok());
-        
+
         // Test with confidence below threshold
         let options = OcrOptions {
             min_confidence: 0.9,
@@ -1824,11 +1855,11 @@ startxref
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
         let provider = MockOcrProvider::new();
-        
+
         // Test sequential processing
         let result = analyzer.process_scanned_pages_with_ocr(&provider);
         assert!(result.is_ok());
-        
+
         // Test batch processing with different sizes
         for batch_size in [1, 3, 5, 10] {
             let result = analyzer.process_scanned_pages_batch(&provider, batch_size);
@@ -1845,7 +1876,7 @@ startxref
             ..Default::default()
         };
         let analyzer = PageContentAnalyzer::with_options(doc, custom_options);
-        
+
         let result = analyzer.analyze_image_content(0);
         assert!(result.is_ok());
         // With high threshold, small images should be filtered
@@ -1856,18 +1887,18 @@ startxref
     fn test_comprehensive_page_analysis() {
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
-        
+
         let analysis = analyzer.analyze_page(0);
         assert!(analysis.is_ok());
-        
+
         let analysis = analysis.unwrap();
-        
+
         // Verify all fields are populated
         assert!(analysis.page_number == 0);
         assert!(analysis.text_ratio >= 0.0 && analysis.text_ratio <= 1.0);
         assert!(analysis.image_ratio >= 0.0 && analysis.image_ratio <= 1.0);
         assert!(analysis.blank_space_ratio >= 0.0 && analysis.blank_space_ratio <= 1.0);
-        
+
         // Ratios should sum to approximately 1.0
         let total = analysis.text_ratio + analysis.image_ratio + analysis.blank_space_ratio;
         assert!((total - 1.0).abs() < 0.01);
@@ -1879,7 +1910,7 @@ startxref
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
         let provider = MockOcrProvider::new();
-        
+
         // Test non-scanned page error message
         let result = analyzer.extract_text_from_scanned_page(0, &provider);
         assert!(result.is_err());
@@ -1895,11 +1926,11 @@ startxref
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
         let provider = MockOcrProvider::new();
-        
+
         // Test with batch size 0 (should handle gracefully)
         let result = analyzer.process_scanned_pages_batch(&provider, 0);
         assert!(result.is_ok());
-        
+
         // Test with very large batch size
         let result = analyzer.process_scanned_pages_batch(&provider, usize::MAX);
         assert!(result.is_ok());
@@ -1912,7 +1943,7 @@ startxref
         struct UnreliableOcrProvider {
             call_count: Mutex<usize>,
         }
-        
+
         impl UnreliableOcrProvider {
             fn new() -> Self {
                 UnreliableOcrProvider {
@@ -1920,7 +1951,7 @@ startxref
                 }
             }
         }
-        
+
         impl Clone for UnreliableOcrProvider {
             fn clone(&self) -> Self {
                 UnreliableOcrProvider {
@@ -1928,12 +1959,16 @@ startxref
                 }
             }
         }
-        
+
         impl OcrProvider for UnreliableOcrProvider {
-            fn process_image(&self, _: &[u8], _: &OcrOptions) -> Result<OcrProcessingResult, OcrError> {
+            fn process_image(
+                &self,
+                _: &[u8],
+                _: &OcrOptions,
+            ) -> Result<OcrProcessingResult, OcrError> {
                 let mut count = self.call_count.lock().unwrap();
                 *count += 1;
-                
+
                 // Fail on first call, succeed on subsequent calls
                 if *count == 1 {
                     Err(OcrError::ProcessingFailed("Temporary failure".to_string()))
@@ -1941,32 +1976,37 @@ startxref
                     MockOcrProvider::new().process_image(&[0xFF, 0xD8], &OcrOptions::default())
                 }
             }
-            
-            fn process_page(&self, _: &ContentAnalysis, data: &[u8], opts: &OcrOptions) -> Result<OcrProcessingResult, OcrError> {
+
+            fn process_page(
+                &self,
+                _: &ContentAnalysis,
+                data: &[u8],
+                opts: &OcrOptions,
+            ) -> Result<OcrProcessingResult, OcrError> {
                 self.process_image(data, opts)
             }
-            
+
             fn supported_formats(&self) -> Vec<crate::graphics::ImageFormat> {
                 MockOcrProvider::new().supported_formats()
             }
-            
+
             fn engine_name(&self) -> &str {
                 "Unreliable"
             }
-            
+
             fn engine_type(&self) -> crate::text::OcrEngine {
                 crate::text::OcrEngine::Mock
             }
         }
-        
+
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
         let provider = UnreliableOcrProvider::new();
-        
+
         // Test sequential processing with unreliable provider
         let result = analyzer.process_scanned_pages_with_ocr(&provider);
         assert!(result.is_ok());
-        
+
         // Test batch processing with unreliable provider
         let result = analyzer.process_scanned_pages_batch(&provider, 2);
         assert!(result.is_ok());
@@ -1980,13 +2020,13 @@ startxref
             min_text_fragment_size: 0,
             min_image_size: 0,
             scanned_threshold: 1.5, // Above 1.0
-            text_threshold: -0.5,    // Below 0.0
+            text_threshold: -0.5,   // Below 0.0
             ocr_options: None,
         };
-        
+
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::with_options(doc, options);
-        
+
         // Should still work despite invalid thresholds
         let result = analyzer.analyze_page(0);
         assert!(result.is_ok());
@@ -1998,28 +2038,31 @@ startxref
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
         let mut provider = MockOcrProvider::new();
-        
+
         // Set up provider with specific results
         provider.set_mock_text("Page content from OCR".to_string());
         provider.set_confidence(0.85);
-        
+
         let results = analyzer.process_scanned_pages_with_ocr(&provider);
         assert!(results.is_ok());
-        
+
         let ocr_results = results.unwrap();
-        
+
         // Verify results can be aggregated
-        let total_chars: usize = ocr_results.iter()
+        let total_chars: usize = ocr_results
+            .iter()
             .map(|(_, result)| result.text.len())
             .sum();
         let avg_confidence: f64 = if !ocr_results.is_empty() {
-            ocr_results.iter()
+            ocr_results
+                .iter()
                 .map(|(_, result)| result.confidence)
-                .sum::<f64>() / ocr_results.len() as f64
+                .sum::<f64>()
+                / ocr_results.len() as f64
         } else {
             0.0
         };
-        
+
         // total_chars is usize, always >= 0
         assert!(total_chars == total_chars); // Just to use the variable
         assert!(avg_confidence >= 0.0 && avg_confidence <= 1.0);
@@ -2035,7 +2078,7 @@ startxref
             let _result = analyzer.analyze_document();
             // Resources should be automatically cleaned up when analyzer goes out of scope
         }
-        
+
         // If this test completes without issues, resource cleanup is working
         assert!(true);
     }
@@ -2046,31 +2089,34 @@ startxref
         // Create analyzer
         let doc = create_mock_document();
         let analyzer = PageContentAnalyzer::new(doc);
-        
+
         // 1. Analyze document
         let analyses = analyzer.analyze_document().unwrap();
         assert!(!analyses.is_empty());
-        
+
         // 2. Find scanned pages
         let _scanned_pages = analyzer.find_scanned_pages().unwrap();
-        
+
         // 3. Check specific page
         let _is_scanned = analyzer.is_scanned_page(0).unwrap();
-        
+
         // 4. Process with OCR (if applicable)
         let provider = MockOcrProvider::new();
         let ocr_results = analyzer.process_scanned_pages_with_ocr(&provider).unwrap();
-        
+
         // 5. Sequential processing (since parallel requires Send + Sync)
         let sequential_results = analyzer.process_scanned_pages_with_ocr(&provider).unwrap();
-        
+
         // 6. Batch processing
         let batch_results = analyzer.process_scanned_pages_batch(&provider, 5).unwrap();
-        
+
         // Verify consistency across methods
         assert_eq!(ocr_results.len(), sequential_results.len());
         assert_eq!(ocr_results.len(), batch_results.len());
-        
-        println!("Complete workflow test passed with {} pages analyzed", analyses.len());
+
+        println!(
+            "Complete workflow test passed with {} pages analyzed",
+            analyses.len()
+        );
     }
 }

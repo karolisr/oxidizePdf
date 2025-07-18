@@ -16,22 +16,24 @@ mod unix_mmap {
     use super::*;
     use std::os::unix::io::AsRawFd;
     use std::ptr;
-    
+
     pub struct MmapInner {
         ptr: *mut u8,
         len: usize,
     }
-    
+
     // SAFETY: MmapInner is used in a read-only context
     unsafe impl Send for MmapInner {}
     unsafe impl Sync for MmapInner {}
-    
+
     impl MmapInner {
         pub fn new(file: &File, len: usize) -> Result<Self> {
             if len == 0 {
-                return Err(PdfError::InvalidFormat("Cannot mmap empty file".to_string()));
+                return Err(PdfError::InvalidFormat(
+                    "Cannot mmap empty file".to_string(),
+                ));
             }
-            
+
             unsafe {
                 let ptr = libc::mmap(
                     ptr::null_mut(),
@@ -41,23 +43,23 @@ mod unix_mmap {
                     file.as_raw_fd(),
                     0,
                 );
-                
+
                 if ptr == libc::MAP_FAILED {
                     return Err(PdfError::Io(std::io::Error::last_os_error()));
                 }
-                
+
                 Ok(Self {
                     ptr: ptr as *mut u8,
                     len,
                 })
             }
         }
-        
+
         pub fn as_slice(&self) -> &[u8] {
             unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
         }
     }
-    
+
     impl Drop for MmapInner {
         fn drop(&mut self) {
             unsafe {
@@ -72,25 +74,27 @@ mod windows_mmap {
     use super::*;
     use std::os::windows::io::AsRawHandle;
     use std::ptr;
-    use winapi::um::memoryapi::{CreateFileMappingW, MapViewOfFile, UnmapViewOfFile};
     use winapi::um::handleapi::CloseHandle;
-    use winapi::um::winnt::{PAGE_READONLY, FILE_MAP_READ};
-    
+    use winapi::um::memoryapi::{CreateFileMappingW, MapViewOfFile, UnmapViewOfFile};
+    use winapi::um::winnt::{FILE_MAP_READ, PAGE_READONLY};
+
     pub struct MmapInner {
         ptr: *mut u8,
         len: usize,
         mapping_handle: *mut winapi::ctypes::c_void,
     }
-    
+
     unsafe impl Send for MmapInner {}
     unsafe impl Sync for MmapInner {}
-    
+
     impl MmapInner {
         pub fn new(file: &File, len: usize) -> Result<Self> {
             if len == 0 {
-                return Err(PdfError::InvalidFormat("Cannot mmap empty file".to_string()));
+                return Err(PdfError::InvalidFormat(
+                    "Cannot mmap empty file".to_string(),
+                ));
             }
-            
+
             unsafe {
                 let mapping_handle = CreateFileMappingW(
                     file.as_raw_handle() as *mut _,
@@ -100,24 +104,18 @@ mod windows_mmap {
                     0,
                     ptr::null(),
                 );
-                
+
                 if mapping_handle.is_null() {
                     return Err(PdfError::Io(std::io::Error::last_os_error()));
                 }
-                
-                let ptr = MapViewOfFile(
-                    mapping_handle,
-                    FILE_MAP_READ,
-                    0,
-                    0,
-                    len,
-                );
-                
+
+                let ptr = MapViewOfFile(mapping_handle, FILE_MAP_READ, 0, 0, len);
+
                 if ptr.is_null() {
                     CloseHandle(mapping_handle);
                     return Err(PdfError::Io(std::io::Error::last_os_error()));
                 }
-                
+
                 Ok(Self {
                     ptr: ptr as *mut u8,
                     len,
@@ -125,12 +123,12 @@ mod windows_mmap {
                 })
             }
         }
-        
+
         pub fn as_slice(&self) -> &[u8] {
             unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
         }
     }
-    
+
     impl Drop for MmapInner {
         fn drop(&mut self) {
             unsafe {
@@ -145,11 +143,11 @@ mod windows_mmap {
 #[cfg(not(any(unix, windows)))]
 mod fallback_mmap {
     use super::*;
-    
+
     pub struct MmapInner {
         data: Vec<u8>,
     }
-    
+
     impl MmapInner {
         pub fn new(file: &File, len: usize) -> Result<Self> {
             let mut data = vec![0u8; len];
@@ -158,19 +156,19 @@ mod fallback_mmap {
             file_clone.read_exact(&mut data)?;
             Ok(Self { data })
         }
-        
+
         pub fn as_slice(&self) -> &[u8] {
             &self.data
         }
     }
 }
 
+#[cfg(not(any(unix, windows)))]
+use fallback_mmap::MmapInner;
 #[cfg(unix)]
 use unix_mmap::MmapInner;
 #[cfg(windows)]
 use windows_mmap::MmapInner;
-#[cfg(not(any(unix, windows)))]
-use fallback_mmap::MmapInner;
 
 /// Memory-mapped file for efficient access
 pub struct MemoryMappedFile {
@@ -183,19 +181,19 @@ impl MemoryMappedFile {
         let file = File::open(path)?;
         let metadata = file.metadata()?;
         let len = metadata.len() as usize;
-        
+
         let inner = MmapInner::new(&file, len)?;
-        
+
         Ok(Self {
             inner: Arc::new(inner),
         })
     }
-    
+
     /// Get the length of the mapped region
     pub fn len(&self) -> usize {
         self.inner.as_slice().len()
     }
-    
+
     /// Check if the mapped region is empty
     pub fn is_empty(&self) -> bool {
         self.inner.as_slice().is_empty()
@@ -204,7 +202,7 @@ impl MemoryMappedFile {
 
 impl Deref for MemoryMappedFile {
     type Target = [u8];
-    
+
     fn deref(&self) -> &Self::Target {
         self.inner.as_slice()
     }
@@ -226,12 +224,9 @@ impl MappedReader {
     /// Create a new mapped reader
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let mmap = MemoryMappedFile::new(path)?;
-        Ok(Self {
-            mmap,
-            position: 0,
-        })
+        Ok(Self { mmap, position: 0 })
     }
-    
+
     /// Get a slice of the file at the given range
     pub fn get_slice(&self, start: usize, end: usize) -> Option<&[u8]> {
         let data = self.mmap.as_ref();
@@ -248,12 +243,12 @@ impl Read for MappedReader {
         let data = self.mmap.as_ref();
         let remaining = data.len().saturating_sub(self.position);
         let to_read = buf.len().min(remaining);
-        
+
         if to_read > 0 {
             buf[..to_read].copy_from_slice(&data[self.position..self.position + to_read]);
             self.position += to_read;
         }
-        
+
         Ok(to_read)
     }
 }
@@ -265,14 +260,14 @@ impl Seek for MappedReader {
             SeekFrom::End(n) => self.mmap.len() as i64 + n,
             SeekFrom::Current(n) => self.position as i64 + n,
         };
-        
+
         if new_pos < 0 || new_pos > self.mmap.len() as i64 {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 "Seek position out of bounds",
             ));
         }
-        
+
         self.position = new_pos as usize;
         Ok(self.position as u64)
     }
@@ -283,7 +278,7 @@ mod tests {
     use super::*;
     use std::io::Write;
     use tempfile::NamedTempFile;
-    
+
     #[test]
     fn test_memory_mapped_file() {
         // Create a temporary file
@@ -291,74 +286,77 @@ mod tests {
         let test_data = b"Hello, memory mapped world!";
         temp_file.write_all(test_data).unwrap();
         temp_file.flush().unwrap();
-        
+
         // Memory map it
         let mmap = MemoryMappedFile::new(temp_file.path()).unwrap();
-        
+
         assert_eq!(mmap.len(), test_data.len());
         assert!(!mmap.is_empty());
         assert_eq!(&mmap[..], test_data);
     }
-    
+
     #[test]
     fn test_mapped_reader_read() {
         let mut temp_file = NamedTempFile::new().unwrap();
         let test_data = b"Test data for mapped reader";
         temp_file.write_all(test_data).unwrap();
         temp_file.flush().unwrap();
-        
+
         let mut reader = MappedReader::new(temp_file.path()).unwrap();
-        
+
         // Read partial data
         let mut buf = [0u8; 4];
         assert_eq!(reader.read(&mut buf).unwrap(), 4);
         assert_eq!(&buf, b"Test");
-        
+
         // Read more data
         let mut buf = [0u8; 5];
         assert_eq!(reader.read(&mut buf).unwrap(), 5);
         assert_eq!(&buf, b" data");
     }
-    
+
     #[test]
     fn test_mapped_reader_seek() {
         let mut temp_file = NamedTempFile::new().unwrap();
         let test_data = b"0123456789";
         temp_file.write_all(test_data).unwrap();
         temp_file.flush().unwrap();
-        
+
         let mut reader = MappedReader::new(temp_file.path()).unwrap();
-        
+
         // Seek to position 5
         assert_eq!(reader.seek(SeekFrom::Start(5)).unwrap(), 5);
         let mut buf = [0u8; 2];
         reader.read(&mut buf).unwrap();
         assert_eq!(&buf, b"56");
-        
+
         // Seek relative
         assert_eq!(reader.seek(SeekFrom::Current(-3)).unwrap(), 4);
         reader.read(&mut buf).unwrap();
         assert_eq!(&buf, b"45");
-        
+
         // Seek from end
         assert_eq!(reader.seek(SeekFrom::End(-2)).unwrap(), 8);
         reader.read(&mut buf).unwrap();
         assert_eq!(&buf, b"89");
     }
-    
+
     #[test]
     fn test_get_slice() {
         let mut temp_file = NamedTempFile::new().unwrap();
         let test_data = b"Hello, World!";
         temp_file.write_all(test_data).unwrap();
         temp_file.flush().unwrap();
-        
+
         let reader = MappedReader::new(temp_file.path()).unwrap();
-        
+
         assert_eq!(reader.get_slice(0, 5), Some(&b"Hello"[..]));
         assert_eq!(reader.get_slice(7, 12), Some(&b"World"[..]));
-        assert_eq!(reader.get_slice(0, test_data.len()), Some(test_data.as_ref()));
-        
+        assert_eq!(
+            reader.get_slice(0, test_data.len()),
+            Some(test_data.as_ref())
+        );
+
         // Out of bounds
         assert_eq!(reader.get_slice(10, 20), None);
         assert_eq!(reader.get_slice(5, 3), None); // start > end

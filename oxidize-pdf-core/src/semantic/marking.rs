@@ -12,7 +12,11 @@ pub struct EntityBuilder<'a> {
 }
 
 impl<'a> EntityBuilder<'a> {
-    pub(crate) fn new(page: &'a mut Page, entity_type: EntityType, bounds: (f64, f64, f64, f64)) -> Self {
+    pub(crate) fn new(
+        page: &'a mut Page,
+        entity_type: EntityType,
+        bounds: (f64, f64, f64, f64),
+    ) -> Self {
         Self {
             _page: page,
             entity_type,

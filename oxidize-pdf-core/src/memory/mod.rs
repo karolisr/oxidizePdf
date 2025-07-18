@@ -48,9 +48,7 @@ pub mod stream_processor;
 pub use cache::{LruCache, ObjectCache};
 pub use lazy_loader::{LazyDocument, LazyObject};
 pub use memory_mapped::{MappedReader, MemoryMappedFile};
-pub use stream_processor::{
-    ProcessingAction, ProcessingEvent, StreamProcessor, StreamingOptions,
-};
+pub use stream_processor::{ProcessingAction, ProcessingEvent, StreamProcessor, StreamingOptions};
 
 /// Configuration options for memory optimization
 #[derive(Debug, Clone)]
@@ -76,7 +74,7 @@ impl Default for MemoryOptions {
             memory_mapping: true,
             cache_size: 1000,
             streaming: true,
-            buffer_size: 64 * 1024, // 64KB
+            buffer_size: 64 * 1024,           // 64KB
             mmap_threshold: 10 * 1024 * 1024, // 10MB
         }
     }
@@ -94,7 +92,7 @@ impl MemoryOptions {
             mmap_threshold: usize::MAX,
         }
     }
-    
+
     /// Create options optimized for large PDFs
     pub fn large_file() -> Self {
         Self {
@@ -106,25 +104,25 @@ impl MemoryOptions {
             mmap_threshold: 1024 * 1024, // 1MB
         }
     }
-    
+
     /// Enable lazy loading
     pub fn with_lazy_loading(mut self, enabled: bool) -> Self {
         self.lazy_loading = enabled;
         self
     }
-    
+
     /// Enable memory mapping
     pub fn with_memory_mapping(mut self, enabled: bool) -> Self {
         self.memory_mapping = enabled;
         self
     }
-    
+
     /// Set cache size
     pub fn with_cache_size(mut self, size: usize) -> Self {
         self.cache_size = size;
         self
     }
-    
+
     /// Enable streaming
     pub fn with_streaming(mut self, enabled: bool) -> Self {
         self.streaming = enabled;
@@ -151,6 +149,7 @@ pub struct MemoryStats {
 
 /// Memory manager for tracking and optimizing memory usage
 pub struct MemoryManager {
+    #[allow(dead_code)]
     options: MemoryOptions,
     stats: Arc<RwLock<MemoryStats>>,
     cache: Option<ObjectCache>,
@@ -164,40 +163,40 @@ impl MemoryManager {
         } else {
             None
         };
-        
+
         Self {
             options,
             stats: Arc::new(RwLock::new(MemoryStats::default())),
             cache,
         }
     }
-    
+
     /// Get memory statistics
     pub fn stats(&self) -> MemoryStats {
         self.stats.read().unwrap().clone()
     }
-    
+
     /// Record a memory allocation
     pub fn record_allocation(&self, bytes: usize) {
         if let Ok(mut stats) = self.stats.write() {
             stats.allocated_bytes += bytes;
         }
     }
-    
+
     /// Record a cache hit
     pub fn record_cache_hit(&self) {
         if let Ok(mut stats) = self.stats.write() {
             stats.cache_hits += 1;
         }
     }
-    
+
     /// Record a cache miss
     pub fn record_cache_miss(&self) {
         if let Ok(mut stats) = self.stats.write() {
             stats.cache_misses += 1;
         }
     }
-    
+
     /// Get the object cache
     pub fn cache(&self) -> Option<&ObjectCache> {
         self.cache.as_ref()
@@ -207,7 +206,7 @@ impl MemoryManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_memory_options_default() {
         let options = MemoryOptions::default();
@@ -217,7 +216,7 @@ mod tests {
         assert!(options.streaming);
         assert_eq!(options.buffer_size, 64 * 1024);
     }
-    
+
     #[test]
     fn test_memory_options_small_file() {
         let options = MemoryOptions::small_file();
@@ -226,7 +225,7 @@ mod tests {
         assert_eq!(options.cache_size, 0);
         assert!(!options.streaming);
     }
-    
+
     #[test]
     fn test_memory_options_large_file() {
         let options = MemoryOptions::large_file();
@@ -236,7 +235,7 @@ mod tests {
         assert!(options.streaming);
         assert_eq!(options.buffer_size, 256 * 1024);
     }
-    
+
     #[test]
     fn test_memory_options_builder() {
         let options = MemoryOptions::default()
@@ -244,13 +243,13 @@ mod tests {
             .with_memory_mapping(false)
             .with_cache_size(500)
             .with_streaming(false);
-        
+
         assert!(!options.lazy_loading);
         assert!(!options.memory_mapping);
         assert_eq!(options.cache_size, 500);
         assert!(!options.streaming);
     }
-    
+
     #[test]
     fn test_memory_stats() {
         let stats = MemoryStats::default();
@@ -261,31 +260,31 @@ mod tests {
         assert_eq!(stats.lazy_loads, 0);
         assert_eq!(stats.mapped_regions, 0);
     }
-    
+
     #[test]
     fn test_memory_manager() {
         let options = MemoryOptions::default();
         let manager = MemoryManager::new(options);
-        
+
         // Test statistics recording
         manager.record_allocation(1024);
         manager.record_cache_hit();
         manager.record_cache_miss();
-        
+
         let stats = manager.stats();
         assert_eq!(stats.allocated_bytes, 1024);
         assert_eq!(stats.cache_hits, 1);
         assert_eq!(stats.cache_misses, 1);
-        
+
         // Test cache existence
         assert!(manager.cache().is_some());
     }
-    
+
     #[test]
     fn test_memory_manager_no_cache() {
         let options = MemoryOptions::default().with_cache_size(0);
         let manager = MemoryManager::new(options);
-        
+
         // Cache should not exist when size is 0
         assert!(manager.cache().is_none());
     }

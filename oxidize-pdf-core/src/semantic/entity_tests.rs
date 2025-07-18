@@ -47,8 +47,14 @@ mod tests {
             .with_property("author", "John Doe")
             .with_property("date", "2024-01-01");
 
-        assert_eq!(metadata.properties.get("author"), Some(&"John Doe".to_string()));
-        assert_eq!(metadata.properties.get("date"), Some(&"2024-01-01".to_string()));
+        assert_eq!(
+            metadata.properties.get("author"),
+            Some(&"John Doe".to_string())
+        );
+        assert_eq!(
+            metadata.properties.get("date"),
+            Some(&"2024-01-01".to_string())
+        );
     }
 
     #[test]
@@ -66,9 +72,11 @@ mod tests {
 
     #[test]
     fn test_entity_metadata_with_schema() {
-        let metadata = EntityMetadata::new()
-            .with_schema("https://schema.org/Article");
-        assert_eq!(metadata.schema, Some("https://schema.org/Article".to_string()));
+        let metadata = EntityMetadata::new().with_schema("https://schema.org/Article");
+        assert_eq!(
+            metadata.schema,
+            Some("https://schema.org/Article".to_string())
+        );
     }
 
     #[test]
@@ -87,14 +95,19 @@ mod tests {
     #[test]
     fn test_entity_metadata_serialization() {
         let mut metadata = EntityMetadata::new();
-        metadata.properties.insert("key1".to_string(), "value1".to_string());
+        metadata
+            .properties
+            .insert("key1".to_string(), "value1".to_string());
         metadata.confidence = Some(0.9);
         metadata.schema = Some("test_schema".to_string());
 
         let json = serde_json::to_string(&metadata).unwrap();
         let deserialized: EntityMetadata = serde_json::from_str(&json).unwrap();
 
-        assert_eq!(deserialized.properties.get("key1"), Some(&"value1".to_string()));
+        assert_eq!(
+            deserialized.properties.get("key1"),
+            Some(&"value1".to_string())
+        );
         assert_eq!(deserialized.confidence, Some(0.9));
         assert_eq!(deserialized.schema, Some("test_schema".to_string()));
     }
@@ -129,8 +142,14 @@ mod tests {
             .with_property("columns", "3")
             .with_confidence(0.92);
 
-        assert_eq!(entity.metadata.properties.get("rows"), Some(&"5".to_string()));
-        assert_eq!(entity.metadata.properties.get("columns"), Some(&"3".to_string()));
+        assert_eq!(
+            entity.metadata.properties.get("rows"),
+            Some(&"5".to_string())
+        );
+        assert_eq!(
+            entity.metadata.properties.get("columns"),
+            Some(&"3".to_string())
+        );
         assert_eq!(entity.metadata.confidence, Some(0.92));
     }
 
@@ -173,8 +192,14 @@ mod tests {
         assert_eq!(entity.entity_type, EntityType::Image);
         assert_eq!(entity.bounds, (100.0, 200.0, 300.0, 400.0));
         assert_eq!(entity.page, 1);
-        assert_eq!(entity.metadata.properties.get("alt"), Some(&"Logo".to_string()));
-        assert_eq!(entity.metadata.properties.get("format"), Some(&"JPEG".to_string()));
+        assert_eq!(
+            entity.metadata.properties.get("alt"),
+            Some(&"Logo".to_string())
+        );
+        assert_eq!(
+            entity.metadata.properties.get("format"),
+            Some(&"JPEG".to_string())
+        );
         assert_eq!(entity.metadata.confidence, Some(0.88));
     }
 
@@ -208,19 +233,14 @@ mod tests {
     fn test_entity_bounds_validation() {
         // Test various bound configurations
         let bounds_tests = vec![
-            (0.0, 0.0, 100.0, 100.0),    // Normal bounds
+            (0.0, 0.0, 100.0, 100.0),     // Normal bounds
             (-10.0, -10.0, 100.0, 100.0), // Negative position
             (0.0, 0.0, 0.0, 0.0),         // Zero size
             (500.0, 700.0, 50.0, 25.0),   // Off-page bounds
         ];
 
         for bounds in bounds_tests {
-            let entity = Entity::new(
-                "test".to_string(),
-                EntityType::Text,
-                bounds,
-                0,
-            );
+            let entity = Entity::new("test".to_string(), EntityType::Text, bounds, 0);
             assert_eq!(entity.bounds, bounds);
         }
     }
@@ -231,16 +251,18 @@ mod tests {
         let metadata = EntityMetadata::new()
             .with_property("", "empty_key")
             .with_property("empty_value", "");
-        
+
         assert_eq!(metadata.properties.get(""), Some(&"empty_key".to_string()));
-        assert_eq!(metadata.properties.get("empty_value"), Some(&"".to_string()));
+        assert_eq!(
+            metadata.properties.get("empty_value"),
+            Some(&"".to_string())
+        );
 
         // Very long strings
         let long_key = "k".repeat(1000);
         let long_value = "v".repeat(10000);
-        let metadata = EntityMetadata::new()
-            .with_property(long_key.clone(), long_value.clone());
-        
+        let metadata = EntityMetadata::new().with_property(long_key.clone(), long_value.clone());
+
         assert_eq!(metadata.properties.get(&long_key), Some(&long_value));
     }
 

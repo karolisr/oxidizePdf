@@ -486,27 +486,42 @@ startxref\n\
         };
 
         // Test 0 degrees
-        let page_0 = ParsedPage { rotation: 0, ..base_page.clone() };
+        let page_0 = ParsedPage {
+            rotation: 0,
+            ..base_page.clone()
+        };
         assert_eq!(page_0.width(), 612.0);
         assert_eq!(page_0.height(), 792.0);
 
         // Test 90 degrees
-        let page_90 = ParsedPage { rotation: 90, ..base_page.clone() };
+        let page_90 = ParsedPage {
+            rotation: 90,
+            ..base_page.clone()
+        };
         assert_eq!(page_90.width(), 792.0);
         assert_eq!(page_90.height(), 612.0);
 
         // Test 180 degrees
-        let page_180 = ParsedPage { rotation: 180, ..base_page.clone() };
+        let page_180 = ParsedPage {
+            rotation: 180,
+            ..base_page.clone()
+        };
         assert_eq!(page_180.width(), 612.0);
         assert_eq!(page_180.height(), 792.0);
 
         // Test 270 degrees
-        let page_270 = ParsedPage { rotation: 270, ..base_page.clone() };
+        let page_270 = ParsedPage {
+            rotation: 270,
+            ..base_page.clone()
+        };
         assert_eq!(page_270.width(), 792.0);
         assert_eq!(page_270.height(), 612.0);
 
         // Test invalid rotation (should be treated as 0)
-        let page_invalid = ParsedPage { rotation: 45, ..base_page.clone() };
+        let page_invalid = ParsedPage {
+            rotation: 45,
+            ..base_page.clone()
+        };
         assert_eq!(page_invalid.width(), 612.0);
         assert_eq!(page_invalid.height(), 792.0);
     }
@@ -576,7 +591,10 @@ startxref\n\
     #[test]
     fn test_page_tree_get_integer_non_integer() {
         let mut node = PdfDictionary::new();
-        node.insert("Rotate".to_string(), PdfObject::String(PdfString::new(b"90".to_vec())));
+        node.insert(
+            "Rotate".to_string(),
+            PdfObject::String(PdfString::new(b"90".to_vec())),
+        );
 
         let value = PageTree::get_integer(&node, None, "Rotate").unwrap();
         assert_eq!(value, None); // Should return None for non-integer
@@ -590,20 +608,20 @@ startxref\n\
         let mut inner_dict = PdfDictionary::new();
         inner_dict.insert("Font".to_string(), PdfObject::Reference(10, 0));
         inner_dict.insert("XObject".to_string(), PdfObject::Reference(11, 0));
-        
+
         let inner_array = PdfArray(vec![
             PdfObject::Reference(8, 0),
             PdfObject::Dictionary(inner_dict),
             PdfObject::Reference(9, 0),
         ]);
-        
+
         let outer_array = PdfArray(vec![
             PdfObject::Array(inner_array),
             PdfObject::Reference(12, 0),
         ]);
-        
+
         ParsedPage::collect_references(&PdfObject::Array(outer_array), &mut refs);
-        
+
         assert!(refs.contains(&(8, 0)));
         assert!(refs.contains(&(9, 0)));
         assert!(refs.contains(&(10, 0)));
@@ -615,18 +633,18 @@ startxref\n\
     #[test]
     fn test_collect_references_from_object_stream() {
         let mut refs = Vec::new();
-        
+
         let mut dict = PdfDictionary::new();
         dict.insert("Length".to_string(), PdfObject::Integer(100));
         dict.insert("Filter".to_string(), PdfObject::Reference(5, 0));
-        
+
         let stream = PdfObject::Stream(crate::parser::objects::PdfStream {
             dict,
             data: vec![1, 2, 3, 4],
         });
-        
+
         ParsedPage::collect_references_from_object(&stream, &mut refs);
-        
+
         assert!(refs.contains(&(5, 0)));
         assert_eq!(refs.len(), 1);
     }
@@ -634,13 +652,16 @@ startxref\n\
     #[test]
     fn test_collect_references_no_references() {
         let mut refs = Vec::new();
-        
+
         let mut simple_dict = PdfDictionary::new();
-        simple_dict.insert("Type".to_string(), PdfObject::String(PdfString::new(b"Page".to_vec())));
+        simple_dict.insert(
+            "Type".to_string(),
+            PdfObject::String(PdfString::new(b"Page".to_vec())),
+        );
         simple_dict.insert("Count".to_string(), PdfObject::Integer(42));
-        
+
         ParsedPage::collect_references(&PdfObject::Dictionary(simple_dict), &mut refs);
-        
+
         assert!(refs.is_empty());
     }
 
@@ -654,7 +675,7 @@ startxref\n\
             crop_box: None,
             rotation: 0,
         };
-        
+
         assert!(page.get_resources().is_none());
     }
 
@@ -662,14 +683,23 @@ startxref\n\
     fn test_parsed_page_resources_precedence() {
         // Test that page resources take precedence over inherited resources
         let mut page_resources = PdfDictionary::new();
-        page_resources.insert("Font".to_string(), PdfObject::String(PdfString::new(b"PageFont".to_vec())));
-        
+        page_resources.insert(
+            "Font".to_string(),
+            PdfObject::String(PdfString::new(b"PageFont".to_vec())),
+        );
+
         let mut page_dict = PdfDictionary::new();
-        page_dict.insert("Resources".to_string(), PdfObject::Dictionary(page_resources));
-        
+        page_dict.insert(
+            "Resources".to_string(),
+            PdfObject::Dictionary(page_resources),
+        );
+
         let mut inherited_resources = PdfDictionary::new();
-        inherited_resources.insert("Font".to_string(), PdfObject::String(PdfString::new(b"InheritedFont".to_vec())));
-        
+        inherited_resources.insert(
+            "Font".to_string(),
+            PdfObject::String(PdfString::new(b"InheritedFont".to_vec())),
+        );
+
         let page = ParsedPage {
             obj_ref: (1, 0),
             dict: page_dict,
@@ -678,7 +708,7 @@ startxref\n\
             crop_box: None,
             rotation: 0,
         };
-        
+
         let resources = page.get_resources().unwrap();
         let font_obj = resources.get("Font").unwrap();
         if let PdfObject::String(font_name) = font_obj {
@@ -692,11 +722,11 @@ startxref\n\
         let tree = PageTree::new(0);
         assert_eq!(tree.page_count(), 0);
         assert!(tree.get_cached_page(0).is_none());
-        
+
         // Test with maximum u32 pages
         let tree = PageTree::new(u32::MAX);
         assert_eq!(tree.page_count(), u32::MAX);
-        
+
         // Test cache with large page index
         let mut tree = PageTree::new(u32::MAX);
         let large_index = u32::MAX - 1;
@@ -708,7 +738,7 @@ startxref\n\
             crop_box: None,
             rotation: 0,
         };
-        
+
         tree.cache_page(large_index, page);
         let cached = tree.get_cached_page(large_index);
         assert!(cached.is_some());
@@ -718,12 +748,15 @@ startxref\n\
     #[test]
     fn test_page_tree_pages_dict_constructor() {
         let mut pages_dict = PdfDictionary::new();
-        pages_dict.insert("Type".to_string(), PdfObject::String(PdfString::new(b"Pages".to_vec())));
+        pages_dict.insert(
+            "Type".to_string(),
+            PdfObject::String(PdfString::new(b"Pages".to_vec())),
+        );
         pages_dict.insert("Count".to_string(), PdfObject::Integer(42));
-        
+
         let tree = PageTree::new_with_pages_dict(42, pages_dict);
         assert_eq!(tree.page_count(), 42);
-        
+
         // Test that we can still cache pages normally
         let mut tree = tree;
         let page = ParsedPage {
@@ -734,7 +767,7 @@ startxref\n\
             crop_box: None,
             rotation: 0,
         };
-        
+
         tree.cache_page(0, page);
         assert!(tree.get_cached_page(0).is_some());
     }
@@ -752,7 +785,7 @@ startxref\n\
         };
         assert_eq!(small_page.width(), 1.0);
         assert_eq!(small_page.height(), 1.0);
-        
+
         // Test with very large dimensions
         let large_page = ParsedPage {
             obj_ref: (1, 0),
@@ -764,7 +797,7 @@ startxref\n\
         };
         assert_eq!(large_page.width(), 14400.0);
         assert_eq!(large_page.height(), 14400.0);
-        
+
         // Test with negative coordinates
         let negative_page = ParsedPage {
             obj_ref: (1, 0),
@@ -797,7 +830,10 @@ startxref\n\
     #[test]
     fn test_page_tree_get_rectangle_non_array() {
         let mut node = PdfDictionary::new();
-        node.insert("MediaBox".to_string(), PdfObject::String(PdfString::new(b"not an array".to_vec())));
+        node.insert(
+            "MediaBox".to_string(),
+            PdfObject::String(PdfString::new(b"not an array".to_vec())),
+        );
 
         let rect = PageTree::get_rectangle(&node, None, "MediaBox").unwrap();
         assert!(rect.is_none());

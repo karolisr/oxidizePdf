@@ -197,7 +197,7 @@ mod tests {
         doc.set_author("Test Author");
         doc.set_subject("Test Subject");
         doc.set_keywords("test, reorder, pdf");
-        
+
         let input_path = temp_dir.path().join("input.pdf");
         let output_path = temp_dir.path().join("output.pdf");
         doc.save(&input_path).unwrap();
@@ -220,7 +220,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let mut doc = create_test_pdf(3);
         doc.set_author("Test Author");
-        
+
         let input_path = temp_dir.path().join("input.pdf");
         let output_path = temp_dir.path().join("output.pdf");
         doc.save(&input_path).unwrap();
@@ -256,7 +256,7 @@ mod tests {
         let _empty_path = temp_dir.path().join("empty.pdf");
         let _empty_out = temp_dir.path().join("empty_out.pdf");
         // Note: We can't save an empty document, so we'll test differently
-        
+
         // Large reorder
         let mut large_doc = create_test_pdf(10);
         let large_path = temp_dir.path().join("large.pdf");

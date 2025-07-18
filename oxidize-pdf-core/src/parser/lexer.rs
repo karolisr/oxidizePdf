@@ -430,7 +430,7 @@ impl<R: Read> Lexer<R> {
             if ch == b'e' || ch == b'E' {
                 self.consume_char()?;
                 number_str.push(ch as char);
-                
+
                 // Check for optional sign after e/E
                 if let Some(sign_ch) = self.peek_char()? {
                     if sign_ch == b'+' || sign_ch == b'-' {
@@ -438,7 +438,7 @@ impl<R: Read> Lexer<R> {
                         number_str.push(sign_ch as char);
                     }
                 }
-                
+
                 // Read exponent digits
                 while let Some(digit_ch) = self.peek_char()? {
                     if digit_ch.is_ascii_digit() {
@@ -448,7 +448,7 @@ impl<R: Read> Lexer<R> {
                         break;
                     }
                 }
-                
+
                 // Scientific notation always results in a real number
                 has_dot = true;
             }
@@ -792,10 +792,22 @@ mod tests {
             let input = b"(Hello\\nWorld) (Tab\\tChar) (Quote\\\"Mark) (Backslash\\\\)";
             let mut lexer = Lexer::new(Cursor::new(input));
 
-            assert_eq!(lexer.next_token().unwrap(), Token::String(b"Hello\nWorld".to_vec()));
-            assert_eq!(lexer.next_token().unwrap(), Token::String(b"Tab\tChar".to_vec()));
-            assert_eq!(lexer.next_token().unwrap(), Token::String(b"Quote\"Mark".to_vec()));
-            assert_eq!(lexer.next_token().unwrap(), Token::String(b"Backslash\\".to_vec()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::String(b"Hello\nWorld".to_vec())
+            );
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::String(b"Tab\tChar".to_vec())
+            );
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::String(b"Quote\"Mark".to_vec())
+            );
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::String(b"Backslash\\".to_vec())
+            );
         }
 
         #[test]
@@ -803,7 +815,10 @@ mod tests {
             let input = b"(Nested (parentheses) work)";
             let mut lexer = Lexer::new(Cursor::new(input));
 
-            assert_eq!(lexer.next_token().unwrap(), Token::String(b"Nested (parentheses) work".to_vec()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::String(b"Nested (parentheses) work".to_vec())
+            );
         }
 
         #[test]
@@ -819,8 +834,14 @@ mod tests {
             let input = b"<48656C6C6F> <20576F726C64> <>";
             let mut lexer = Lexer::new(Cursor::new(input));
 
-            assert_eq!(lexer.next_token().unwrap(), Token::String(b"Hello".to_vec()));
-            assert_eq!(lexer.next_token().unwrap(), Token::String(b" World".to_vec()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::String(b"Hello".to_vec())
+            );
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::String(b" World".to_vec())
+            );
             assert_eq!(lexer.next_token().unwrap(), Token::String(b"".to_vec()));
         }
 
@@ -830,9 +851,15 @@ mod tests {
             let mut lexer = Lexer::new(Cursor::new(input));
 
             // Odd length hex strings should pad with 0
-            assert_eq!(lexer.next_token().unwrap(), Token::String(b"Hello ".to_vec()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::String(b"Hello ".to_vec())
+            );
             assert_eq!(lexer.next_token().unwrap(), Token::String(b"\x10".to_vec()));
-            assert_eq!(lexer.next_token().unwrap(), Token::String(b"\xAB\xC0".to_vec()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::String(b"\xAB\xC0".to_vec())
+            );
         }
 
         #[test]
@@ -840,7 +867,10 @@ mod tests {
             let input = b"<48 65 6C 6C 6F>";
             let mut lexer = Lexer::new(Cursor::new(input));
 
-            assert_eq!(lexer.next_token().unwrap(), Token::String(b"Hello".to_vec()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::String(b"Hello".to_vec())
+            );
         }
 
         #[test]
@@ -852,8 +882,14 @@ mod tests {
             assert_eq!(lexer.next_token().unwrap(), Token::Name("Page".to_string()));
             assert_eq!(lexer.next_token().unwrap(), Token::Name("Root".to_string()));
             assert_eq!(lexer.next_token().unwrap(), Token::Name("Kids".to_string()));
-            assert_eq!(lexer.next_token().unwrap(), Token::Name("Count".to_string()));
-            assert_eq!(lexer.next_token().unwrap(), Token::Name("MediaBox".to_string()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::Name("Count".to_string())
+            );
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::Name("MediaBox".to_string())
+            );
         }
 
         #[test]
@@ -861,8 +897,14 @@ mod tests {
             let input = b"/Name#20with#20spaces /Name#2Fwith#2Fslashes";
             let mut lexer = Lexer::new(Cursor::new(input));
 
-            assert_eq!(lexer.next_token().unwrap(), Token::Name("Name with spaces".to_string()));
-            assert_eq!(lexer.next_token().unwrap(), Token::Name("Name/with/slashes".to_string()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::Name("Name with spaces".to_string())
+            );
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::Name("Name/with/slashes".to_string())
+            );
         }
 
         #[test]
@@ -874,7 +916,10 @@ mod tests {
             assert_eq!(lexer.next_token().unwrap(), Token::Name("A".to_string()));
             assert_eq!(lexer.next_token().unwrap(), Token::Name("123".to_string()));
             assert_eq!(lexer.next_token().unwrap(), Token::Name("true".to_string()));
-            assert_eq!(lexer.next_token().unwrap(), Token::Name("false".to_string()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::Name("false".to_string())
+            );
             assert_eq!(lexer.next_token().unwrap(), Token::Name("null".to_string()));
         }
 
@@ -886,7 +931,10 @@ mod tests {
             assert_eq!(lexer.next_token().unwrap(), Token::DictStart);
             assert_eq!(lexer.next_token().unwrap(), Token::Name("Type".to_string()));
             assert_eq!(lexer.next_token().unwrap(), Token::Name("Page".to_string()));
-            assert_eq!(lexer.next_token().unwrap(), Token::Name("Resources".to_string()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::Name("Resources".to_string())
+            );
             assert_eq!(lexer.next_token().unwrap(), Token::DictStart);
             assert_eq!(lexer.next_token().unwrap(), Token::Name("Font".to_string()));
             assert_eq!(lexer.next_token().unwrap(), Token::DictStart);
@@ -956,8 +1004,14 @@ mod tests {
             let input = b"%First comment\n%Second comment\n123";
             let mut lexer = Lexer::new(Cursor::new(input));
 
-            assert_eq!(lexer.next_token().unwrap(), Token::Comment("First comment".to_string()));
-            assert_eq!(lexer.next_token().unwrap(), Token::Comment("Second comment".to_string()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::Comment("First comment".to_string())
+            );
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::Comment("Second comment".to_string())
+            );
             assert_eq!(lexer.next_token().unwrap(), Token::Integer(123));
         }
 
@@ -966,7 +1020,10 @@ mod tests {
             let input = b"%Comment at end";
             let mut lexer = Lexer::new(Cursor::new(input));
 
-            assert_eq!(lexer.next_token().unwrap(), Token::Comment("Comment at end".to_string()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::Comment("Comment at end".to_string())
+            );
             assert_eq!(lexer.next_token().unwrap(), Token::Eof);
         }
 
@@ -976,7 +1033,10 @@ mod tests {
             let mut lexer = Lexer::new(Cursor::new(input));
 
             assert_eq!(lexer.next_token().unwrap(), Token::DictStart);
-            assert_eq!(lexer.next_token().unwrap(), Token::Name("Length".to_string()));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::Name("Length".to_string())
+            );
             assert_eq!(lexer.next_token().unwrap(), Token::Integer(5));
             assert_eq!(lexer.next_token().unwrap(), Token::DictEnd);
             assert_eq!(lexer.next_token().unwrap(), Token::Stream);
@@ -1035,12 +1095,12 @@ mod tests {
             let digits1 = lexer.read_digits().unwrap();
             assert_eq!(digits1, "123");
             assert!(lexer.read_newline().is_ok());
-            
+
             // Read second digits
             let digits2 = lexer.read_digits().unwrap();
             assert_eq!(digits2, "456");
             assert!(lexer.read_newline().is_ok());
-            
+
             // Read final digits
             let digits3 = lexer.read_digits().unwrap();
             assert_eq!(digits3, "789");
@@ -1068,7 +1128,7 @@ mod tests {
 
             // Continue reading after the sequence
             let rest = lexer.read_digits().unwrap();
-            assert_eq!(rest, "");  // read_digits only reads digits, " World" has no digits
+            assert_eq!(rest, ""); // read_digits only reads digits, " World" has no digits
         }
 
         #[test]
@@ -1104,8 +1164,14 @@ mod tests {
 
             assert_eq!(lexer.next_token().unwrap(), Token::Integer(2147483647));
             assert_eq!(lexer.next_token().unwrap(), Token::Integer(-2147483648));
-            assert_eq!(lexer.next_token().unwrap(), Token::Integer(9223372036854775807));
-            assert_eq!(lexer.next_token().unwrap(), Token::Integer(-9223372036854775808));
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::Integer(9223372036854775807)
+            );
+            assert_eq!(
+                lexer.next_token().unwrap(),
+                Token::Integer(-9223372036854775808)
+            );
         }
 
         #[test]

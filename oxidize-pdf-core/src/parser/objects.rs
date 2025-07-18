@@ -974,11 +974,11 @@ mod tests {
         fn test_pdf_object_boolean() {
             let obj_true = PdfObject::Boolean(true);
             let obj_false = PdfObject::Boolean(false);
-            
+
             assert!(!obj_true.is_null());
             assert_eq!(obj_true.as_bool(), Some(true));
             assert_eq!(obj_false.as_bool(), Some(false));
-            
+
             assert_eq!(obj_true.as_integer(), None);
             assert_eq!(obj_true.as_real(), None);
             assert_eq!(obj_true.as_string(), None);
@@ -992,7 +992,7 @@ mod tests {
         #[test]
         fn test_pdf_object_integer() {
             let obj = PdfObject::Integer(42);
-            
+
             assert!(!obj.is_null());
             assert_eq!(obj.as_bool(), None);
             assert_eq!(obj.as_integer(), Some(42));
@@ -1018,7 +1018,7 @@ mod tests {
         #[test]
         fn test_pdf_object_real() {
             let obj = PdfObject::Real(3.14159);
-            
+
             assert!(!obj.is_null());
             assert_eq!(obj.as_bool(), None);
             assert_eq!(obj.as_integer(), None);
@@ -1052,7 +1052,7 @@ mod tests {
             let string_data = b"Hello World".to_vec();
             let pdf_string = PdfString(string_data.clone());
             let obj = PdfObject::String(pdf_string);
-            
+
             assert!(!obj.is_null());
             assert_eq!(obj.as_bool(), None);
             assert_eq!(obj.as_integer(), None);
@@ -1071,7 +1071,7 @@ mod tests {
             let name_str = "Type".to_string();
             let pdf_name = PdfName(name_str.clone());
             let obj = PdfObject::Name(pdf_name);
-            
+
             assert!(!obj.is_null());
             assert_eq!(obj.as_bool(), None);
             assert_eq!(obj.as_integer(), None);
@@ -1092,7 +1092,7 @@ mod tests {
             array.push(PdfObject::Integer(2));
             array.push(PdfObject::Integer(3));
             let obj = PdfObject::Array(array);
-            
+
             assert!(!obj.is_null());
             assert_eq!(obj.as_bool(), None);
             assert_eq!(obj.as_integer(), None);
@@ -1109,10 +1109,13 @@ mod tests {
         #[test]
         fn test_pdf_object_dictionary() {
             let mut dict = PdfDictionary::new();
-            dict.insert("Type".to_string(), PdfObject::Name(PdfName("Page".to_string())));
+            dict.insert(
+                "Type".to_string(),
+                PdfObject::Name(PdfName("Page".to_string())),
+            );
             dict.insert("Count".to_string(), PdfObject::Integer(5));
             let obj = PdfObject::Dictionary(dict);
-            
+
             assert!(!obj.is_null());
             assert_eq!(obj.as_bool(), None);
             assert_eq!(obj.as_integer(), None);
@@ -1133,7 +1136,7 @@ mod tests {
             let data = b"Hello, World!".to_vec();
             let stream = PdfStream { dict, data };
             let obj = PdfObject::Stream(stream);
-            
+
             assert!(!obj.is_null());
             assert_eq!(obj.as_bool(), None);
             assert_eq!(obj.as_integer(), None);
@@ -1150,7 +1153,7 @@ mod tests {
         #[test]
         fn test_pdf_object_reference() {
             let obj = PdfObject::Reference(42, 0);
-            
+
             assert!(!obj.is_null());
             assert_eq!(obj.as_bool(), None);
             assert_eq!(obj.as_integer(), None);
@@ -1171,7 +1174,7 @@ mod tests {
         fn test_pdf_string_methods() {
             let string_data = b"Hello, World!".to_vec();
             let pdf_string = PdfString(string_data.clone());
-            
+
             assert_eq!(pdf_string.as_bytes(), string_data);
             assert_eq!(pdf_string.as_str().unwrap(), "Hello, World!");
             assert_eq!(pdf_string.0.len(), 13);
@@ -1193,7 +1196,7 @@ mod tests {
         fn test_pdf_name_methods() {
             let name_str = "Type".to_string();
             let pdf_name = PdfName(name_str.clone());
-            
+
             assert_eq!(pdf_name.as_str(), name_str);
             assert_eq!(pdf_name.0.len(), 4);
             assert!(!pdf_name.0.is_empty());
@@ -1219,7 +1222,7 @@ mod tests {
             array.push(PdfObject::Integer(1));
             array.push(PdfObject::Integer(2));
             array.push(PdfObject::Integer(3));
-            
+
             assert_eq!(array.len(), 3);
             assert!(!array.is_empty());
 
@@ -1241,12 +1244,18 @@ mod tests {
             mixed_array.push(PdfObject::Name(PdfName("Name".to_string())));
             mixed_array.push(PdfObject::Boolean(true));
             mixed_array.push(PdfObject::Null);
-            
+
             assert_eq!(mixed_array.len(), 6);
             assert_eq!(mixed_array.get(0).unwrap().as_integer(), Some(42));
             assert_eq!(mixed_array.get(1).unwrap().as_real(), Some(3.14));
-            assert_eq!(mixed_array.get(2).unwrap().as_string().unwrap().as_bytes(), b"text");
-            assert_eq!(mixed_array.get(3).unwrap().as_name().unwrap().as_str(), "Name");
+            assert_eq!(
+                mixed_array.get(2).unwrap().as_string().unwrap().as_bytes(),
+                b"text"
+            );
+            assert_eq!(
+                mixed_array.get(3).unwrap().as_name().unwrap().as_str(),
+                "Name"
+            );
             assert_eq!(mixed_array.get(4).unwrap().as_bool(), Some(true));
             assert!(mixed_array.get(5).unwrap().is_null());
         }
@@ -1258,15 +1267,21 @@ mod tests {
             assert!(dict.0.is_empty());
 
             // Test insertions
-            dict.insert("Type".to_string(), PdfObject::Name(PdfName("Page".to_string())));
+            dict.insert(
+                "Type".to_string(),
+                PdfObject::Name(PdfName("Page".to_string())),
+            );
             dict.insert("Count".to_string(), PdfObject::Integer(5));
             dict.insert("Resources".to_string(), PdfObject::Reference(10, 0));
-            
+
             assert_eq!(dict.0.len(), 3);
             assert!(!dict.0.is_empty());
 
             // Test get operations
-            assert_eq!(dict.get("Type").unwrap().as_name().unwrap().as_str(), "Page");
+            assert_eq!(
+                dict.get("Type").unwrap().as_name().unwrap().as_str(),
+                "Page"
+            );
             assert_eq!(dict.get("Count").unwrap().as_integer(), Some(5));
             assert_eq!(dict.get("Resources").unwrap().as_reference(), Some((10, 0)));
             assert!(dict.get("NonExistent").is_none());
@@ -1294,18 +1309,33 @@ mod tests {
         fn test_pdf_stream_methods() {
             let mut dict = PdfDictionary::new();
             dict.insert("Length".to_string(), PdfObject::Integer(13));
-            dict.insert("Filter".to_string(), PdfObject::Name(PdfName("FlateDecode".to_string())));
-            
+            dict.insert(
+                "Filter".to_string(),
+                PdfObject::Name(PdfName("FlateDecode".to_string())),
+            );
+
             let data = b"Hello, World!".to_vec();
-            let stream = PdfStream { dict, data: data.clone() };
-            
+            let stream = PdfStream {
+                dict,
+                data: data.clone(),
+            };
+
             // Test raw data access
             assert_eq!(stream.raw_data(), data);
-            
+
             // Test dictionary access
             assert_eq!(stream.dict.get("Length").unwrap().as_integer(), Some(13));
-            assert_eq!(stream.dict.get("Filter").unwrap().as_name().unwrap().as_str(), "FlateDecode");
-            
+            assert_eq!(
+                stream
+                    .dict
+                    .get("Filter")
+                    .unwrap()
+                    .as_name()
+                    .unwrap()
+                    .as_str(),
+                "FlateDecode"
+            );
+
             // Test decode method (this might fail if filters aren't implemented)
             // but we'll test that it returns a result
             let decode_result = stream.decode();
@@ -1318,15 +1348,21 @@ mod tests {
             let input = b"[[1 2] [3 4] [5 6]]";
             let mut lexer = Lexer::new(Cursor::new(input));
             let obj = PdfObject::parse(&mut lexer).unwrap();
-            
+
             let outer_array = obj.as_array().unwrap();
             assert_eq!(outer_array.len(), 3);
-            
+
             for i in 0..3 {
                 let inner_array = outer_array.get(i).unwrap().as_array().unwrap();
                 assert_eq!(inner_array.len(), 2);
-                assert_eq!(inner_array.get(0).unwrap().as_integer(), Some((i as i64) * 2 + 1));
-                assert_eq!(inner_array.get(1).unwrap().as_integer(), Some((i as i64) * 2 + 2));
+                assert_eq!(
+                    inner_array.get(0).unwrap().as_integer(),
+                    Some((i as i64) * 2 + 1)
+                );
+                assert_eq!(
+                    inner_array.get(1).unwrap().as_integer(),
+                    Some((i as i64) * 2 + 2)
+                );
             }
         }
 
@@ -1335,12 +1371,12 @@ mod tests {
             let input = b"<< /Type /Page /Parent 1 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 2 0 R >> /ProcSet [/PDF /Text] >> /Contents 3 0 R >>";
             let mut lexer = Lexer::new(Cursor::new(input));
             let obj = PdfObject::parse(&mut lexer).unwrap();
-            
+
             let dict = obj.as_dict().unwrap();
             assert_eq!(dict.get_type(), Some("Page"));
             assert_eq!(dict.get("Parent").unwrap().as_reference(), Some((1, 0)));
             assert_eq!(dict.get("Contents").unwrap().as_reference(), Some((3, 0)));
-            
+
             // Test nested MediaBox array
             let media_box = dict.get("MediaBox").unwrap().as_array().unwrap();
             assert_eq!(media_box.len(), 4);
@@ -1348,16 +1384,16 @@ mod tests {
             assert_eq!(media_box.get(1).unwrap().as_integer(), Some(0));
             assert_eq!(media_box.get(2).unwrap().as_integer(), Some(612));
             assert_eq!(media_box.get(3).unwrap().as_integer(), Some(792));
-            
+
             // Test nested Resources dictionary
             let resources = dict.get("Resources").unwrap().as_dict().unwrap();
             assert!(resources.contains_key("Font"));
             assert!(resources.contains_key("ProcSet"));
-            
+
             // Test nested Font dictionary
             let font_dict = resources.get("Font").unwrap().as_dict().unwrap();
             assert_eq!(font_dict.get("F1").unwrap().as_reference(), Some((2, 0)));
-            
+
             // Test ProcSet array
             let proc_set = resources.get("ProcSet").unwrap().as_array().unwrap();
             assert_eq!(proc_set.len(), 2);
@@ -1370,7 +1406,7 @@ mod tests {
             let input = b"<48656C6C6F>"; // "Hello" in hex
             let mut lexer = Lexer::new(Cursor::new(input));
             let obj = PdfObject::parse(&mut lexer).unwrap();
-            
+
             let string = obj.as_string().unwrap();
             assert_eq!(string.as_str().unwrap(), "Hello");
         }
@@ -1380,7 +1416,7 @@ mod tests {
             let input = b"(Hello World)";
             let mut lexer = Lexer::new(Cursor::new(input));
             let obj = PdfObject::parse(&mut lexer).unwrap();
-            
+
             let string = obj.as_string().unwrap();
             assert_eq!(string.as_str().unwrap(), "Hello World");
         }
@@ -1390,7 +1426,7 @@ mod tests {
             let input = b"(Hello\\nWorld\\t!)";
             let mut lexer = Lexer::new(Cursor::new(input));
             let obj = PdfObject::parse(&mut lexer).unwrap();
-            
+
             let string = obj.as_string().unwrap();
             // The lexer should handle escape sequences
             assert!(string.as_bytes().len() > 0);
@@ -1401,7 +1437,7 @@ mod tests {
             let input = b"/Name#20with#20spaces";
             let mut lexer = Lexer::new(Cursor::new(input));
             let obj = PdfObject::parse(&mut lexer).unwrap();
-            
+
             let name = obj.as_name().unwrap();
             // The lexer should handle hex escapes in names
             assert!(name.as_str().len() > 0);
@@ -1412,14 +1448,14 @@ mod tests {
             let input = b"1 0 R";
             let mut lexer = Lexer::new(Cursor::new(input));
             let obj = PdfObject::parse(&mut lexer).unwrap();
-            
+
             assert_eq!(obj.as_reference(), Some((1, 0)));
 
             // Test reference with higher generation
             let input2 = b"42 5 R";
             let mut lexer2 = Lexer::new(Cursor::new(input2));
             let obj2 = PdfObject::parse(&mut lexer2).unwrap();
-            
+
             assert_eq!(obj2.as_reference(), Some((42, 5)));
         }
 
@@ -1451,7 +1487,7 @@ mod tests {
             let input = b"[]";
             let mut lexer = Lexer::new(Cursor::new(input));
             let obj = PdfObject::parse(&mut lexer).unwrap();
-            
+
             let array = obj.as_array().unwrap();
             assert_eq!(array.len(), 0);
             assert!(array.is_empty());
@@ -1460,7 +1496,7 @@ mod tests {
             let input2 = b"<< >>";
             let mut lexer2 = Lexer::new(Cursor::new(input2));
             let obj2 = PdfObject::parse(&mut lexer2).unwrap();
-            
+
             let dict = obj2.as_dict().unwrap();
             assert_eq!(dict.0.len(), 0);
             assert!(dict.0.is_empty());
@@ -1526,11 +1562,11 @@ mod tests {
             for i in 0..1000 {
                 array.push(PdfObject::Integer(i));
             }
-            
+
             assert_eq!(array.len(), 1000);
             assert_eq!(array.get(0).unwrap().as_integer(), Some(0));
             assert_eq!(array.get(999).unwrap().as_integer(), Some(999));
-            
+
             // Test iteration performance
             let sum: i64 = array.0.iter().filter_map(|obj| obj.as_integer()).sum();
             assert_eq!(sum, 499500); // sum of 0..1000
@@ -1542,11 +1578,11 @@ mod tests {
             for i in 0..1000 {
                 dict.insert(format!("Key{}", i), PdfObject::Integer(i));
             }
-            
+
             assert_eq!(dict.0.len(), 1000);
             assert_eq!(dict.get("Key0").unwrap().as_integer(), Some(0));
             assert_eq!(dict.get("Key999").unwrap().as_integer(), Some(999));
-            
+
             // Test lookup performance
             for i in 0..1000 {
                 assert!(dict.contains_key(&format!("Key{}", i)));

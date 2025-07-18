@@ -538,9 +538,9 @@ impl XRefStream {
 mod tests {
     use super::*;
 
-    use std::io::Cursor;
     use crate::parser::objects::{PdfDictionary, PdfObject};
-    
+    use std::io::Cursor;
+
     #[test]
     fn test_parse_xref_entry() {
         let entry1 = XRefTable::parse_xref_entry("0000000000 65535 f ").unwrap();
@@ -662,11 +662,11 @@ mod tests {
             in_use: true,
         };
         table.add_entry(10, entry);
-        
+
         let retrieved = table.get_entry(10);
         assert!(retrieved.is_some());
         assert_eq!(retrieved.unwrap().offset, 2000);
-        
+
         let missing = table.get_entry(999);
         assert!(missing.is_none());
     }
@@ -676,7 +676,7 @@ mod tests {
         let mut table = XRefTable::new();
         let mut trailer = PdfDictionary::new();
         trailer.insert("Size".to_string(), PdfObject::Integer(10));
-        
+
         table.set_trailer(trailer.clone());
         assert!(table.trailer.is_some());
         assert_eq!(
@@ -690,11 +690,11 @@ mod tests {
         // Too short
         let result = XRefTable::parse_xref_entry("0000000000 65535");
         assert!(result.is_err());
-        
+
         // Invalid format
         let result = XRefTable::parse_xref_entry("not_a_number 65535 f ");
         assert!(result.is_err());
-        
+
         // Invalid flag
         let result = XRefTable::parse_xref_entry("0000000000 65535 x ");
         assert!(result.is_err());
@@ -705,11 +705,11 @@ mod tests {
         // Small offset
         let entry = XRefTable::parse_xref_entry("0000000001 00000 n ").unwrap();
         assert_eq!(entry.offset, 1);
-        
+
         // Large offset
         let entry = XRefTable::parse_xref_entry("9999999999 00000 n ").unwrap();
         assert_eq!(entry.offset, 9999999999);
-        
+
         // Max generation
         let entry = XRefTable::parse_xref_entry("0000000000 65535 f ").unwrap();
         assert_eq!(entry.generation, 65535);
@@ -726,7 +726,7 @@ mod tests {
             },
             compressed_info: Some((5, 10)),
         };
-        
+
         table.add_extended_entry(15, ext_entry.clone());
         assert_eq!(table.extended_entries.len(), 1);
         assert!(table.extended_entries.contains_key(&15));
@@ -743,9 +743,9 @@ mod tests {
             },
             compressed_info: Some((20, 3)),
         };
-        
+
         table.add_extended_entry(7, ext_entry);
-        
+
         let retrieved = table.get_extended_entry(7);
         assert!(retrieved.is_some());
         assert_eq!(retrieved.unwrap().compressed_info, Some((20, 3)));
@@ -755,7 +755,7 @@ mod tests {
     fn test_xref_offset() {
         let mut table = XRefTable::new();
         assert_eq!(table.xref_offset(), 0);
-        
+
         table.xref_offset = 12345;
         assert_eq!(table.xref_offset(), 12345);
     }
@@ -765,7 +765,7 @@ mod tests {
         let pdf_data = b"startxref\n12345\n%%EOF";
         let cursor = Cursor::new(pdf_data.to_vec());
         let mut reader = BufReader::new(cursor);
-        
+
         let offset = XRefTable::find_xref_offset(&mut reader).unwrap();
         assert_eq!(offset, 12345);
     }
@@ -775,7 +775,7 @@ mod tests {
         let pdf_data = b"startxref  \n  12345  \n%%EOF";
         let cursor = Cursor::new(pdf_data.to_vec());
         let mut reader = BufReader::new(cursor);
-        
+
         let offset = XRefTable::find_xref_offset(&mut reader).unwrap();
         assert_eq!(offset, 12345);
     }
@@ -785,7 +785,7 @@ mod tests {
         let pdf_data = b"no startxref here";
         let cursor = Cursor::new(pdf_data.to_vec());
         let mut reader = BufReader::new(cursor);
-        
+
         let result = XRefTable::find_xref_offset(&mut reader);
         assert!(result.is_err());
     }
@@ -794,7 +794,7 @@ mod tests {
     fn test_trailer_getter() {
         let mut table = XRefTable::new();
         assert!(table.trailer().is_none());
-        
+
         let trailer = PdfDictionary::new();
         table.set_trailer(trailer);
         assert!(table.trailer().is_some());
@@ -812,7 +812,7 @@ mod tests {
             },
         );
         table.xref_offset = 5000;
-        
+
         let cloned = table.clone();
         assert_eq!(cloned.entries.len(), 1);
         assert_eq!(cloned.xref_offset, 5000);

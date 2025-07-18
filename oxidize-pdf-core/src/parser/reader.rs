@@ -346,7 +346,7 @@ impl<R: Read + Seek> PdfReader<R> {
     }
 
     /// Get a specific page by index (0-based)
-    /// 
+    ///
     /// Note: This method is currently not implemented due to borrow checker constraints.
     /// The page_tree needs mutable access to both itself and the reader, which requires
     /// a redesign of the architecture. Use PdfDocument instead for page access.
@@ -400,11 +400,9 @@ pub struct DocumentMetadata {
 mod tests {
 
     use super::*;
-    use std::io::Cursor;
     use crate::parser::objects::{PdfName, PdfString};
     use crate::parser::test_helpers::*;
-
-
+    use std::io::Cursor;
 
     #[test]
     fn test_reader_construction() {
@@ -425,13 +423,15 @@ mod tests {
 
     #[test]
     fn test_reader_different_versions() {
-        let versions = vec!["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "2.0"];
-        
+        let versions = vec![
+            "1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "2.0",
+        ];
+
         for version in versions {
             let pdf_data = create_pdf_with_version(version);
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
-            
+
             let parts: Vec<&str> = version.split('.').collect();
             assert_eq!(reader.version().major, parts[0].parse::<u8>().unwrap());
             assert_eq!(reader.version().minor, parts[1].parse::<u8>().unwrap());
@@ -443,12 +443,15 @@ mod tests {
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         let catalog = reader.catalog();
         assert!(catalog.is_ok());
-        
+
         let catalog_dict = catalog.unwrap();
-        assert_eq!(catalog_dict.get("Type"), Some(&PdfObject::Name(PdfName("Catalog".to_string()))));
+        assert_eq!(
+            catalog_dict.get("Type"),
+            Some(&PdfObject::Name(PdfName("Catalog".to_string())))
+        );
     }
 
     #[test]
@@ -456,7 +459,7 @@ mod tests {
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         let info = reader.info().unwrap();
         assert!(info.is_none());
     }
@@ -466,13 +469,23 @@ mod tests {
         let pdf_data = create_pdf_with_info();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         let info = reader.info().unwrap();
         assert!(info.is_some());
-        
+
         let info_dict = info.unwrap();
-        assert_eq!(info_dict.get("Title"), Some(&PdfObject::String(PdfString("Test PDF".to_string().into_bytes()))));
-        assert_eq!(info_dict.get("Author"), Some(&PdfObject::String(PdfString("Test Author".to_string().into_bytes()))));
+        assert_eq!(
+            info_dict.get("Title"),
+            Some(&PdfObject::String(PdfString(
+                "Test PDF".to_string().into_bytes()
+            )))
+        );
+        assert_eq!(
+            info_dict.get("Author"),
+            Some(&PdfObject::String(PdfString(
+                "Test Author".to_string().into_bytes()
+            )))
+        );
     }
 
     #[test]
@@ -480,11 +493,11 @@ mod tests {
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         // Get catalog object (1 0 obj)
         let obj = reader.get_object(1, 0);
         assert!(obj.is_ok());
-        
+
         let catalog = obj.unwrap();
         assert!(catalog.as_dict().is_some());
     }
@@ -494,7 +507,7 @@ mod tests {
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         // Try to get non-existent object
         let obj = reader.get_object(999, 0);
         assert!(obj.is_err());
@@ -505,7 +518,7 @@ mod tests {
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         // Object 0 is always free (f flag in xref)
         let obj = reader.get_object(0, 65535);
         assert!(obj.is_ok());
@@ -517,11 +530,11 @@ mod tests {
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         // Create a reference to catalog
         let ref_obj = PdfObject::Reference(1, 0);
         let resolved = reader.resolve(&ref_obj);
-        
+
         assert!(resolved.is_ok());
         assert!(resolved.unwrap().as_dict().is_some());
     }
@@ -531,11 +544,11 @@ mod tests {
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         // Resolve a non-reference object
         let int_obj = PdfObject::Integer(42);
         let resolved = reader.resolve(&int_obj).unwrap();
-        
+
         assert_eq!(resolved, &PdfObject::Integer(42));
     }
 
@@ -544,11 +557,11 @@ mod tests {
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         // Get object first time
         let obj1 = reader.get_object(1, 0).unwrap();
         assert!(obj1.as_dict().is_some());
-        
+
         // Get same object again - should use cache
         let obj2 = reader.get_object(1, 0).unwrap();
         assert!(obj2.as_dict().is_some());
@@ -559,7 +572,7 @@ mod tests {
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         // Try to get object with wrong generation number
         let obj = reader.get_object(1, 99);
         assert!(obj.is_err());
@@ -570,7 +583,7 @@ mod tests {
         let invalid_data = b"This is not a PDF file";
         let cursor = Cursor::new(invalid_data.to_vec());
         let result = PdfReader::new(cursor);
-        
+
         assert!(result.is_err());
     }
 
@@ -586,8 +599,9 @@ trailer
 << /Size 2 /Root 1 0 R >>
 startxref
 24
-%%EOF".to_vec();
-        
+%%EOF"
+            .to_vec();
+
         let cursor = Cursor::new(corrupt_pdf);
         let result = PdfReader::new(cursor);
         assert!(result.is_err());
@@ -605,8 +619,9 @@ xref
 0000000009 00000 n 
 startxref
 24
-%%EOF".to_vec();
-        
+%%EOF"
+            .to_vec();
+
         let cursor = Cursor::new(pdf_no_trailer);
         let result = PdfReader::new(cursor);
         assert!(result.is_err());
@@ -624,7 +639,7 @@ startxref
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         let count = reader.page_count();
         assert!(count.is_ok());
         assert_eq!(count.unwrap(), 0); // Minimal PDF has no pages
@@ -635,7 +650,7 @@ startxref
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
-        
+
         let document = reader.into_document();
         // Document should be valid
         let page_count = document.page_count();
@@ -647,17 +662,20 @@ startxref
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         let pages = reader.pages();
         assert!(pages.is_ok());
         let pages_dict = pages.unwrap();
-        assert_eq!(pages_dict.get("Type"), Some(&PdfObject::Name(PdfName("Pages".to_string()))));
+        assert_eq!(
+            pages_dict.get("Type"),
+            Some(&PdfObject::Name(PdfName("Pages".to_string())))
+        );
     }
 
     #[test]
     fn test_reader_pdf_with_binary_data() {
         let pdf_data = create_pdf_with_binary_marker();
-        
+
         let cursor = Cursor::new(pdf_data);
         let result = PdfReader::new(cursor);
         assert!(result.is_ok());
@@ -668,7 +686,7 @@ startxref
         let pdf_data = create_pdf_with_info();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         let metadata = reader.metadata().unwrap();
         assert_eq!(metadata.title, Some("Test PDF".to_string()));
         assert_eq!(metadata.author, Some("Test Author".to_string()));
@@ -681,7 +699,7 @@ startxref
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         let metadata = reader.metadata().unwrap();
         assert!(metadata.title.is_none());
         assert!(metadata.author.is_none());
@@ -697,18 +715,18 @@ startxref
         let pdf_data = create_minimal_pdf();
         let cursor = Cursor::new(pdf_data);
         let mut reader = PdfReader::new(cursor).unwrap();
-        
+
         // Object 1 exists with generation 0
         // Try to get it with wrong generation number
         let result = reader.get_object(1, 99);
         assert!(result.is_err());
-        
+
         // Also test with a non-existent object number
         let result2 = reader.get_object(999, 0);
         assert!(result2.is_err());
     }
 
-    #[test] 
+    #[test]
     fn test_document_metadata_struct() {
         let metadata = DocumentMetadata {
             title: Some("Title".to_string()),
@@ -722,7 +740,7 @@ startxref
             version: "1.5".to_string(),
             page_count: Some(10),
         };
-        
+
         assert_eq!(metadata.title, Some("Title".to_string()));
         assert_eq!(metadata.page_count, Some(10));
     }
@@ -749,7 +767,7 @@ startxref
             version: "1.4".to_string(),
             ..Default::default()
         };
-        
+
         let cloned = metadata.clone();
         assert_eq!(cloned.title, Some("Test".to_string()));
         assert_eq!(cloned.version, "1.4".to_string());
@@ -770,8 +788,9 @@ trailer
 << /Size 2 >>
 startxref
 46
-%%EOF".to_vec();
-        
+%%EOF"
+            .to_vec();
+
         let cursor = Cursor::new(bad_pdf);
         let result = PdfReader::new(cursor);
         assert!(result.is_err()); // Should fail because trailer is missing /Root

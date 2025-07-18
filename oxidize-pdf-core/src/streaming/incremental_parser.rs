@@ -4,7 +4,7 @@
 //! enabling processing of very large PDFs with minimal memory usage.
 
 use crate::error::{PdfError, Result};
-use crate::parser::{PdfObject, PdfDictionary};
+use crate::parser::{PdfDictionary, PdfObject};
 use std::io::Read;
 
 /// Events emitted during incremental parsing
@@ -15,7 +15,11 @@ pub enum ParseEvent {
     /// Object definition started
     ObjectStart { id: u32, generation: u16 },
     /// Object definition completed
-    ObjectEnd { id: u32, generation: u16, object: PdfObject },
+    ObjectEnd {
+        id: u32,
+        generation: u16,
+        object: PdfObject,
+    },
     /// Stream data chunk
     StreamData { object_id: u32, data: Vec<u8> },
     /// Cross-reference table found
@@ -64,42 +68,48 @@ impl IncrementalParser {
             events: Vec::new(),
         }
     }
-    
+
     /// Feed data to the parser
     pub fn feed(&mut self, data: &[u8]) -> Result<()> {
         let text = String::from_utf8_lossy(data);
         self.buffer.push_str(&text);
-        
+
         // Process complete lines
         while let Some(newline_pos) = self.buffer.find('\n') {
             let line = self.buffer[..newline_pos].trim().to_string();
             self.buffer.drain(..=newline_pos);
-            
+
             self.process_line(&line)?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Get pending events
     pub fn take_events(&mut self) -> Vec<ParseEvent> {
         std::mem::take(&mut self.events)
     }
-    
+
     /// Check if parsing is complete
     pub fn is_complete(&self) -> bool {
         matches!(self.state, ParserState::Complete)
     }
-    
+
     fn process_line(&mut self, line: &str) -> Result<()> {
         match &self.state {
             ParserState::Initial => {
-                if line.starts_with("%PDF-") {
-                    let version = line[5..].trim().to_string();
+                if let Some(version_part) = line.strip_prefix("%PDF-") {
+                    let version = version_part.trim().to_string();
                     self.events.push(ParseEvent::Header { version });
                 } else if let Some((id, gen)) = self.parse_object_header(line) {
-                    self.state = ParserState::InObject { id, generation: gen };
-                    self.events.push(ParseEvent::ObjectStart { id, generation: gen });
+                    self.state = ParserState::InObject {
+                        id,
+                        generation: gen,
+                    };
+                    self.events.push(ParseEvent::ObjectStart {
+                        id,
+                        generation: gen,
+                    });
                 }
             }
             ParserState::InObject { id, generation } => {
@@ -146,15 +156,15 @@ impl IncrementalParser {
                 // Ignore additional input
             }
         }
-        
+
         // Check for state transitions
         if line == "xref" {
             self.state = ParserState::InXRef;
         }
-        
+
         Ok(())
     }
-    
+
     fn parse_object_header(&self, line: &str) -> Option<(u32, u16)> {
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() >= 3 && parts[2] == "obj" {
@@ -165,14 +175,14 @@ impl IncrementalParser {
             None
         }
     }
-    
+
     fn parse_xref_entry(&self, line: &str) -> Option<XRefEntry> {
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() == 3 {
             let offset = parts[0].parse().ok()?;
             let generation = parts[1].parse().ok()?;
             let in_use = parts[2] == "n";
-            
+
             Some(XRefEntry {
                 object_number: 0, // Would be set by context
                 generation,
@@ -192,13 +202,13 @@ where
 {
     let mut parser = IncrementalParser::new();
     let mut buffer = vec![0u8; 4096];
-    
+
     loop {
         match reader.read(&mut buffer) {
             Ok(0) => break, // EOF
             Ok(n) => {
                 parser.feed(&buffer[..n])?;
-                
+
                 for event in parser.take_events() {
                     callback(event)?;
                 }
@@ -206,44 +216,44 @@ where
             Err(e) => return Err(PdfError::Io(e)),
         }
     }
-    
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_incremental_parser_creation() {
         let parser = IncrementalParser::new();
         assert!(!parser.is_complete());
     }
-    
+
     #[test]
     fn test_parse_header() {
         let mut parser = IncrementalParser::new();
         parser.feed(b"%PDF-1.7\n").unwrap();
-        
+
         let events = parser.take_events();
         assert_eq!(events.len(), 1);
-        
+
         match &events[0] {
             ParseEvent::Header { version } => assert_eq!(version, "1.7"),
             _ => panic!("Expected Header event"),
         }
     }
-    
+
     #[test]
     fn test_parse_object() {
         let mut parser = IncrementalParser::new();
         let data = b"1 0 obj\n<< /Type /Catalog >>\nendobj\n";
-        
+
         parser.feed(data).unwrap();
-        
+
         let events = parser.take_events();
         assert!(events.len() >= 2);
-        
+
         match &events[0] {
             ParseEvent::ObjectStart { id, generation } => {
                 assert_eq!(*id, 1);
@@ -252,39 +262,44 @@ mod tests {
             _ => panic!("Expected ObjectStart event"),
         }
     }
-    
+
     #[test]
     fn test_parse_stream() {
         let mut parser = IncrementalParser::new();
-        parser.state = ParserState::InObject { id: 1, generation: 0 };
-        
+        parser.state = ParserState::InObject {
+            id: 1,
+            generation: 0,
+        };
+
         let data = b"stream\nHello World\nendstream\n";
         parser.feed(data).unwrap();
-        
+
         let events = parser.take_events();
-        assert!(events.iter().any(|e| matches!(e, ParseEvent::StreamData { .. })));
+        assert!(events
+            .iter()
+            .any(|e| matches!(e, ParseEvent::StreamData { .. })));
     }
-    
+
     #[test]
     fn test_parse_eof() {
         let mut parser = IncrementalParser::new();
         parser.state = ParserState::InTrailer;
-        
+
         parser.feed(b"%%EOF\n").unwrap();
-        
+
         let events = parser.take_events();
         assert_eq!(events.len(), 1);
         assert!(matches!(events[0], ParseEvent::EndOfFile));
         assert!(parser.is_complete());
     }
-    
+
     #[test]
     fn test_process_incrementally() {
         use std::io::Cursor;
-        
+
         let data = b"%PDF-1.7\n1 0 obj\n<< >>\nendobj\n%%EOF";
         let cursor = Cursor::new(data);
-        
+
         let mut event_count = 0;
         process_incrementally(cursor, |event| {
             event_count += 1;
@@ -294,34 +309,35 @@ mod tests {
                 _ => {}
             }
             Ok(())
-        }).unwrap();
-        
+        })
+        .unwrap();
+
         assert!(event_count > 0);
     }
-    
+
     #[test]
     fn test_parser_state_transitions() {
         let mut parser = IncrementalParser::new();
-        
+
         // Initial -> Header
         parser.feed(b"%PDF-1.7\n").unwrap();
-        
+
         // Header -> Object
         parser.feed(b"1 0 obj\n").unwrap();
         assert!(matches!(parser.state, ParserState::InObject { .. }));
-        
+
         // Object -> Initial
         parser.feed(b"endobj\n").unwrap();
         assert!(matches!(parser.state, ParserState::Initial));
-        
+
         // Initial -> XRef
         parser.feed(b"xref\n").unwrap();
         assert!(matches!(parser.state, ParserState::InXRef));
-        
+
         // XRef -> Trailer
         parser.feed(b"trailer\n").unwrap();
         assert!(matches!(parser.state, ParserState::InTrailer));
-        
+
         // Trailer -> Complete
         parser.feed(b"%%EOF\n").unwrap();
         assert!(parser.is_complete());

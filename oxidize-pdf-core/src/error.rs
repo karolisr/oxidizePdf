@@ -22,25 +22,25 @@ pub enum PdfError {
 
     #[error("Invalid image: {0}")]
     InvalidImage(String),
-    
+
     #[error("Invalid object reference: {0} {1} R")]
     InvalidObjectReference(u32, u16),
-    
+
     #[error("Parse error: {0}")]
     ParseError(String),
-    
+
     #[error("Invalid page number: {0}")]
     InvalidPageNumber(u32),
-    
+
     #[error("Invalid format: {0}")]
     InvalidFormat(String),
-    
+
     #[error("Invalid header")]
     InvalidHeader,
-    
+
     #[error("Content stream too large: {0} bytes")]
     ContentStreamTooLarge(usize),
-    
+
     #[error("Operation cancelled")]
     OperationCancelled,
 }
@@ -89,7 +89,7 @@ mod tests {
     fn test_pdf_error_from_io_error() {
         let io_error = IoError::new(ErrorKind::NotFound, "file not found");
         let pdf_error = PdfError::from(io_error);
-        
+
         match pdf_error {
             PdfError::Io(ref err) => {
                 assert_eq!(err.kind(), ErrorKind::NotFound);
@@ -139,7 +139,7 @@ mod tests {
     fn test_oxidize_pdf_error_from_io_error() {
         let io_error = IoError::new(ErrorKind::PermissionDenied, "access denied");
         let pdf_error = OxidizePdfError::from(io_error);
-        
+
         match pdf_error {
             OxidizePdfError::Io(ref err) => {
                 assert_eq!(err.kind(), ErrorKind::PermissionDenied);
@@ -176,7 +176,7 @@ mod tests {
     fn test_result_type_err() {
         let result: Result<i32> = Err(PdfError::InvalidStructure("test".to_string()));
         assert!(result.is_err());
-        
+
         let error = result.unwrap_err();
         match error {
             PdfError::InvalidStructure(msg) => assert_eq!(msg, "test"),
@@ -188,18 +188,30 @@ mod tests {
     fn test_error_chain_display() {
         // Test that error messages are properly formatted
         let errors = [
-            ("Invalid PDF structure: corrupted header", 
-             PdfError::InvalidStructure("corrupted header".to_string())),
-            ("Invalid object reference: 999 0 R", 
-             PdfError::InvalidObjectReference(999, 0)),
-            ("Encoding error: unsupported encoding", 
-             PdfError::EncodingError("unsupported encoding".to_string())),
-            ("Font error: missing font", 
-             PdfError::FontError("missing font".to_string())),
-            ("Compression error: deflate failed", 
-             PdfError::CompressionError("deflate failed".to_string())),
-            ("Invalid image: corrupt JPEG", 
-             PdfError::InvalidImage("corrupt JPEG".to_string())),
+            (
+                "Invalid PDF structure: corrupted header",
+                PdfError::InvalidStructure("corrupted header".to_string()),
+            ),
+            (
+                "Invalid object reference: 999 0 R",
+                PdfError::InvalidObjectReference(999, 0),
+            ),
+            (
+                "Encoding error: unsupported encoding",
+                PdfError::EncodingError("unsupported encoding".to_string()),
+            ),
+            (
+                "Font error: missing font",
+                PdfError::FontError("missing font".to_string()),
+            ),
+            (
+                "Compression error: deflate failed",
+                PdfError::CompressionError("deflate failed".to_string()),
+            ),
+            (
+                "Invalid image: corrupt JPEG",
+                PdfError::InvalidImage("corrupt JPEG".to_string()),
+            ),
         ];
 
         for (expected, error) in errors {
@@ -211,14 +223,22 @@ mod tests {
     fn test_oxidize_pdf_error_chain_display() {
         // Test that OxidizePdfError messages are properly formatted
         let errors = [
-            ("Parse error: unexpected token", 
-             OxidizePdfError::ParseError("unexpected token".to_string())),
-            ("Invalid PDF structure: missing xref", 
-             OxidizePdfError::InvalidStructure("missing xref".to_string())),
-            ("Encoding error: invalid UTF-8", 
-             OxidizePdfError::EncodingError("invalid UTF-8".to_string())),
-            ("Other error: unknown issue", 
-             OxidizePdfError::Other("unknown issue".to_string())),
+            (
+                "Parse error: unexpected token",
+                OxidizePdfError::ParseError("unexpected token".to_string()),
+            ),
+            (
+                "Invalid PDF structure: missing xref",
+                OxidizePdfError::InvalidStructure("missing xref".to_string()),
+            ),
+            (
+                "Encoding error: invalid UTF-8",
+                OxidizePdfError::EncodingError("invalid UTF-8".to_string()),
+            ),
+            (
+                "Other error: unknown issue",
+                OxidizePdfError::Other("unknown issue".to_string()),
+            ),
         ];
 
         for (expected, error) in errors {
@@ -250,7 +270,7 @@ mod tests {
             PdfError::InvalidHeader,
             PdfError::ContentStreamTooLarge(1024),
         ];
-        
+
         // Verify each error can be created and has the expected message structure
         for error in errors {
             let msg = error.to_string();
@@ -260,14 +280,14 @@ mod tests {
 
     #[test]
     fn test_oxidize_pdf_error_struct_creation() {
-        // Test creating OxidizePdfError with string messages  
+        // Test creating OxidizePdfError with string messages
         let errors = vec![
             OxidizePdfError::ParseError("test".to_string()),
             OxidizePdfError::InvalidStructure("structure".to_string()),
             OxidizePdfError::EncodingError("encoding".to_string()),
             OxidizePdfError::Other("other".to_string()),
         ];
-        
+
         // Verify each error can be created and has the expected message structure
         for error in errors {
             let msg = error.to_string();
@@ -280,7 +300,7 @@ mod tests {
         let error1 = PdfError::InvalidStructure("test".to_string());
         let error2 = PdfError::InvalidStructure("test".to_string());
         let error3 = PdfError::InvalidStructure("different".to_string());
-        
+
         // Note: thiserror doesn't automatically derive PartialEq, so we test the display output
         assert_eq!(error1.to_string(), error2.to_string());
         assert_ne!(error1.to_string(), error3.to_string());
@@ -291,7 +311,7 @@ mod tests {
         // Test that IO error details are preserved through conversion
         let original_io_error = IoError::new(ErrorKind::UnexpectedEof, "sudden EOF");
         let pdf_error = PdfError::from(original_io_error);
-        
+
         if let PdfError::Io(io_err) = pdf_error {
             assert_eq!(io_err.kind(), ErrorKind::UnexpectedEof);
             assert_eq!(io_err.to_string(), "sudden EOF");
@@ -305,7 +325,7 @@ mod tests {
         // Test that IO error details are preserved through conversion
         let original_io_error = IoError::new(ErrorKind::InvalidData, "corrupted data");
         let oxidize_error = OxidizePdfError::from(original_io_error);
-        
+
         if let OxidizePdfError::Io(io_err) = oxidize_error {
             assert_eq!(io_err.kind(), ErrorKind::InvalidData);
             assert_eq!(io_err.to_string(), "corrupted data");

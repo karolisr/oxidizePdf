@@ -1448,11 +1448,17 @@ mod tests {
             assert_eq!(operators[2], ContentOperation::SetWordSpacing(10.0));
             assert_eq!(operators[3], ContentOperation::SetHorizontalScaling(120.0));
             assert_eq!(operators[4], ContentOperation::SetLeading(15.0));
-            assert_eq!(operators[5], ContentOperation::SetFont("F1".to_string(), 12.0));
+            assert_eq!(
+                operators[5],
+                ContentOperation::SetFont("F1".to_string(), 12.0)
+            );
             assert_eq!(operators[6], ContentOperation::SetTextRenderMode(1));
             assert_eq!(operators[7], ContentOperation::SetTextRise(5.0));
             assert_eq!(operators[8], ContentOperation::MoveText(100.0, 200.0));
-            assert_eq!(operators[9], ContentOperation::MoveTextSetLeading(50.0, 150.0));
+            assert_eq!(
+                operators[9],
+                ContentOperation::MoveTextSetLeading(50.0, 150.0)
+            );
             assert_eq!(operators[10], ContentOperation::NextLine);
             assert_eq!(operators[11], ContentOperation::ShowText(b"Hello".to_vec()));
             assert_eq!(operators[12], ContentOperation::EndText);
@@ -1466,14 +1472,23 @@ mod tests {
 
             assert_eq!(operators[0], ContentOperation::SaveGraphicsState);
             assert_eq!(operators[1], ContentOperation::RestoreGraphicsState);
-            assert_eq!(operators[2], ContentOperation::SetTransformMatrix(1.0, 0.0, 0.0, 1.0, 50.0, 50.0));
+            assert_eq!(
+                operators[2],
+                ContentOperation::SetTransformMatrix(1.0, 0.0, 0.0, 1.0, 50.0, 50.0)
+            );
             assert_eq!(operators[3], ContentOperation::SetLineWidth(2.0));
             assert_eq!(operators[4], ContentOperation::SetLineCap(1));
             assert_eq!(operators[5], ContentOperation::SetLineJoin(2));
             assert_eq!(operators[6], ContentOperation::SetMiterLimit(10.0));
-            assert_eq!(operators[7], ContentOperation::SetGraphicsStateParams("GS1".to_string()));
+            assert_eq!(
+                operators[7],
+                ContentOperation::SetGraphicsStateParams("GS1".to_string())
+            );
             assert_eq!(operators[8], ContentOperation::SetFlatness(0.5));
-            assert_eq!(operators[9], ContentOperation::SetIntent("Perceptual".to_string()));
+            assert_eq!(
+                operators[9],
+                ContentOperation::SetIntent("Perceptual".to_string())
+            );
         }
 
         #[test]
@@ -1483,11 +1498,23 @@ mod tests {
 
             assert_eq!(operators[0], ContentOperation::MoveTo(100.0, 200.0));
             assert_eq!(operators[1], ContentOperation::LineTo(150.0, 200.0));
-            assert_eq!(operators[2], ContentOperation::CurveTo(200.0, 200.0, 250.0, 250.0, 300.0, 200.0));
-            assert_eq!(operators[3], ContentOperation::CurveToV(250.0, 180.0, 300.0, 200.0));
-            assert_eq!(operators[4], ContentOperation::CurveToY(200.0, 180.0, 300.0, 200.0));
+            assert_eq!(
+                operators[2],
+                ContentOperation::CurveTo(200.0, 200.0, 250.0, 250.0, 300.0, 200.0)
+            );
+            assert_eq!(
+                operators[3],
+                ContentOperation::CurveToV(250.0, 180.0, 300.0, 200.0)
+            );
+            assert_eq!(
+                operators[4],
+                ContentOperation::CurveToY(200.0, 180.0, 300.0, 200.0)
+            );
             assert_eq!(operators[5], ContentOperation::ClosePath);
-            assert_eq!(operators[6], ContentOperation::Rectangle(50.0, 50.0, 100.0, 100.0));
+            assert_eq!(
+                operators[6],
+                ContentOperation::Rectangle(50.0, 50.0, 100.0, 100.0)
+            );
         }
 
         #[test]
@@ -1515,15 +1542,36 @@ mod tests {
             let content = b"/DeviceRGB CS /DeviceGray cs 0.7 G 0.4 g 1 0 0 RG 0 1 0 rg 0 0 0 1 K 0.2 0.3 0.4 0.5 k /Shade1 sh";
             let operators = ContentParser::parse(content).unwrap();
 
-            assert_eq!(operators[0], ContentOperation::SetStrokingColorSpace("DeviceRGB".to_string()));
-            assert_eq!(operators[1], ContentOperation::SetNonStrokingColorSpace("DeviceGray".to_string()));
+            assert_eq!(
+                operators[0],
+                ContentOperation::SetStrokingColorSpace("DeviceRGB".to_string())
+            );
+            assert_eq!(
+                operators[1],
+                ContentOperation::SetNonStrokingColorSpace("DeviceGray".to_string())
+            );
             assert_eq!(operators[2], ContentOperation::SetStrokingGray(0.7));
             assert_eq!(operators[3], ContentOperation::SetNonStrokingGray(0.4));
-            assert_eq!(operators[4], ContentOperation::SetStrokingRGB(1.0, 0.0, 0.0));
-            assert_eq!(operators[5], ContentOperation::SetNonStrokingRGB(0.0, 1.0, 0.0));
-            assert_eq!(operators[6], ContentOperation::SetStrokingCMYK(0.0, 0.0, 0.0, 1.0));
-            assert_eq!(operators[7], ContentOperation::SetNonStrokingCMYK(0.2, 0.3, 0.4, 0.5));
-            assert_eq!(operators[8], ContentOperation::ShadingFill("Shade1".to_string()));
+            assert_eq!(
+                operators[4],
+                ContentOperation::SetStrokingRGB(1.0, 0.0, 0.0)
+            );
+            assert_eq!(
+                operators[5],
+                ContentOperation::SetNonStrokingRGB(0.0, 1.0, 0.0)
+            );
+            assert_eq!(
+                operators[6],
+                ContentOperation::SetStrokingCMYK(0.0, 0.0, 0.0, 1.0)
+            );
+            assert_eq!(
+                operators[7],
+                ContentOperation::SetNonStrokingCMYK(0.2, 0.3, 0.4, 0.5)
+            );
+            assert_eq!(
+                operators[8],
+                ContentOperation::ShadingFill("Shade1".to_string())
+            );
         }
 
         #[test]
@@ -1532,10 +1580,19 @@ mod tests {
             let content = b"/Image1 Do /MC1 BMC EMC /MP1 MP BX EX";
             let operators = ContentParser::parse(content).unwrap();
 
-            assert_eq!(operators[0], ContentOperation::PaintXObject("Image1".to_string()));
-            assert_eq!(operators[1], ContentOperation::BeginMarkedContent("MC1".to_string()));
+            assert_eq!(
+                operators[0],
+                ContentOperation::PaintXObject("Image1".to_string())
+            );
+            assert_eq!(
+                operators[1],
+                ContentOperation::BeginMarkedContent("MC1".to_string())
+            );
             assert_eq!(operators[2], ContentOperation::EndMarkedContent);
-            assert_eq!(operators[3], ContentOperation::DefineMarkedContentPoint("MP1".to_string()));
+            assert_eq!(
+                operators[3],
+                ContentOperation::DefineMarkedContentPoint("MP1".to_string())
+            );
             assert_eq!(operators[4], ContentOperation::BeginCompatibility);
             assert_eq!(operators[5], ContentOperation::EndCompatibility);
         }
@@ -1547,11 +1604,20 @@ mod tests {
 
             assert_eq!(operators.len(), 8);
             assert_eq!(operators[0], ContentOperation::SaveGraphicsState);
-            assert_eq!(operators[1], ContentOperation::SetTransformMatrix(0.5, 0.0, 0.0, 0.5, 100.0, 100.0));
+            assert_eq!(
+                operators[1],
+                ContentOperation::SetTransformMatrix(0.5, 0.0, 0.0, 0.5, 100.0, 100.0)
+            );
             assert_eq!(operators[2], ContentOperation::BeginText);
-            assert_eq!(operators[3], ContentOperation::SetFont("F1".to_string(), 12.0));
+            assert_eq!(
+                operators[3],
+                ContentOperation::SetFont("F1".to_string(), 12.0)
+            );
             assert_eq!(operators[4], ContentOperation::MoveText(0.0, 0.0));
-            assert_eq!(operators[5], ContentOperation::ShowText(b"Complex".to_vec()));
+            assert_eq!(
+                operators[5],
+                ContentOperation::ShowText(b"Complex".to_vec())
+            );
             assert_eq!(operators[6], ContentOperation::EndText);
             assert_eq!(operators[7], ContentOperation::RestoreGraphicsState);
         }
@@ -1561,11 +1627,23 @@ mod tests {
             let input = b"  \t\n\r  BT  \t\n  /F1   12.5  \t Tf  \n\r  ET  ";
             let mut tokenizer = ContentTokenizer::new(input);
 
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Operator("BT".to_string())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Name("F1".to_string())));
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::Operator("BT".to_string()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::Name("F1".to_string()))
+            );
             assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Number(12.5)));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Operator("Tf".to_string())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Operator("ET".to_string())));
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::Operator("Tf".to_string()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::Operator("ET".to_string()))
+            );
             assert_eq!(tokenizer.next_token().unwrap(), None);
         }
 
@@ -1590,16 +1668,46 @@ mod tests {
             let input = b"(Simple) (With\\\\backslash) (With\\)paren) (With\\newline) (With\\ttab) (With\\rcarriage) (With\\bbackspace) (With\\fformfeed) (With\\(leftparen) (With\\)rightparen) (With\\377octal) (With\\dddoctal)";
             let mut tokenizer = ContentTokenizer::new(input);
 
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::String(b"Simple".to_vec())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::String(b"With\\backslash".to_vec())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::String(b"With)paren".to_vec())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::String(b"With\newline".to_vec())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::String(b"With\ttab".to_vec())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::String(b"With\rcarriage".to_vec())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::String(b"With\x08backspace".to_vec())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::String(b"With\x0Cformfeed".to_vec())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::String(b"With(leftparen".to_vec())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::String(b"With)rightparen".to_vec())));
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::String(b"Simple".to_vec()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::String(b"With\\backslash".to_vec()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::String(b"With)paren".to_vec()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::String(b"With\newline".to_vec()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::String(b"With\ttab".to_vec()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::String(b"With\rcarriage".to_vec()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::String(b"With\x08backspace".to_vec()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::String(b"With\x0Cformfeed".to_vec()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::String(b"With(leftparen".to_vec()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::String(b"With)rightparen".to_vec()))
+            );
         }
 
         #[test]
@@ -1607,10 +1715,22 @@ mod tests {
             let input = b"<48656C6C6F> <48 65 6C 6C 6F> <48656C6C6F57> <48656C6C6F5>";
             let mut tokenizer = ContentTokenizer::new(input);
 
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::HexString(b"Hello".to_vec())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::HexString(b"Hello".to_vec())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::HexString(b"HelloW".to_vec())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::HexString(b"Hello\x50".to_vec())));
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::HexString(b"Hello".to_vec()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::HexString(b"Hello".to_vec()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::HexString(b"HelloW".to_vec()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::HexString(b"Hello\x50".to_vec()))
+            );
         }
 
         #[test]
@@ -1618,11 +1738,26 @@ mod tests {
             let input = b"/Name /Name#20with#20spaces /Name#23with#23hash /Name#2Fwith#2Fslash /#45mptyName";
             let mut tokenizer = ContentTokenizer::new(input);
 
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Name("Name".to_string())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Name("Name with spaces".to_string())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Name("Name#with#hash".to_string())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Name("Name/with/slash".to_string())));
-            assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Name("EmptyName".to_string())));
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::Name("Name".to_string()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::Name("Name with spaces".to_string()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::Name("Name#with#hash".to_string()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::Name("Name/with/slash".to_string()))
+            );
+            assert_eq!(
+                tokenizer.next_token().unwrap(),
+                Some(Token::Name("EmptyName".to_string()))
+            );
         }
 
         #[test]
@@ -1716,7 +1851,10 @@ mod tests {
 
             assert_eq!(operators.len(), 2);
             assert_eq!(operators[0], ContentOperation::MoveText(-100.0, -200.0));
-            assert_eq!(operators[1], ContentOperation::MoveTextSetLeading(-50.5, -75.2));
+            assert_eq!(
+                operators[1],
+                ContentOperation::MoveTextSetLeading(-50.5, -75.2)
+            );
         }
 
         #[test]
@@ -1725,7 +1863,10 @@ mod tests {
             let operators = ContentParser::parse(content).unwrap();
 
             assert_eq!(operators.len(), 1);
-            assert_eq!(operators[0], ContentOperation::MoveTo(999999.999999, -999999.999999));
+            assert_eq!(
+                operators[0],
+                ContentOperation::MoveTo(999999.999999, -999999.999999)
+            );
         }
 
         #[test]
@@ -1812,12 +1953,15 @@ mod tests {
         fn test_memory_usage_large_content() {
             let mut content = Vec::new();
             for i in 0..10000 {
-                content.extend_from_slice(format!("{} {} {} {} {} {} c ", i, i+1, i+2, i+3, i+4, i+5).as_bytes());
+                content.extend_from_slice(
+                    format!("{} {} {} {} {} {} c ", i, i + 1, i + 2, i + 3, i + 4, i + 5)
+                        .as_bytes(),
+                );
             }
 
             let operators = ContentParser::parse(&content).unwrap();
             assert_eq!(operators.len(), 10000);
-            
+
             // Verify all operations are CurveTo
             for op in operators {
                 matches!(op, ContentOperation::CurveTo(_, _, _, _, _, _));
@@ -1826,16 +1970,14 @@ mod tests {
 
         #[test]
         fn test_concurrent_parsing() {
-            use std::thread;
             use std::sync::Arc;
+            use std::thread;
 
             let content = Arc::new(b"BT /F1 12 Tf 100 200 Td (Hello) Tj ET".to_vec());
             let handles: Vec<_> = (0..10)
                 .map(|_| {
                     let content_clone = content.clone();
-                    thread::spawn(move || {
-                        ContentParser::parse(&content_clone).unwrap()
-                    })
+                    thread::spawn(move || ContentParser::parse(&content_clone).unwrap())
                 })
                 .collect();
 

@@ -5,7 +5,7 @@
 //! API specifically for page extraction use cases.
 
 use super::{OperationError, OperationResult, PageRange};
-use crate::parser::{ContentOperation, ContentParser, PdfDocument, PdfReader, ParsedPage};
+use crate::parser::{ContentOperation, ContentParser, ParsedPage, PdfDocument, PdfReader};
 use crate::{Document, Page};
 use std::fs::File;
 use std::path::Path;
@@ -56,16 +56,21 @@ impl PageExtractor {
 
     /// Extract a single page to a new document
     pub fn extract_page(&mut self, page_index: usize) -> OperationResult<Document> {
-        let total_pages = self.document
-            .page_count()
-            .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
+        let total_pages =
+            self.document
+                .page_count()
+                .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
 
         if page_index >= total_pages {
-            return Err(OperationError::PageIndexOutOfBounds(page_index, total_pages));
+            return Err(OperationError::PageIndexOutOfBounds(
+                page_index,
+                total_pages,
+            ));
         }
 
         let mut doc = self.create_document()?;
-        let parsed_page = self.document
+        let parsed_page = self
+            .document
             .get_page(page_index as u32)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
 
@@ -77,9 +82,10 @@ impl PageExtractor {
 
     /// Extract multiple pages to a new document
     pub fn extract_pages(&mut self, page_indices: &[usize]) -> OperationResult<Document> {
-        let total_pages = self.document
-            .page_count()
-            .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
+        let total_pages =
+            self.document
+                .page_count()
+                .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
 
         // Validate all indices first
         for &idx in page_indices {
@@ -95,7 +101,8 @@ impl PageExtractor {
         let mut doc = self.create_document()?;
 
         for &page_idx in page_indices {
-            let parsed_page = self.document
+            let parsed_page = self
+                .document
                 .get_page(page_idx as u32)
                 .map_err(|e| OperationError::ParseError(e.to_string()))?;
 
@@ -108,9 +115,10 @@ impl PageExtractor {
 
     /// Extract a range of pages to a new document
     pub fn extract_page_range(&mut self, range: &PageRange) -> OperationResult<Document> {
-        let total_pages = self.document
-            .page_count()
-            .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
+        let total_pages =
+            self.document
+                .page_count()
+                .map_err(|e| OperationError::ParseError(e.to_string()))? as usize;
 
         let indices = range.get_indices(total_pages)?;
         self.extract_pages(&indices)
@@ -161,7 +169,8 @@ impl PageExtractor {
         }
 
         // Get content streams
-        let content_streams = self.document
+        let content_streams = self
+            .document
             .get_page_content_streams(parsed_page)
             .map_err(|e| OperationError::ParseError(e.to_string()))?;
 
@@ -251,7 +260,8 @@ impl PageExtractor {
                     page.graphics().line_to(*x as f64, *y as f64);
                 }
                 ContentOperation::Rectangle(x, y, w, h) => {
-                    page.graphics().rectangle(*x as f64, *y as f64, *w as f64, *h as f64);
+                    page.graphics()
+                        .rectangle(*x as f64, *y as f64, *w as f64, *h as f64);
                 }
                 ContentOperation::Stroke => {
                     page.graphics().stroke();
@@ -260,10 +270,12 @@ impl PageExtractor {
                     page.graphics().fill();
                 }
                 ContentOperation::SetStrokingRGB(r, g, b) => {
-                    page.graphics().set_stroke_color(crate::Color::rgb(*r as f64, *g as f64, *b as f64));
+                    page.graphics()
+                        .set_stroke_color(crate::Color::rgb(*r as f64, *g as f64, *b as f64));
                 }
                 ContentOperation::SetNonStrokingRGB(r, g, b) => {
-                    page.graphics().set_fill_color(crate::Color::rgb(*r as f64, *g as f64, *b as f64));
+                    page.graphics()
+                        .set_fill_color(crate::Color::rgb(*r as f64, *g as f64, *b as f64));
                 }
                 ContentOperation::SetLineWidth(width) => {
                     page.graphics().set_line_width(*width as f64);
@@ -297,12 +309,9 @@ impl PageExtractor {
 }
 
 /// Extract a single page from a PDF file to a new document
-pub fn extract_page<P: AsRef<Path>>(
-    input_path: P,
-    page_index: usize,
-) -> OperationResult<Document> {
-    let reader = PdfReader::open(input_path)
-        .map_err(|e| OperationError::ParseError(e.to_string()))?;
+pub fn extract_page<P: AsRef<Path>>(input_path: P, page_index: usize) -> OperationResult<Document> {
+    let reader =
+        PdfReader::open(input_path).map_err(|e| OperationError::ParseError(e.to_string()))?;
     let document = PdfDocument::new(reader);
     let mut extractor = PageExtractor::new(document);
     extractor.extract_page(page_index)
@@ -313,8 +322,8 @@ pub fn extract_pages<P: AsRef<Path>>(
     input_path: P,
     page_indices: &[usize],
 ) -> OperationResult<Document> {
-    let reader = PdfReader::open(input_path)
-        .map_err(|e| OperationError::ParseError(e.to_string()))?;
+    let reader =
+        PdfReader::open(input_path).map_err(|e| OperationError::ParseError(e.to_string()))?;
     let document = PdfDocument::new(reader);
     let mut extractor = PageExtractor::new(document);
     extractor.extract_pages(page_indices)
@@ -325,8 +334,8 @@ pub fn extract_page_range<P: AsRef<Path>>(
     input_path: P,
     range: &PageRange,
 ) -> OperationResult<Document> {
-    let reader = PdfReader::open(input_path)
-        .map_err(|e| OperationError::ParseError(e.to_string()))?;
+    let reader =
+        PdfReader::open(input_path).map_err(|e| OperationError::ParseError(e.to_string()))?;
     let document = PdfDocument::new(reader);
     let mut extractor = PageExtractor::new(document);
     extractor.extract_page_range(range)
@@ -442,7 +451,7 @@ mod tests {
 
         let reader = PdfReader::open(&path).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         let options = PageExtractionOptions {
             preserve_metadata: false,
             preserve_annotations: false,
@@ -469,7 +478,7 @@ mod tests {
 
         let result = extractor.extract_page(2);
         assert!(result.is_ok());
-        
+
         let extracted_doc = result.unwrap();
         // The extracted document should have 1 page
         assert_eq!(extracted_doc.pages.len(), 1);
@@ -504,7 +513,7 @@ mod tests {
 
         let result = extractor.extract_pages(&[0, 2, 4]);
         assert!(result.is_ok());
-        
+
         let extracted_doc = result.unwrap();
         assert_eq!(extracted_doc.pages.len(), 3);
     }
@@ -556,7 +565,7 @@ mod tests {
         let range = PageRange::Range(1, 3);
         let result = extractor.extract_page_range(&range);
         assert!(result.is_ok());
-        
+
         let extracted_doc = result.unwrap();
         assert_eq!(extracted_doc.pages.len(), 3); // Pages 1, 2, 3 (0-based: 1, 2, 3)
     }
@@ -574,7 +583,7 @@ mod tests {
         let range = PageRange::Single(2);
         let result = extractor.extract_page_range(&range);
         assert!(result.is_ok());
-        
+
         let extracted_doc = result.unwrap();
         assert_eq!(extracted_doc.pages.len(), 1);
     }
@@ -592,7 +601,7 @@ mod tests {
         let range = PageRange::All;
         let result = extractor.extract_page_range(&range);
         assert!(result.is_ok());
-        
+
         let extracted_doc = result.unwrap();
         assert_eq!(extracted_doc.pages.len(), 3);
     }
@@ -609,7 +618,7 @@ mod tests {
 
         let result = extractor.extract_page(0);
         assert!(result.is_ok());
-        
+
         let extracted_doc = result.unwrap();
         // Test that page was extracted successfully
         assert_eq!(extracted_doc.pages.len(), 1);
@@ -624,7 +633,7 @@ mod tests {
 
         let reader = PdfReader::open(&path).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         let options = PageExtractionOptions {
             preserve_metadata: false,
             ..Default::default()
@@ -633,7 +642,7 @@ mod tests {
 
         let result = extractor.extract_page(0);
         assert!(result.is_ok());
-        
+
         let extracted_doc = result.unwrap();
         // When metadata is not preserved, the document should have default/empty metadata
         assert_eq!(extracted_doc.pages.len(), 1);
@@ -650,11 +659,26 @@ mod tests {
         let document = PdfDocument::new(reader);
         let extractor = PageExtractor::new(document);
 
-        assert_eq!(extractor.map_font_name("Times-Roman"), crate::text::Font::TimesRoman);
-        assert_eq!(extractor.map_font_name("Times-Bold"), crate::text::Font::TimesBold);
-        assert_eq!(extractor.map_font_name("Helvetica-Bold"), crate::text::Font::HelveticaBold);
-        assert_eq!(extractor.map_font_name("Courier"), crate::text::Font::Courier);
-        assert_eq!(extractor.map_font_name("Unknown"), crate::text::Font::Helvetica);
+        assert_eq!(
+            extractor.map_font_name("Times-Roman"),
+            crate::text::Font::TimesRoman
+        );
+        assert_eq!(
+            extractor.map_font_name("Times-Bold"),
+            crate::text::Font::TimesBold
+        );
+        assert_eq!(
+            extractor.map_font_name("Helvetica-Bold"),
+            crate::text::Font::HelveticaBold
+        );
+        assert_eq!(
+            extractor.map_font_name("Courier"),
+            crate::text::Font::Courier
+        );
+        assert_eq!(
+            extractor.map_font_name("Unknown"),
+            crate::text::Font::Helvetica
+        );
     }
 
     #[test]
@@ -739,8 +763,8 @@ mod tests {
     // Comprehensive tests for PageExtractor
     mod comprehensive_tests {
         use super::*;
-        use crate::text::Font;
         use crate::graphics::Color;
+        use crate::text::Font;
 
         #[test]
         fn test_page_extraction_options_clone() {
@@ -750,7 +774,7 @@ mod tests {
                 preserve_forms: true,
                 optimize: false,
             };
-            
+
             let cloned = options.clone();
             assert_eq!(options.preserve_metadata, cloned.preserve_metadata);
             assert_eq!(options.preserve_annotations, cloned.preserve_annotations);
@@ -781,10 +805,13 @@ mod tests {
 
             let result = extractor.extract_page(1);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 1);
-            assert_eq!(extracted_doc.metadata.title, Some("Complex Test".to_string()));
+            assert_eq!(
+                extracted_doc.metadata.title,
+                Some("Complex Test".to_string())
+            );
         }
 
         #[test]
@@ -795,23 +822,26 @@ mod tests {
 
             let reader = PdfReader::open(&path).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             let options = PageExtractionOptions {
                 preserve_metadata: false,
                 preserve_annotations: false,
                 preserve_forms: true,
                 optimize: true,
             };
-            
+
             let mut extractor = PageExtractor::with_options(document, options);
             let result = extractor.extract_pages(&[0, 2]);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 2);
-            
+
             // With preserve_metadata false, title should be None or default
-            assert!(extracted_doc.metadata.title.is_none() || extracted_doc.metadata.title == Some("".to_string()));
+            assert!(
+                extracted_doc.metadata.title.is_none()
+                    || extracted_doc.metadata.title == Some("".to_string())
+            );
         }
 
         #[test]
@@ -861,7 +891,7 @@ mod tests {
 
             let result = extractor.extract_page(0);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 1);
         }
@@ -878,7 +908,7 @@ mod tests {
 
             let result = extractor.extract_page(2); // Last page (0-indexed)
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 1);
         }
@@ -895,7 +925,7 @@ mod tests {
 
             let result = extractor.extract_pages(&[0, 1, 0, 2, 1]);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             // Should extract 5 pages (duplicates allowed)
             assert_eq!(extracted_doc.pages.len(), 5);
@@ -915,7 +945,7 @@ mod tests {
             let indices: Vec<usize> = (0..100).step_by(10).collect();
             let result = extractor.extract_pages(&indices);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 10);
         }
@@ -933,7 +963,7 @@ mod tests {
             let range = PageRange::All;
             let result = extractor.extract_page_range(&range);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 20);
         }
@@ -951,7 +981,7 @@ mod tests {
             let range = PageRange::Range(3, 7);
             let result = extractor.extract_page_range(&range);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 5); // Pages 3, 4, 5, 6, 7
         }
@@ -1004,7 +1034,7 @@ mod tests {
 
             let result = extractor.extract_page(0);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 1);
         }
@@ -1022,7 +1052,7 @@ mod tests {
             let range = PageRange::All;
             let result = extractor.extract_page_range(&range);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 1);
         }
@@ -1035,22 +1065,31 @@ mod tests {
 
             let reader = PdfReader::open(&path).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             let options = PageExtractionOptions {
                 preserve_metadata: true,
                 preserve_annotations: false,
                 preserve_forms: false,
                 optimize: false,
             };
-            
+
             let mut extractor = PageExtractor::with_options(document, options);
             let result = extractor.extract_page(0);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
-            assert_eq!(extracted_doc.metadata.title, Some("Metadata Test".to_string()));
-            assert_eq!(extracted_doc.metadata.author, Some("Test Author".to_string()));
-            assert_eq!(extracted_doc.metadata.subject, Some("Test Subject".to_string()));
+            assert_eq!(
+                extracted_doc.metadata.title,
+                Some("Metadata Test".to_string())
+            );
+            assert_eq!(
+                extracted_doc.metadata.author,
+                Some("Test Author".to_string())
+            );
+            assert_eq!(
+                extracted_doc.metadata.subject,
+                Some("Test Subject".to_string())
+            );
         }
 
         #[test]
@@ -1061,21 +1100,24 @@ mod tests {
 
             let reader = PdfReader::open(&path).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             let options = PageExtractionOptions {
                 preserve_metadata: false,
                 preserve_annotations: false,
                 preserve_forms: false,
                 optimize: false,
             };
-            
+
             let mut extractor = PageExtractor::with_options(document, options);
             let result = extractor.extract_page(0);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             // When preserve_metadata is false, metadata should be empty or default
-            assert!(extracted_doc.metadata.title.is_none() || extracted_doc.metadata.title == Some("".to_string()));
+            assert!(
+                extracted_doc.metadata.title.is_none()
+                    || extracted_doc.metadata.title == Some("".to_string())
+            );
         }
 
         #[test]
@@ -1091,7 +1133,7 @@ mod tests {
             // Extract pages in specific order
             let result = extractor.extract_pages(&[4, 2, 0, 1, 3]);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 5);
         }
@@ -1110,7 +1152,7 @@ mod tests {
             let range = PageRange::Range(0, 2);
             let result = extractor.extract_page_range(&range);
             assert!(result.is_ok());
-            
+
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 3); // All pages
         }
@@ -1120,19 +1162,19 @@ mod tests {
             let temp_dir = TempDir::new().unwrap();
             let mut doc = create_test_pdf("Convenience Test", 3);
             let input_path = save_test_pdf(&mut doc, &temp_dir, "convenience.pdf");
-            
+
             // Test extract_page function
             let result = extract_page(&input_path, 1);
             assert!(result.is_ok());
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 1);
-            
+
             // Test extract_pages function
             let result = extract_pages(&input_path, &[0, 2]);
             assert!(result.is_ok());
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 2);
-            
+
             // Test extract_page_range function
             let range = PageRange::Range(0, 1);
             let result = extract_page_range(&input_path, &range);
@@ -1146,19 +1188,19 @@ mod tests {
             let temp_dir = TempDir::new().unwrap();
             let mut doc = create_test_pdf("File Test", 4);
             let input_path = save_test_pdf(&mut doc, &temp_dir, "file_input.pdf");
-            
+
             // Test extract_page_to_file
             let output_path = temp_dir.path().join("page_output.pdf");
             let result = extract_page_to_file(&input_path, 1, &output_path);
             assert!(result.is_ok());
             assert!(output_path.exists());
-            
+
             // Test extract_pages_to_file
             let output_path = temp_dir.path().join("pages_output.pdf");
             let result = extract_pages_to_file(&input_path, &[0, 3], &output_path);
             assert!(result.is_ok());
             assert!(output_path.exists());
-            
+
             // Test extract_page_range_to_file
             let output_path = temp_dir.path().join("range_output.pdf");
             let range = PageRange::Range(1, 2);
@@ -1179,14 +1221,14 @@ mod tests {
 
             // Extract every 20th page
             let indices: Vec<usize> = (0..200).step_by(20).collect();
-            
+
             let start_time = std::time::Instant::now();
             let result = extractor.extract_pages(&indices);
             let elapsed = start_time.elapsed();
-            
+
             assert!(result.is_ok());
             assert!(elapsed.as_millis() < 5000); // Should complete within 5 seconds
-            
+
             let extracted_doc = result.unwrap();
             assert_eq!(extracted_doc.pages.len(), 10);
         }
@@ -1201,38 +1243,38 @@ mod tests {
 
             for i in 0..page_count {
                 let mut page = crate::Page::new(612.0, 792.0);
-                
+
                 // Add multiple text elements
                 page.text()
                     .set_font(Font::HelveticaBold, 16.0)
                     .at(50.0, 750.0)
                     .write(&format!("Complex Page {}", i + 1))
                     .unwrap();
-                
+
                 page.text()
                     .set_font(Font::TimesRoman, 12.0)
                     .at(50.0, 700.0)
                     .write("This is a complex page with multiple elements.")
                     .unwrap();
-                
+
                 page.text()
                     .set_font(Font::Courier, 10.0)
                     .at(50.0, 650.0)
                     .write("Monospace text for variety.")
                     .unwrap();
-                
+
                 // Add graphics elements
                 page.graphics()
                     .set_fill_color(Color::rgb(0.8, 0.8, 0.9))
                     .rect(100.0, 500.0, 200.0, 100.0)
                     .fill();
-                
+
                 page.graphics()
                     .set_stroke_color(Color::rgb(0.2, 0.2, 0.8))
                     .set_line_width(2.0)
                     .circle(200.0, 300.0, 50.0)
                     .stroke();
-                
+
                 doc.add_page(page);
             }
 

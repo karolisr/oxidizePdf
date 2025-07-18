@@ -21,23 +21,23 @@ impl StreamingPage {
     pub fn number(&self) -> u32 {
         self.number
     }
-    
+
     /// Get page width in points
     pub fn width(&self) -> f64 {
         self.width
     }
-    
+
     /// Get page height in points
     pub fn height(&self) -> f64 {
         self.height
     }
-    
+
     /// Extract text from this page in streaming mode
     pub fn extract_text_streaming(&self) -> Result<String> {
         // In a real implementation, this would stream the content
         Ok(format!("Text from page {}", self.number + 1))
     }
-    
+
     /// Process content stream in chunks
     pub fn process_content<F>(&self, mut callback: F) -> Result<()>
     where
@@ -48,7 +48,7 @@ impl StreamingPage {
         callback(mock_content.as_bytes())?;
         Ok(())
     }
-    
+
     /// Get the media box for this page
     pub fn media_box(&self) -> [f64; 4] {
         [0.0, 0.0, self.width, self.height]
@@ -73,14 +73,15 @@ impl<R: Read + Seek> PageStreamer<R> {
             buffer: Vec::with_capacity(4096),
         }
     }
-    
+
     /// Get the next page in the stream
     pub fn next(&mut self) -> Result<Option<StreamingPage>> {
         // In a real implementation, this would parse the next page
-        if self.current_page >= 3 { // Mock: only 3 pages
+        if self.current_page >= 3 {
+            // Mock: only 3 pages
             return Ok(None);
         }
-        
+
         let page = StreamingPage {
             number: self.current_page,
             width: 595.0,
@@ -88,18 +89,18 @@ impl<R: Read + Seek> PageStreamer<R> {
             content_offset: self.current_page as u64 * 1024,
             content_length: 512,
         };
-        
+
         self.current_page += 1;
         Ok(Some(page))
     }
-    
+
     /// Skip to a specific page
     pub fn seek_to_page(&mut self, page_num: u32) -> Result<()> {
         self.current_page = page_num;
         // In a real implementation, seek in the file
         Ok(())
     }
-    
+
     /// Get total number of pages if known
     pub fn total_pages(&self) -> Option<u32> {
         self.total_pages
@@ -121,7 +122,7 @@ impl<R: Read + Seek> PageIterator<R> {
 
 impl<R: Read + Seek> Iterator for PageIterator<R> {
     type Item = Result<StreamingPage>;
-    
+
     fn next(&mut self) -> Option<Self::Item> {
         match self.streamer.next() {
             Ok(Some(page)) => Some(Ok(page)),
@@ -135,7 +136,7 @@ impl<R: Read + Seek> Iterator for PageIterator<R> {
 mod tests {
     use super::*;
     use std::io::Cursor;
-    
+
     #[test]
     fn test_streaming_page() {
         let page = StreamingPage {
@@ -145,15 +146,15 @@ mod tests {
             content_offset: 1024,
             content_length: 2048,
         };
-        
+
         assert_eq!(page.number(), 0);
         assert_eq!(page.width(), 612.0);
         assert_eq!(page.height(), 792.0);
-        
+
         let media_box = page.media_box();
         assert_eq!(media_box, [0.0, 0.0, 612.0, 792.0]);
     }
-    
+
     #[test]
     fn test_extract_text_streaming() {
         let page = StreamingPage {
@@ -163,11 +164,11 @@ mod tests {
             content_offset: 0,
             content_length: 0,
         };
-        
+
         let text = page.extract_text_streaming().unwrap();
         assert!(text.contains("page 6"));
     }
-    
+
     #[test]
     fn test_process_content() {
         let page = StreamingPage {
@@ -177,79 +178,80 @@ mod tests {
             content_offset: 0,
             content_length: 0,
         };
-        
+
         let mut chunks = Vec::new();
         page.process_content(|chunk| {
             chunks.push(chunk.to_vec());
             Ok(())
-        }).unwrap();
-        
+        })
+        .unwrap();
+
         assert!(!chunks.is_empty());
         let content = String::from_utf8_lossy(&chunks[0]);
         assert!(content.contains("Page 1"));
     }
-    
+
     #[test]
     fn test_page_streamer() {
         let data = b"%PDF-1.7\n";
         let cursor = Cursor::new(data);
         let mut streamer = PageStreamer::new(cursor);
-        
+
         // Should get first page
         let page1 = streamer.next().unwrap();
         assert!(page1.is_some());
         assert_eq!(page1.unwrap().number(), 0);
-        
+
         // Should get second page
         let page2 = streamer.next().unwrap();
         assert!(page2.is_some());
         assert_eq!(page2.unwrap().number(), 1);
     }
-    
+
     #[test]
     fn test_page_streamer_seek() {
         let data = b"%PDF-1.7\n";
         let cursor = Cursor::new(data);
         let mut streamer = PageStreamer::new(cursor);
-        
+
         // Seek to page 2
         streamer.seek_to_page(2).unwrap();
-        
+
         let page = streamer.next().unwrap();
         assert!(page.is_some());
         assert_eq!(page.unwrap().number(), 2);
     }
-    
+
     #[test]
     fn test_page_iterator() {
         let data = b"%PDF-1.7\n";
         let cursor = Cursor::new(data);
         let mut iterator = PageIterator::new(cursor);
-        
+
         let mut pages = Vec::new();
         while let Some(result) = iterator.next() {
             pages.push(result.unwrap());
         }
-        
+
         assert_eq!(pages.len(), 3); // Mock returns 3 pages
         assert_eq!(pages[0].number(), 0);
         assert_eq!(pages[1].number(), 1);
         assert_eq!(pages[2].number(), 2);
     }
-    
+
     #[test]
     fn test_page_iterator_for_loop() {
         let data = b"%PDF-1.7\n";
         let cursor = Cursor::new(data);
         let iterator = PageIterator::new(cursor);
-        
+
         let mut count = 0;
         for page_result in iterator {
             let page = page_result.unwrap();
             assert_eq!(page.number(), count);
             count += 1;
         }
-        
+
         assert_eq!(count, 3);
     }
 }

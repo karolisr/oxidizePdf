@@ -40,7 +40,7 @@
 //!
 //! // Execute batch with progress tracking
 //! let results = processor.execute()?;
-//! 
+//!
 //! println!("Processed {} files successfully", results.successful);
 //! println!("Failed: {}", results.failed);
 //! # Ok(())
@@ -49,7 +49,10 @@
 
 use crate::error::Result;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -59,10 +62,10 @@ pub mod result;
 pub mod worker;
 
 // Re-export main types
-pub use job::{BatchJob, JobType, JobStatus};
+pub use job::{BatchJob, JobStatus, JobType};
 pub use progress::{BatchProgress, ProgressCallback, ProgressInfo};
-pub use result::{BatchResult, JobResult, BatchSummary};
-pub use worker::{WorkerPool, WorkerOptions};
+pub use result::{BatchResult, BatchSummary, JobResult};
+pub use worker::{WorkerOptions, WorkerPool};
 
 /// Options for batch processing
 #[derive(Clone)]
@@ -100,13 +103,13 @@ impl BatchOptions {
         self.parallelism = parallelism.max(1);
         self
     }
-    
+
     /// Set memory limit per worker
     pub fn with_memory_limit(mut self, bytes: usize) -> Self {
         self.memory_limit_per_worker = bytes;
         self
     }
-    
+
     /// Set progress callback
     pub fn with_progress_callback<F>(mut self, callback: F) -> Self
     where
@@ -115,13 +118,13 @@ impl BatchOptions {
         self.progress_callback = Some(Arc::new(callback));
         self
     }
-    
+
     /// Set whether to stop on first error
     pub fn stop_on_error(mut self, stop: bool) -> Self {
         self.stop_on_error = stop;
         self
     }
-    
+
     /// Set job timeout
     pub fn with_job_timeout(mut self, timeout: Duration) -> Self {
         self.job_timeout = Some(timeout);
@@ -147,73 +150,73 @@ impl BatchProcessor {
             progress: Arc::new(BatchProgress::new()),
         }
     }
-    
+
     /// Add a job to the batch
     pub fn add_job(&mut self, job: BatchJob) {
         self.jobs.push(job);
         self.progress.add_job();
     }
-    
+
     /// Add multiple jobs
     pub fn add_jobs(&mut self, jobs: impl IntoIterator<Item = BatchJob>) {
         for job in jobs {
             self.add_job(job);
         }
     }
-    
+
     /// Cancel the batch processing
     pub fn cancel(&self) {
         self.cancelled.store(true, Ordering::SeqCst);
     }
-    
+
     /// Check if cancelled
     pub fn is_cancelled(&self) -> bool {
         self.cancelled.load(Ordering::SeqCst)
     }
-    
+
     /// Execute the batch
     pub fn execute(self) -> Result<BatchSummary> {
         let start_time = Instant::now();
         let total_jobs = self.jobs.len();
-        
+
         if total_jobs == 0 {
             return Ok(BatchSummary::empty());
         }
-        
+
         // Create worker pool
         let worker_options = WorkerOptions {
             num_workers: self.options.parallelism,
             memory_limit: self.options.memory_limit_per_worker,
             job_timeout: self.options.job_timeout,
         };
-        
+
         let pool = WorkerPool::new(worker_options);
         let _results = Arc::new(Mutex::new(Vec::<JobResult>::new()));
         let _errors = Arc::new(Mutex::new(Vec::<String>::new()));
-        
+
         // Progress tracking thread
         let progress_handle = if let Some(callback) = &self.options.progress_callback {
             let progress = Arc::clone(&self.progress);
             let callback = Arc::clone(callback);
             let interval = self.options.progress_interval;
             let cancelled = Arc::clone(&self.cancelled);
-            
+
             Some(thread::spawn(move || {
                 while !cancelled.load(Ordering::SeqCst) {
                     let info = progress.get_info();
                     callback.on_progress(&info);
-                    
+
                     if info.is_complete() {
                         break;
                     }
-                    
+
                     thread::sleep(interval);
                 }
             }))
         } else {
             None
         };
-        
+
         // Process jobs
         let job_results = pool.process_jobs(
             self.jobs,
@@ -221,32 +224,32 @@ impl BatchProcessor {
             Arc::clone(&self.cancelled),
             self.options.stop_on_error,
         );
-        
+
         // Collect results
         let mut successful = 0;
         let mut failed = 0;
         let mut all_results = Vec::new();
-        
+
         for result in job_results {
             match &result {
                 JobResult::Success { .. } => successful += 1,
                 JobResult::Failed { .. } => failed += 1,
-                JobResult::Cancelled { .. } => {},
+                JobResult::Cancelled { .. } => {}
             }
             all_results.push(result);
         }
-        
+
         // Wait for progress thread
         if let Some(handle) = progress_handle {
             let _ = handle.join();
         }
-        
+
         // Final progress callback
         if let Some(callback) = &self.options.progress_callback {
             let final_info = self.progress.get_info();
             callback.on_progress(&final_info);
         }
-        
+
         Ok(BatchSummary {
             total_jobs,
             successful,
@@ -256,7 +259,7 @@ impl BatchProcessor {
             results: all_results,
         })
     }
-    
+
     /// Get current progress
     pub fn get_progress(&self) -> ProgressInfo {
         self.progress.get_info()
@@ -274,17 +277,17 @@ where
     F: Fn(&Path) -> Result<()> + Clone + Send + 'static,
 {
     let mut processor = BatchProcessor::new(options);
-    
+
     for file in files {
         let path = file.as_ref().to_path_buf();
         let op = operation.clone();
-        
+
         processor.add_job(BatchJob::Custom {
             name: format!("Process {}", path.display()),
             operation: Box::new(move || op(&path)),
         });
     }
-    
+
     processor.execute()
 }
 
@@ -295,16 +298,19 @@ pub fn batch_split_pdfs<P: AsRef<Path>>(
     options: BatchOptions,
 ) -> Result<BatchSummary> {
     let mut processor = BatchProcessor::new(options);
-    
+
     for file in files {
         let path = file.as_ref();
         processor.add_job(BatchJob::Split {
             input: path.to_path_buf(),
-            output_pattern: format!("{}_page_%d.pdf", path.file_stem().unwrap().to_str().unwrap()),
+            output_pattern: format!(
+                "{}_page_%d.pdf",
+                path.file_stem().unwrap().to_str().unwrap()
+            ),
             pages_per_file,
         });
     }
-    
+
     processor.execute()
 }
 
@@ -314,18 +320,18 @@ pub fn batch_merge_pdfs(
     options: BatchOptions,
 ) -> Result<BatchSummary> {
     let mut processor = BatchProcessor::new(options);
-    
+
     for (inputs, output) in merge_groups {
         processor.add_job(BatchJob::Merge { inputs, output });
     }
-    
+
     processor.execute()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_batch_options_default() {
         let options = BatchOptions::default();
@@ -334,12 +340,12 @@ mod tests {
         assert_eq!(options.memory_limit_per_worker, 512 * 1024 * 1024);
         assert!(!options.stop_on_error);
     }
-    
+
     #[test]
     fn test_batch_options_builder() {
         let called = Arc::new(AtomicBool::new(false));
         let called_clone = Arc::clone(&called);
-        
+
         let options = BatchOptions::default()
             .with_parallelism(4)
             .with_memory_limit(1024 * 1024 * 1024)
@@ -348,30 +354,30 @@ mod tests {
             .with_progress_callback(move |_info| {
                 called_clone.store(true, Ordering::SeqCst);
             });
-        
+
         assert_eq!(options.parallelism, 4);
         assert_eq!(options.memory_limit_per_worker, 1024 * 1024 * 1024);
         assert!(options.stop_on_error);
         assert_eq!(options.job_timeout, Some(Duration::from_secs(60)));
         assert!(options.progress_callback.is_some());
     }
-    
+
     #[test]
     fn test_batch_processor_creation() {
         let processor = BatchProcessor::new(BatchOptions::default());
         assert_eq!(processor.jobs.len(), 0);
         assert!(!processor.is_cancelled());
     }
-    
+
     #[test]
     fn test_batch_processor_add_jobs() {
         let mut processor = BatchProcessor::new(BatchOptions::default());
-        
+
         processor.add_job(BatchJob::Custom {
             name: "Test Job 1".to_string(),
             operation: Box::new(|| Ok(())),
         });
-        
+
         processor.add_jobs(vec![
             BatchJob::Custom {
                 name: "Test Job 2".to_string(),
@@ -382,24 +388,24 @@ mod tests {
                 operation: Box::new(|| Ok(())),
             },
         ]);
-        
+
         assert_eq!(processor.jobs.len(), 3);
     }
-    
+
     #[test]
     fn test_batch_processor_cancel() {
         let processor = BatchProcessor::new(BatchOptions::default());
         assert!(!processor.is_cancelled());
-        
+
         processor.cancel();
         assert!(processor.is_cancelled());
     }
-    
+
     #[test]
     fn test_empty_batch_execution() {
         let processor = BatchProcessor::new(BatchOptions::default());
         let summary = processor.execute().unwrap();
-        
+
         assert_eq!(summary.total_jobs, 0);
         assert_eq!(summary.successful, 0);
         assert_eq!(summary.failed, 0);

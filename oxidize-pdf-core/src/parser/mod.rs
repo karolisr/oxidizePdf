@@ -243,35 +243,35 @@ mod tests {
     #[test]
     fn test_module_exports() {
         // Verify that all important types are properly exported
-        
+
         // Test that we can create a PdfObject
         let _obj = PdfObject::Null;
-        
+
         // Test that we can create a PdfDictionary
         let _dict = PdfDictionary::new();
-        
+
         // Test that we can create a PdfArray
         let _array = PdfArray::new();
-        
+
         // Test that we can create a PdfName
         let _name = PdfName::new("Test".to_string());
-        
+
         // Test that we can create a PdfString
         let _string = PdfString::new(b"Test".to_vec());
     }
-    
+
     #[test]
     fn test_parse_error_conversion() {
         let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "File not found");
         let parse_error = ParseError::Io(io_error);
         let oxidize_error: OxidizePdfError = parse_error.into();
-        
+
         match oxidize_error {
             OxidizePdfError::ParseError(_) => assert!(true),
             _ => assert!(false, "Expected ParseError variant"),
         }
     }
-    
+
     #[test]
     fn test_parse_error_messages() {
         let errors = vec![
@@ -282,7 +282,7 @@ mod tests {
             ParseError::CircularReference,
             ParseError::EncryptionNotSupported,
         ];
-        
+
         for error in errors {
             let message = error.to_string();
             assert!(!message.is_empty());

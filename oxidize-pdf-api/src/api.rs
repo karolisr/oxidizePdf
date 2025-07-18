@@ -6,9 +6,9 @@ use axum::{
     Router,
 };
 use oxidize_pdf::{
-    Document, Font, Page,
-    operations::{merge_pdfs, MergeOptions, MergeInput},
+    operations::{merge_pdfs, MergeInput, MergeOptions},
     parser::{PdfDocument, PdfReader},
+    Document, Font, Page,
 };
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
@@ -104,10 +104,8 @@ pub fn app() -> Router {
         .route("/api/create", post(create_pdf))
         .route("/api/health", get(health_check))
         .route("/api/extract", post(extract_text))
-        
         // PDF operations
         .route("/api/merge", post(merge_pdfs_handler))
-        
         .layer(CorsLayer::permissive())
 }
 
@@ -218,7 +216,7 @@ pub async fn extract_text(mut multipart: Multipart) -> Result<Response, AppError
 pub async fn merge_pdfs_handler(mut multipart: Multipart) -> Result<Response, AppError> {
     let mut pdf_files = Vec::new();
     let mut merge_options = MergeOptions::default();
-    
+
     // Parse multipart form
     while let Some(field) = multipart.next_field().await.map_err(|e| {
         AppError::Io(std::io::Error::new(
@@ -227,7 +225,7 @@ pub async fn merge_pdfs_handler(mut multipart: Multipart) -> Result<Response, Ap
         ))
     })? {
         let field_name = field.name().unwrap_or("").to_string();
-        
+
         if field_name == "files" || field_name == "files[]" {
             let file_data = field.bytes().await.map_err(|e| {
                 AppError::Io(std::io::Error::new(
@@ -243,7 +241,7 @@ pub async fn merge_pdfs_handler(mut multipart: Multipart) -> Result<Response, Ap
                     format!("Failed to read options: {e}"),
                 ))
             })?;
-            
+
             if let Ok(request) = serde_json::from_str::<MergePdfRequest>(&options_text) {
                 if let Some(preserve_bookmarks) = request.preserve_bookmarks {
                     merge_options.preserve_bookmarks = preserve_bookmarks;
@@ -254,64 +252,59 @@ pub async fn merge_pdfs_handler(mut multipart: Multipart) -> Result<Response, Ap
             }
         }
     }
-    
+
     if pdf_files.len() < 2 {
         return Err(AppError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             "At least 2 PDF files are required for merging",
         )));
     }
-    
+
     // Create temporary files for input PDFs
     let mut temp_files = Vec::new();
     let mut merge_inputs = Vec::new();
-    
+
     for (i, file_data) in pdf_files.iter().enumerate() {
         let temp_file = NamedTempFile::new().map_err(|e| {
-            AppError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
+            AppError::Io(std::io::Error::other(
                 format!("Failed to create temp file {}: {e}", i),
             ))
         })?;
-        
+
         std::fs::write(temp_file.path(), file_data).map_err(|e| {
-            AppError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
+            AppError::Io(std::io::Error::other(
                 format!("Failed to write temp file {}: {e}", i),
             ))
         })?;
-        
+
         merge_inputs.push(MergeInput::new(temp_file.path()));
         temp_files.push(temp_file);
     }
-    
+
     // Create temporary output file
     let output_temp_file = NamedTempFile::new().map_err(|e| {
-        AppError::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
+        AppError::Io(std::io::Error::other(
             format!("Failed to create output temp file: {e}"),
         ))
     })?;
-    
+
     // Perform merge
-    merge_pdfs(merge_inputs, output_temp_file.path(), merge_options).map_err(|e| {
-        AppError::Operation(format!("Failed to merge PDFs: {e}"))
-    })?;
-    
+    merge_pdfs(merge_inputs, output_temp_file.path(), merge_options)
+        .map_err(|e| AppError::Operation(format!("Failed to merge PDFs: {e}")))?;
+
     // Read output file
     let output_data = std::fs::read(output_temp_file.path()).map_err(|e| {
-        AppError::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
+        AppError::Io(std::io::Error::other(
             format!("Failed to read output file: {e}"),
         ))
     })?;
-    
+
     let response = MergePdfResponse {
         message: "PDFs merged successfully".to_string(),
         files_merged: pdf_files.len(),
         output_size: output_data.len(),
     };
-    
+
     Ok((
         StatusCode::OK,
         [
@@ -320,5 +313,6 @@ pub async fn merge_pdfs_handler(mut multipart: Multipart) -> Result<Response, Ap
             ("X-Merge-Info", &serde_json::to_string(&response).unwrap()),
         ],
         output_data,
-    ).into_response())
+    )
+        .into_response())
 }

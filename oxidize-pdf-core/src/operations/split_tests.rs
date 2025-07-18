@@ -521,10 +521,10 @@ mod tests {
         let input_path = save_test_pdf(&mut doc, &temp_dir, "input.pdf");
 
         let ranges = vec![
-            PageRange::Single(0),      // First page
-            PageRange::Range(1, 3),    // Pages 2-4
-            PageRange::Range(5, 7),    // Pages 6-8
-            PageRange::Single(9),      // Last page
+            PageRange::Single(0),   // First page
+            PageRange::Range(1, 3), // Pages 2-4
+            PageRange::Range(5, 7), // Pages 6-8
+            PageRange::Single(9),   // Last page
         ];
 
         let options = SplitOptions {

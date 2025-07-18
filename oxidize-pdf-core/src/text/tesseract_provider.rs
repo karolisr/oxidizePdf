@@ -509,7 +509,9 @@ impl TesseractOcrProvider {
 
         instance_guard
             .as_mut()
-            .ok_or_else(|| OcrError::ProcessingFailed("Failed to get Tesseract instance".to_string()))
+            .ok_or_else(|| {
+                OcrError::ProcessingFailed("Failed to get Tesseract instance".to_string())
+            })
             .and_then(f)
     }
 
@@ -924,19 +926,45 @@ mod tests {
 
         #[test]
         fn test_page_segmentation_mode_descriptions() {
-            assert!(PageSegmentationMode::OsdOnly.description().contains("OSD only"));
-            assert!(PageSegmentationMode::AutoOsd.description().contains("Automatic"));
-            assert!(PageSegmentationMode::AutoOnly.description().contains("Automatic"));
-            assert!(PageSegmentationMode::Auto.description().contains("automatic"));
-            assert!(PageSegmentationMode::SingleColumn.description().contains("column"));
-            assert!(PageSegmentationMode::SingleBlock.description().contains("block"));
-            assert!(PageSegmentationMode::SingleUniformBlock.description().contains("uniform"));
-            assert!(PageSegmentationMode::SingleLine.description().contains("line"));
-            assert!(PageSegmentationMode::SingleWord.description().contains("word"));
-            assert!(PageSegmentationMode::SingleWord.description().contains("word"));
-            assert!(PageSegmentationMode::SingleChar.description().contains("character"));
-            assert!(PageSegmentationMode::SparseText.description().contains("sparse"));
-            assert!(PageSegmentationMode::SparseTextOsd.description().contains("sparse"));
+            assert!(PageSegmentationMode::OsdOnly
+                .description()
+                .contains("OSD only"));
+            assert!(PageSegmentationMode::AutoOsd
+                .description()
+                .contains("Automatic"));
+            assert!(PageSegmentationMode::AutoOnly
+                .description()
+                .contains("Automatic"));
+            assert!(PageSegmentationMode::Auto
+                .description()
+                .contains("automatic"));
+            assert!(PageSegmentationMode::SingleColumn
+                .description()
+                .contains("column"));
+            assert!(PageSegmentationMode::SingleBlock
+                .description()
+                .contains("block"));
+            assert!(PageSegmentationMode::SingleUniformBlock
+                .description()
+                .contains("uniform"));
+            assert!(PageSegmentationMode::SingleLine
+                .description()
+                .contains("line"));
+            assert!(PageSegmentationMode::SingleWord
+                .description()
+                .contains("word"));
+            assert!(PageSegmentationMode::SingleWord
+                .description()
+                .contains("word"));
+            assert!(PageSegmentationMode::SingleChar
+                .description()
+                .contains("character"));
+            assert!(PageSegmentationMode::SparseText
+                .description()
+                .contains("sparse"));
+            assert!(PageSegmentationMode::SparseTextOsd
+                .description()
+                .contains("sparse"));
             assert!(PageSegmentationMode::RawLine.description().contains("raw"));
         }
 
@@ -960,7 +988,9 @@ mod tests {
         fn test_ocr_engine_mode_descriptions() {
             assert!(OcrEngineMode::LegacyOnly.description().contains("Legacy"));
             assert!(OcrEngineMode::LstmOnly.description().contains("LSTM"));
-            assert!(OcrEngineMode::LegacyLstm.description().contains("Legacy + LSTM"));
+            assert!(OcrEngineMode::LegacyLstm
+                .description()
+                .contains("Legacy + LSTM"));
             assert!(OcrEngineMode::Default.description().contains("Default"));
         }
 
@@ -1019,8 +1049,14 @@ mod tests {
 
             assert_eq!(config.char_whitelist, Some("0123456789".to_string()));
             assert_eq!(config.char_blacklist, Some("!@#$%".to_string()));
-            assert_eq!(config.variables.get("tessedit_char_blacklist"), Some(&"".to_string()));
-            assert_eq!(config.variables.get("tessedit_create_hocr"), Some(&"1".to_string()));
+            assert_eq!(
+                config.variables.get("tessedit_char_blacklist"),
+                Some(&"".to_string())
+            );
+            assert_eq!(
+                config.variables.get("tessedit_create_hocr"),
+                Some(&"1".to_string())
+            );
             assert!(config.debug);
         }
 
@@ -1028,7 +1064,7 @@ mod tests {
         fn test_tesseract_config_multiple_languages() {
             let config = TesseractConfig::with_language("eng+spa+deu");
             assert_eq!(config.language, "eng+spa+deu");
-            
+
             let config = TesseractConfig::with_language("chi_sim+chi_tra");
             assert_eq!(config.language, "chi_sim+chi_tra");
         }
@@ -1038,7 +1074,7 @@ mod tests {
             let config1 = TesseractConfig::default()
                 .with_char_whitelist("ABC")
                 .with_debug();
-            
+
             let config2 = config1.clone();
             assert_eq!(config1.char_whitelist, config2.char_whitelist);
             assert_eq!(config1.debug, config2.debug);
@@ -1050,7 +1086,7 @@ mod tests {
             let config = TesseractConfig::default()
                 .with_char_whitelist("0123456789")
                 .with_debug();
-            
+
             let debug_str = format!("{:?}", config);
             assert!(debug_str.contains("TesseractConfig"));
             assert!(debug_str.contains("0123456789"));
@@ -1064,8 +1100,14 @@ mod tests {
                 .with_variable("tessedit_char_blacklist", "XYZ");
 
             config = config.with_variable("tessedit_char_whitelist", "123");
-            assert_eq!(config.variables.get("tessedit_char_whitelist"), Some(&"123".to_string()));
-            assert_eq!(config.variables.get("tessedit_char_blacklist"), Some(&"XYZ".to_string()));
+            assert_eq!(
+                config.variables.get("tessedit_char_whitelist"),
+                Some(&"123".to_string())
+            );
+            assert_eq!(
+                config.variables.get("tessedit_char_blacklist"),
+                Some(&"XYZ".to_string())
+            );
         }
 
         #[test]
@@ -1079,7 +1121,7 @@ mod tests {
             let config = TesseractConfig::default()
                 .with_char_whitelist("")
                 .with_char_blacklist("");
-            
+
             assert_eq!(config.char_whitelist, Some("".to_string()));
             assert_eq!(config.char_blacklist, Some("".to_string()));
         }
@@ -1089,7 +1131,7 @@ mod tests {
             let config = TesseractConfig::default()
                 .with_char_whitelist("αβγδε")
                 .with_char_blacklist("©®™");
-            
+
             assert_eq!(config.char_whitelist, Some("αβγδε".to_string()));
             assert_eq!(config.char_blacklist, Some("©®™".to_string()));
         }
@@ -1097,14 +1139,20 @@ mod tests {
         #[test]
         fn test_tesseract_config_many_variables() {
             let mut config = TesseractConfig::default();
-            
+
             for i in 0..10 {
                 config = config.with_variable(&format!("test_var_{}", i), &format!("value_{}", i));
             }
-            
+
             assert_eq!(config.variables.len(), 10);
-            assert_eq!(config.variables.get("test_var_0"), Some(&"value_0".to_string()));
-            assert_eq!(config.variables.get("test_var_9"), Some(&"value_9".to_string()));
+            assert_eq!(
+                config.variables.get("test_var_0"),
+                Some(&"value_0".to_string())
+            );
+            assert_eq!(
+                config.variables.get("test_var_9"),
+                Some(&"value_9".to_string())
+            );
         }
 
         #[test]
@@ -1135,7 +1183,7 @@ mod tests {
             let config = TesseractConfig::for_documents()
                 .with_char_whitelist("0123456789")
                 .with_debug();
-            
+
             match TesseractOcrProvider::with_config(config) {
                 Ok(provider) => {
                     assert_eq!(provider.engine_name(), "Tesseract");
@@ -1154,11 +1202,11 @@ mod tests {
                 // Valid JPEG header
                 let jpeg_data = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46];
                 assert!(provider.validate_image_data(&jpeg_data).is_ok());
-                
+
                 // Valid PNG header
                 let png_data = vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
                 assert!(provider.validate_image_data(&png_data).is_ok());
-                
+
                 // Invalid data
                 let invalid_data = vec![0x00, 0x01, 0x02, 0x03];
                 assert!(provider.validate_image_data(&invalid_data).is_err());
@@ -1170,12 +1218,12 @@ mod tests {
         fn test_tesseract_provider_error_handling() {
             if let Ok(provider) = TesseractOcrProvider::new() {
                 let options = OcrOptions::default();
-                
+
                 // Test with invalid image data
                 let invalid_data = vec![0x00, 0x01, 0x02, 0x03];
                 let result = provider.process_image(&invalid_data, &options);
                 assert!(result.is_err());
-                
+
                 // Test with empty data
                 let empty_data = vec![];
                 let result = provider.process_image(&empty_data, &options);
@@ -1188,17 +1236,17 @@ mod tests {
         fn test_tesseract_provider_language_support() {
             if let Ok(langs) = TesseractOcrProvider::available_languages() {
                 assert!(!langs.is_empty());
-                
+
                 // Common languages that should be available
                 let common_langs = vec!["eng", "spa", "deu", "fra", "ita"];
                 let mut found_count = 0;
-                
+
                 for lang in common_langs {
                     if langs.contains(&lang.to_string()) {
                         found_count += 1;
                     }
                 }
-                
+
                 assert!(found_count > 0, "Should have at least one common language");
             }
         }
@@ -1218,7 +1266,7 @@ mod tests {
                     image_count: 1,
                     character_count: 50,
                 };
-                
+
                 // Mock page data (would fail with real OCR, but tests the interface)
                 let page_data = vec![0xFF, 0xD8, 0xFF, 0xE0];
                 let result = provider.process_page(&analysis, &page_data, &options);
@@ -1234,7 +1282,7 @@ mod tests {
             {
                 let result = TesseractOcrProvider::new();
                 assert!(result.is_err());
-                
+
                 let result = TesseractOcrProvider::check_availability();
                 assert!(result.is_err());
             }
@@ -1243,12 +1291,12 @@ mod tests {
         #[test]
         fn test_supported_image_formats() {
             let formats = vec![ImageFormat::Jpeg, ImageFormat::Png, ImageFormat::Tiff];
-            
+
             // Test that all expected formats are supported
             assert!(formats.contains(&ImageFormat::Jpeg));
             assert!(formats.contains(&ImageFormat::Png));
             assert!(formats.contains(&ImageFormat::Tiff));
-            
+
             // Test that we have the expected number of formats
             assert_eq!(formats.len(), 3);
         }
@@ -1271,7 +1319,7 @@ mod tests {
                 PageSegmentationMode::SparseTextOsd,
                 PageSegmentationMode::RawLine,
             ];
-            
+
             // Test that enum values are ordered correctly
             for (i, mode) in modes.iter().enumerate() {
                 assert_eq!(*mode as u8, i as u8);
@@ -1286,7 +1334,7 @@ mod tests {
                 OcrEngineMode::LegacyLstm,
                 OcrEngineMode::Default,
             ];
-            
+
             // Test that enum values are ordered correctly
             for (i, mode) in modes.iter().enumerate() {
                 assert_eq!(*mode as u8, i as u8);
@@ -1301,9 +1349,12 @@ mod tests {
                 .with_variable("tessedit_char_whitelist", "")
                 .with_variable("tessedit_char_blacklist", "")
                 .with_debug();
-            
+
             assert_eq!(config.language, "spa");
-            assert_eq!(config.char_whitelist, Some("ABCDEFGHIJKLMNOPQRSTUVWXYZ".to_string()));
+            assert_eq!(
+                config.char_whitelist,
+                Some("ABCDEFGHIJKLMNOPQRSTUVWXYZ".to_string())
+            );
             assert_eq!(config.char_blacklist, Some("0123456789".to_string()));
             assert_eq!(config.variables.len(), 2);
             assert!(config.debug);
@@ -1314,7 +1365,7 @@ mod tests {
             let config1 = TesseractConfig::default();
             let config1_clone = config1.clone();
             let config2 = config1.with_debug();
-            
+
             // Original clone should not be modified
             assert!(!config1_clone.debug);
             assert!(config2.debug);
@@ -1329,7 +1380,7 @@ mod tests {
                 "InvalidImageData",
                 "UnsupportedImageFormat",
             ];
-            
+
             for error_type in error_types {
                 assert!(!error_type.is_empty());
             }
