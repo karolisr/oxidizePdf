@@ -143,6 +143,9 @@ pub mod reader;
 pub mod trailer;
 pub mod xref;
 
+#[cfg(test)]
+pub mod test_helpers;
+
 use crate::error::OxidizePdfError;
 
 // Re-export main types for convenient access

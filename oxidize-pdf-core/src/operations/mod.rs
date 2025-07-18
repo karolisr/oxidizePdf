@@ -7,6 +7,7 @@ pub mod extract_images;
 pub mod merge;
 pub mod page_analysis;
 pub mod page_extraction;
+pub mod reorder;
 pub mod rotate;
 pub mod split;
 
@@ -19,6 +20,10 @@ pub use page_analysis::{AnalysisOptions, ContentAnalysis, PageContentAnalyzer, P
 pub use page_extraction::{
     extract_page, extract_page_range, extract_page_range_to_file, extract_page_to_file,
     extract_pages, extract_pages_to_file, PageExtractionOptions, PageExtractor,
+};
+pub use reorder::{
+    move_pdf_page, reorder_pdf_pages, reverse_pdf_pages, swap_pdf_pages, PageReorderer,
+    ReorderOptions,
 };
 pub use rotate::{rotate_all_pages, rotate_pdf_pages, PageRotator, RotateOptions, RotationAngle};
 pub use split::{split_into_pages, split_pdf, PdfSplitter, SplitMode, SplitOptions};

@@ -97,3 +97,7 @@ pub fn uuid_simple() -> String {
         .as_nanos();
     format!("{:x}", timestamp)
 }
+
+#[cfg(test)]
+#[path = "marking_tests.rs"]
+mod marking_tests;

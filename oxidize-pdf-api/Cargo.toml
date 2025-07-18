@@ -46,3 +46,4 @@ path = "src/main.rs"
 tempfile = { workspace = true }
 pretty_assertions = { workspace = true }
 http-body-util = "0.1"
+hyper = "1.0"

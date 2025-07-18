@@ -1071,6 +1071,7 @@ dependencies = [
  "anyhow",
  "axum",
  "http-body-util",
+ "hyper",
  "oxidize-pdf 0.1.2",
  "pretty_assertions",
  "serde",

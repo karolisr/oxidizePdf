@@ -8,3 +8,6 @@ pub use api::{
     app, create_pdf, extract_text, health_check, AppError, CreatePdfRequest, ErrorResponse,
     ExtractTextResponse,
 };
+
+#[cfg(test)]
+mod api_tests;

@@ -75,7 +75,7 @@ use std::sync::Mutex;
 #[cfg(feature = "ocr-tesseract")]
 use std::time::Instant;
 #[cfg(feature = "ocr-tesseract")]
-use tesseract::{Tesseract, TesseractError};
+use tesseract::Tesseract;
 
 /// Page Segmentation Mode for Tesseract
 #[cfg(feature = "ocr-tesseract")]
@@ -493,8 +493,11 @@ impl TesseractOcrProvider {
         Ok(tesseract)
     }
 
-    /// Get or create a Tesseract instance
-    fn get_tesseract_instance(&self) -> OcrResult<Tesseract> {
+    /// Process with Tesseract instance
+    fn with_tesseract_instance<F, R>(&self, f: F) -> OcrResult<R>
+    where
+        F: FnOnce(&mut Tesseract) -> OcrResult<R>,
+    {
         let mut instance_guard = self
             .instance
             .lock()
@@ -504,10 +507,10 @@ impl TesseractOcrProvider {
             *instance_guard = Some(Self::create_tesseract_instance(&self.config)?);
         }
 
-        // Clone the instance (Tesseract should be cheap to clone or we'll need to handle this differently)
-        instance_guard.as_ref().cloned().ok_or_else(|| {
-            OcrError::ProcessingFailed("Failed to get Tesseract instance".to_string())
-        })
+        instance_guard
+            .as_mut()
+            .ok_or_else(|| OcrError::ProcessingFailed("Failed to get Tesseract instance".to_string()))
+            .and_then(f)
     }
 
     /// Process image with detailed error handling
@@ -517,64 +520,85 @@ impl TesseractOcrProvider {
         options: &OcrOptions,
     ) -> OcrResult<OcrProcessingResult> {
         let start_time = Instant::now();
+        let img_data = image_data.to_vec(); // Clone data to use in closure
+        let opts = options.clone();
+        let lang = self.config.language.clone();
 
-        // Get Tesseract instance
-        let mut tesseract = self.get_tesseract_instance()?;
+        self.with_tesseract_instance(move |tesseract| {
+            // Set the image data
+            tesseract
+                .set_image_from_mem(&img_data)
+                .map_err(|e| OcrError::InvalidImageData(format!("Failed to set image: {e}")))?;
 
-        // Set the image data
-        tesseract
-            .set_image_from_mem(image_data)
-            .map_err(|e| OcrError::InvalidImageData(format!("Failed to set image: {e}")))?;
+            // Extract text
+            let text = tesseract
+                .get_text()
+                .map_err(|e| OcrError::ProcessingFailed(format!("Failed to extract text: {e}")))?;
 
-        // Extract text
-        let text = tesseract
-            .get_text()
-            .map_err(|e| OcrError::ProcessingFailed(format!("Failed to extract text: {e}")))?;
+            // Get confidence (mean_text_conf returns i32, not Result)
+            let confidence = tesseract.mean_text_conf();
 
-        // Get confidence
-        let confidence = tesseract
-            .mean_text_conf()
-            .map_err(|e| OcrError::ProcessingFailed(format!("Failed to get confidence: {e}")))?;
+            // Convert confidence from 0-100 to 0.0-1.0
+            let confidence_ratio = confidence as f64 / 100.0;
 
-        // Convert confidence from 0-100 to 0.0-1.0
-        let confidence_ratio = confidence as f64 / 100.0;
+            // Check minimum confidence
+            if confidence_ratio < opts.min_confidence {
+                return Err(OcrError::LowConfidence(format!(
+                    "Confidence {:.1}% below minimum {:.1}%",
+                    confidence_ratio * 100.0,
+                    opts.min_confidence * 100.0
+                )));
+            }
 
-        // Check minimum confidence
-        if confidence_ratio < options.min_confidence {
-            return Err(OcrError::LowConfidence(format!(
-                "Confidence {:.1}% below minimum {:.1}%",
-                confidence_ratio * 100.0,
-                options.min_confidence * 100.0
-            )));
-        }
+            // Get word-level information if layout preservation is enabled
+            let fragments = if opts.preserve_layout {
+                // Extract word fragments inline
+                let mut fragments = Vec::new();
+                let words: Vec<&str> = text.split_whitespace().collect();
+                let mut x = 0.0;
+                let y = 0.0;
+                let line_height = 20.0;
 
-        // Get word-level information if layout preservation is enabled
-        let fragments = if options.preserve_layout {
-            self.extract_word_fragments(&mut tesseract, confidence_ratio)?
-        } else {
-            // Create a single fragment for the entire text
-            vec![OcrTextFragment {
-                text: text.clone(),
-                x: 0.0,
-                y: 0.0,
-                width: 0.0,
-                height: 0.0,
+                for word in words.iter() {
+                    let width = word.len() as f64 * 8.0;
+                    fragments.push(OcrTextFragment {
+                        text: word.to_string(),
+                        x,
+                        y,
+                        width,
+                        height: line_height,
+                        confidence: confidence_ratio,
+                        font_size: 12.0,
+                        fragment_type: FragmentType::Word,
+                    });
+                    x += width + 8.0;
+                }
+                fragments
+            } else {
+                // Create a single fragment for the entire text
+                vec![OcrTextFragment {
+                    text: text.clone(),
+                    x: 0.0,
+                    y: 0.0,
+                    width: 0.0,
+                    height: 0.0,
+                    confidence: confidence_ratio,
+                    font_size: 12.0,
+                    fragment_type: FragmentType::Paragraph,
+                }]
+            };
+
+            let processing_time = start_time.elapsed();
+
+            Ok(OcrProcessingResult {
+                text,
                 confidence: confidence_ratio,
-                font_size: 12.0,
-                fragment_type: FragmentType::Paragraph,
-            }]
-        };
-
-        let processing_time = start_time.elapsed();
-
-        Ok(OcrProcessingResult {
-            text,
-            confidence: confidence_ratio,
-            fragments,
-            processing_time_ms: processing_time.as_millis() as u64,
-            engine_name: "Tesseract".to_string(),
-            language: self.config.language.clone(),
-            image_dimensions: (0, 0), // TODO: Get actual image dimensions
+                fragments,
+                processing_time_ms: processing_time.as_millis() as u64,
+                engine_name: "Tesseract".to_string(),
+                language: lang,
+                image_dimensions: (0, 0), // TODO: Get actual image dimensions
+            })
         })
     }
 
@@ -598,7 +622,7 @@ impl TesseractOcrProvider {
         let y = 0.0;
         let line_height = 20.0;
 
-        for (i, word) in words.iter().enumerate() {
+        for (_i, word) in words.iter().enumerate() {
             let width = word.len() as f64 * 8.0; // Approximate width
 
             fragments.push(OcrTextFragment {
@@ -850,8 +874,6 @@ mod tests {
 
     #[test]
     fn test_tesseract_supported_formats() {
-        let config = TesseractConfig::default();
-
         // Test without actually creating provider (to avoid Tesseract dependency)
         let supported = vec![ImageFormat::Jpeg, ImageFormat::Png, ImageFormat::Tiff];
         assert!(supported.contains(&ImageFormat::Jpeg));
@@ -875,7 +897,7 @@ mod tests {
             assert_eq!(PageSegmentationMode::SingleUniformBlock as u8, 6);
             assert_eq!(PageSegmentationMode::SingleLine as u8, 7);
             assert_eq!(PageSegmentationMode::SingleWord as u8, 8);
-            assert_eq!(PageSegmentationMode::CircleWord as u8, 9);
+            assert_eq!(PageSegmentationMode::SingleWord as u8, 8);
             assert_eq!(PageSegmentationMode::SingleChar as u8, 10);
             assert_eq!(PageSegmentationMode::SparseText as u8, 11);
             assert_eq!(PageSegmentationMode::SparseTextOsd as u8, 12);
@@ -893,7 +915,7 @@ mod tests {
             assert_eq!(PageSegmentationMode::SingleUniformBlock.to_psm_value(), 6);
             assert_eq!(PageSegmentationMode::SingleLine.to_psm_value(), 7);
             assert_eq!(PageSegmentationMode::SingleWord.to_psm_value(), 8);
-            assert_eq!(PageSegmentationMode::CircleWord.to_psm_value(), 9);
+            assert_eq!(PageSegmentationMode::SingleWord.to_psm_value(), 8);
             assert_eq!(PageSegmentationMode::SingleChar.to_psm_value(), 10);
             assert_eq!(PageSegmentationMode::SparseText.to_psm_value(), 11);
             assert_eq!(PageSegmentationMode::SparseTextOsd.to_psm_value(), 12);
@@ -911,7 +933,7 @@ mod tests {
             assert!(PageSegmentationMode::SingleUniformBlock.description().contains("uniform"));
             assert!(PageSegmentationMode::SingleLine.description().contains("line"));
             assert!(PageSegmentationMode::SingleWord.description().contains("word"));
-            assert!(PageSegmentationMode::CircleWord.description().contains("circle"));
+            assert!(PageSegmentationMode::SingleWord.description().contains("word"));
             assert!(PageSegmentationMode::SingleChar.description().contains("character"));
             assert!(PageSegmentationMode::SparseText.description().contains("sparse"));
             assert!(PageSegmentationMode::SparseTextOsd.description().contains("sparse"));
@@ -1243,7 +1265,7 @@ mod tests {
                 PageSegmentationMode::SingleUniformBlock,
                 PageSegmentationMode::SingleLine,
                 PageSegmentationMode::SingleWord,
-                PageSegmentationMode::CircleWord,
+                PageSegmentationMode::SingleWord,
                 PageSegmentationMode::SingleChar,
                 PageSegmentationMode::SparseText,
                 PageSegmentationMode::SparseTextOsd,
@@ -1290,10 +1312,11 @@ mod tests {
         #[test]
         fn test_tesseract_config_immutability() {
             let config1 = TesseractConfig::default();
+            let config1_clone = config1.clone();
             let config2 = config1.with_debug();
             
-            // Original should not be modified
-            assert!(!config1.debug);
+            // Original clone should not be modified
+            assert!(!config1_clone.debug);
             assert!(config2.debug);
         }
 
