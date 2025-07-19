@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn demo_lazy_loading() -> Result<(), Box<dyn std::error::Error>> {
     // Configure memory options for large files
-    let options = MemoryOptions::large_file()
+    let _options = MemoryOptions::large_file()
         .with_cache_size(100) // Cache up to 100 objects
         .with_lazy_loading(true);
 
@@ -61,7 +61,7 @@ fn demo_lazy_loading() -> Result<(), Box<dyn std::error::Error>> {
 
 fn demo_streaming() -> Result<(), Box<dyn std::error::Error>> {
     // Configure streaming options
-    let options = StreamingOptions {
+    let _options = StreamingOptions {
         buffer_size: 128 * 1024,          // 128KB buffer
         max_stream_size: 5 * 1024 * 1024, // 5MB max stream
         skip_images: true,                // Skip image processing

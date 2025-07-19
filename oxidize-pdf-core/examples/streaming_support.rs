@@ -248,6 +248,7 @@ fn demo_text_streaming() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 // Helper function to display memory usage
+#[allow(dead_code)]
 fn format_bytes(bytes: usize) -> String {
     if bytes < 1024 {
         format!("{} B", bytes)
