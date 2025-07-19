@@ -97,7 +97,7 @@ jobs:
     - name: Run PR benchmarks
       run: |
         cargo build --release --bin oxidizepdf
-        cargo bench --package oxidize-pdf-test-suite --bench core_benchmarks -- --save-baseline pr-benchmarks
+        cargo bench --package oxidize-pdf-test-suite --bench core_benchmarks
         
     - name: Checkout main branch
       run: |
@@ -107,7 +107,7 @@ jobs:
     - name: Run main branch benchmarks
       run: |
         cargo build --release --bin oxidizepdf
-        cargo bench --package oxidize-pdf-test-suite --bench core_benchmarks -- --save-baseline main-benchmarks
+        cargo bench --package oxidize-pdf-test-suite --bench core_benchmarks
         
     - name: Compare benchmarks
       run: |
