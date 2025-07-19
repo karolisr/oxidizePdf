@@ -44,7 +44,7 @@ fn create_sample_pdfs() -> Result<(), Box<dyn std::error::Error>> {
 
     for i in 1..=5 {
         let mut doc = Document::new();
-        doc.set_title(&format!("Sample Document {}", i));
+        doc.set_title(format!("Sample Document {}", i));
         doc.set_author("Batch Processing Example");
 
         // Create pages with different content

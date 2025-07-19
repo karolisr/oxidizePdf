@@ -454,7 +454,7 @@ mod tests {
                 ..Default::default()
             };
             // Just verify we can create options with all metadata modes
-            assert_eq!(options.preserve_bookmarks, true);
+            assert!(options.preserve_bookmarks);
         }
     }
 

@@ -233,8 +233,8 @@ mod tests {
         let id1 = ObjectId::new(1, 0);
         let id2 = ObjectId::new(2, 0);
 
-        cache.put(id1.clone(), obj1.clone());
-        cache.put(id2.clone(), obj2.clone());
+        cache.put(id1, obj1.clone());
+        cache.put(id2, obj2.clone());
 
         assert_eq!(cache.get(&id1), Some(obj1));
         assert_eq!(cache.get(&id2), Some(obj2));
@@ -251,7 +251,7 @@ mod tests {
         let obj = Arc::new(PdfObject::Boolean(true));
         let id = ObjectId::new(1, 0);
 
-        cache.put(id.clone(), obj.clone());
+        cache.put(id, obj.clone());
         assert_eq!(cache.get(&id), Some(obj));
 
         cache.clear();

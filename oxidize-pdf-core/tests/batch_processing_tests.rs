@@ -15,7 +15,7 @@ use tempfile::TempDir;
 /// Helper to create a simple test PDF
 fn create_test_pdf(path: &Path, num_pages: usize) -> oxidize_pdf::Result<()> {
     let mut doc = Document::new();
-    doc.set_title(&format!(
+    doc.set_title(format!(
         "Test PDF - {}",
         path.file_name().unwrap().to_string_lossy()
     ));

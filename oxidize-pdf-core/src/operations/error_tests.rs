@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn test_error_chain() {
         // Test that errors can be properly chained
-        let io_err = io::Error::new(io::ErrorKind::Other, "Low level error");
+        let io_err = io::Error::other("Low level error");
         let op_err = OperationError::Io(io_err);
 
         // Verify we can access the source

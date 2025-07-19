@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn test_line_cap_clone() {
         let cap = LineCap::Round;
-        let cap_clone = cap.clone();
+        let cap_clone = cap;
         assert_eq!(cap, cap_clone);
     }
 
@@ -146,7 +146,7 @@ mod tests {
     #[test]
     fn test_line_join_clone() {
         let join = LineJoin::Bevel;
-        let join_clone = join.clone();
+        let join_clone = join;
         assert_eq!(join, join_clone);
     }
 

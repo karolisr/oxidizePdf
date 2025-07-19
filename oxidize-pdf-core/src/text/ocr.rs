@@ -1467,7 +1467,7 @@ mod tests {
             assert_eq!(lines.len(), 250); // 1/4 of fragments
 
             let region = result.fragments_in_region(0.0, 0.0, 200.0, 200.0);
-            assert!(region.len() > 0);
+            assert!(!region.is_empty());
 
             let avg = result.average_confidence();
             assert!(avg > 0.5 && avg < 1.0);
@@ -1642,7 +1642,7 @@ mod tests {
         #[test]
         fn test_ocr_engine_format_support_matrix() {
             // Test complete format support matrix
-            let _engines = vec![
+            let _engines = [
                 OcrEngine::Mock,
                 OcrEngine::Tesseract,
                 OcrEngine::Azure,
@@ -1650,7 +1650,7 @@ mod tests {
                 OcrEngine::GoogleCloud,
             ];
 
-            let formats = vec![ImageFormat::Jpeg, ImageFormat::Png, ImageFormat::Tiff];
+            let formats = [ImageFormat::Jpeg, ImageFormat::Png, ImageFormat::Tiff];
 
             // Expected support matrix
             let expected = vec![
@@ -1749,7 +1749,7 @@ mod tests {
 
         #[test]
         fn test_fragment_boundary_calculations() {
-            let fragments = vec![
+            let fragments = [
                 OcrTextFragment {
                     text: "TopLeft".to_string(),
                     x: 0.0,

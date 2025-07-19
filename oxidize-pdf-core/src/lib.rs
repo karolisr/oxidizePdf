@@ -444,7 +444,7 @@ mod tests {
         // Test text utility functions
         let text = "Hello world test";
         let words = split_into_words(text);
-        assert!(words.len() > 0);
+        assert!(!words.is_empty());
         assert!(words.contains(&"Hello"));
         assert!(words.contains(&"world"));
 
@@ -487,6 +487,6 @@ mod tests {
 
         // Test that version is not empty
         assert!(!VERSION.is_empty());
-        assert!(VERSION.len() > 0);
+        assert!(!VERSION.is_empty());
     }
 }

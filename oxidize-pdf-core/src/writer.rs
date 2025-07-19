@@ -374,6 +374,16 @@ impl<W: Write> PdfWriter<W> {
     }
 }
 
+/// Format a DateTime as a PDF date string (D:YYYYMMDDHHmmSSOHH'mm)
+fn format_pdf_date(date: DateTime<Utc>) -> String {
+    // Format the UTC date according to PDF specification
+    // D:YYYYMMDDHHmmSSOHH'mm where O is the relationship of local time to UTC (+ or -)
+    let formatted = date.format("D:%Y%m%d%H%M%S");
+
+    // For UTC, the offset is always +00'00
+    format!("{}+00'00", formatted)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1277,7 +1287,7 @@ mod tests {
             let mut buffer = Vec::new();
             let mut writer = PdfWriter::new_with_writer(&mut buffer);
 
-            let test_cases = vec![
+            let test_cases = [
                 0.0, -0.0, 1.0, -1.0, 0.123456, -0.123456, 1234.56789, 0.000001, 1000000.0,
             ];
 
@@ -1390,7 +1400,7 @@ mod tests {
             assert!(stream_end > stream_start);
             // Allow for line ending differences
             let data_length = stream_end - stream_start;
-            assert!(data_length >= 256 && data_length <= 257);
+            assert!((256..=257).contains(&data_length));
         }
 
         // Test 9: Zero-length streams
@@ -1944,7 +1954,7 @@ mod tests {
             writer.write_document(&mut document).unwrap();
 
             // Verify reasonable memory usage
-            assert!(buffer.len() > 0);
+            assert!(!buffer.is_empty());
             assert!(buffer.capacity() <= buffer.len() * 2); // No excessive allocation
         }
 
@@ -2049,7 +2059,7 @@ mod tests {
             writer.write_document(&mut document).unwrap();
 
             // Content should be written (exact encoding depends on implementation)
-            assert!(buffer.len() > 0);
+            assert!(!buffer.is_empty());
         }
 
         // Test 37: PDF version in header
@@ -2118,7 +2128,7 @@ mod tests {
                 .unwrap();
 
             // Should not panic and should write something
-            assert!(buffer.len() > 0);
+            assert!(!buffer.is_empty());
         }
 
         // Test 40: Round-trip write and parse
@@ -2148,14 +2158,4 @@ mod tests {
             assert!(result.is_ok() || result.is_err()); // Either outcome is acceptable for this test
         }
     }
-}
-
-/// Format a DateTime as a PDF date string (D:YYYYMMDDHHmmSSOHH'mm)
-fn format_pdf_date(date: DateTime<Utc>) -> String {
-    // Format the UTC date according to PDF specification
-    // D:YYYYMMDDHHmmSSOHH'mm where O is the relationship of local time to UTC (+ or -)
-    let formatted = date.format("D:%Y%m%d%H%M%S");
-
-    // For UTC, the offset is always +00'00
-    format!("{}+00'00", formatted)
 }

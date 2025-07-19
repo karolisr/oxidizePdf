@@ -605,7 +605,7 @@ mod tests {
             generation: 3,
             in_use: false,
         };
-        let cloned = entry.clone();
+        let cloned = entry;
         assert_eq!(cloned.offset, 999);
         assert_eq!(cloned.generation, 3);
         assert!(!cloned.in_use);

@@ -4,11 +4,9 @@
 //! loading the entire document into memory.
 
 use oxidize_pdf::streaming::{
-    process_in_chunks, stream_text, ChunkOptions, ChunkProcessor, IncrementalParser, ParseEvent,
-    StreamingDocument, StreamingOptions, TextStreamOptions, TextStreamer,
+    process_in_chunks, stream_text, ChunkOptions, ParseEvent, StreamingDocument, StreamingOptions,
+    TextStreamOptions, TextStreamer,
 };
-use std::fs::File;
-use std::io::{self, Write};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Streaming Support Example\n");

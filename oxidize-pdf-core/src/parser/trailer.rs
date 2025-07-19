@@ -377,7 +377,7 @@ mod tests {
                 dict.insert("Size".to_string(), PdfObject::Integer(100 + i));
                 dict.insert("Root".to_string(), PdfObject::Reference(1, 0));
                 if i > 0 {
-                    dict.insert("Prev".to_string(), PdfObject::Integer((i * 1000) as i64));
+                    dict.insert("Prev".to_string(), PdfObject::Integer((i * 1000)));
                 }
                 PdfTrailer::from_dict(dict, ((i + 1) * 1000) as u64).unwrap()
             })

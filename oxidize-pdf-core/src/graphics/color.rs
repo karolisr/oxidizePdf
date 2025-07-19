@@ -180,15 +180,15 @@ mod tests {
     #[test]
     fn test_color_clone() {
         let rgb = Color::rgb(0.5, 0.6, 0.7);
-        let rgb_clone = rgb.clone();
+        let rgb_clone = rgb;
         assert_eq!(rgb, rgb_clone);
 
         let gray = Color::gray(0.5);
-        let gray_clone = gray.clone();
+        let gray_clone = gray;
         assert_eq!(gray, gray_clone);
 
         let cmyk = Color::cmyk(0.1, 0.2, 0.3, 0.4);
-        let cmyk_clone = cmyk.clone();
+        let cmyk_clone = cmyk;
         assert_eq!(cmyk, cmyk_clone);
     }
 

@@ -232,7 +232,7 @@ fn test_chunk_type_filtering() {
     // Image content should be processed
     let image_content = b"\xFF\xD8\xFF\xE0"; // JPEG header
     let image_chunks = processor.process_content(image_content).unwrap();
-    assert!(image_chunks.len() > 0);
+    assert!(!image_chunks.is_empty());
     assert_eq!(image_chunks[0].chunk_type, ChunkType::Image);
 }
 

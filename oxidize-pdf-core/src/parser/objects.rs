@@ -1429,7 +1429,7 @@ mod tests {
 
             let string = obj.as_string().unwrap();
             // The lexer should handle escape sequences
-            assert!(string.as_bytes().len() > 0);
+            assert!(!string.as_bytes().is_empty());
         }
 
         #[test]
@@ -1440,7 +1440,7 @@ mod tests {
 
             let name = obj.as_name().unwrap();
             // The lexer should handle hex escapes in names
-            assert!(name.as_str().len() > 0);
+            assert!(!name.as_str().is_empty());
         }
 
         #[test]

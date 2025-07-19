@@ -3,9 +3,7 @@
 //! This example shows how to use lazy loading and streaming
 //! to work with large PDF files efficiently.
 
-use oxidize_pdf::memory::{LazyDocument, MemoryOptions, StreamProcessor, StreamingOptions};
-use oxidize_pdf::parser::PdfReader;
-use std::io::Write;
+use oxidize_pdf::memory::{MemoryOptions, StreamingOptions};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Memory Optimization Example\n");
@@ -142,8 +140,6 @@ fn demo_memory_options() -> Result<(), Box<dyn std::error::Error>> {
 // Example of custom streaming callback
 #[allow(dead_code)]
 fn process_pdf_with_callback() -> Result<(), Box<dyn std::error::Error>> {
-    use oxidize_pdf::memory::{ProcessingAction, ProcessingEvent};
-
     // This would be used with a real PDF file
     // let reader = std::fs::File::open("document.pdf")?;
     // let mut processor = StreamProcessor::new(reader, StreamingOptions::default());

@@ -246,7 +246,7 @@ mod tests {
         let mut iterator = PageIterator::new(cursor);
 
         let mut pages = Vec::new();
-        while let Some(result) = iterator.next() {
+        for result in iterator {
             pages.push(result.unwrap());
         }
 

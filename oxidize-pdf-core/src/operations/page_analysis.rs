@@ -2065,7 +2065,7 @@ startxref
 
         // total_chars is usize, always >= 0
         assert!(total_chars == total_chars); // Just to use the variable
-        assert!(avg_confidence >= 0.0 && avg_confidence <= 1.0);
+        assert!((0.0..=1.0).contains(&avg_confidence));
     }
 
     // Test 44: Resource cleanup verification

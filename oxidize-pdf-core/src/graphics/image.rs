@@ -654,7 +654,7 @@ mod tests {
         #[test]
         fn test_image_format_clone_copy() {
             let jpeg = ImageFormat::Jpeg;
-            let jpeg_clone = jpeg.clone();
+            let jpeg_clone = jpeg;
             let jpeg_copy = jpeg;
 
             assert_eq!(jpeg_clone, ImageFormat::Jpeg);
@@ -691,7 +691,7 @@ mod tests {
         #[test]
         fn test_color_space_clone_copy() {
             let rgb = ColorSpace::DeviceRGB;
-            let rgb_clone = rgb.clone();
+            let rgb_clone = rgb;
             let rgb_copy = rgb;
 
             assert_eq!(rgb_clone, ColorSpace::DeviceRGB);

@@ -239,7 +239,7 @@ fn test_xref_entry_type_clone() {
         index_in_stream: 3,
     };
 
-    let cloned = original.clone();
+    let cloned = original;
     assert_eq!(original, cloned, "Cloned entry should equal original");
 }
 

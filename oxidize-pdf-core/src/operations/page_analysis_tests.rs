@@ -296,7 +296,7 @@ mod tests {
         let is_scanned = is_scanned.unwrap();
         // Note: With the simplified implementation, we can't guarantee the result
         // but we can verify the method works
-        assert!(is_scanned == true || is_scanned == false);
+        assert!(is_scanned || !is_scanned);
     }
 
     #[test]

@@ -403,7 +403,7 @@ mod tests {
 
         // Should handle gracefully and create valid splits
         let output_files = result.unwrap();
-        assert!(output_files.len() > 0);
+        assert!(!output_files.is_empty());
     }
 
     #[test]
