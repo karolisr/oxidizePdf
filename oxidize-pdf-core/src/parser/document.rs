@@ -935,25 +935,27 @@ mod tests {
     // Helper function to create a minimal PDF in memory
     fn create_minimal_pdf() -> Vec<u8> {
         let mut pdf = Vec::new();
-        
+
         // PDF header
         pdf.extend_from_slice(b"%PDF-1.4\n");
-        
+
         // Catalog object
         pdf.extend_from_slice(b"1 0 obj\n");
         pdf.extend_from_slice(b"<< /Type /Catalog /Pages 2 0 R >>\n");
         pdf.extend_from_slice(b"endobj\n");
-        
+
         // Pages object
         pdf.extend_from_slice(b"2 0 obj\n");
         pdf.extend_from_slice(b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>\n");
         pdf.extend_from_slice(b"endobj\n");
-        
+
         // Page object
         pdf.extend_from_slice(b"3 0 obj\n");
-        pdf.extend_from_slice(b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << >> >>\n");
+        pdf.extend_from_slice(
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << >> >>\n",
+        );
         pdf.extend_from_slice(b"endobj\n");
-        
+
         // Cross-reference table
         let xref_pos = pdf.len();
         pdf.extend_from_slice(b"xref\n");
@@ -962,46 +964,48 @@ mod tests {
         pdf.extend_from_slice(b"0000000009 00000 n \n");
         pdf.extend_from_slice(b"0000000058 00000 n \n");
         pdf.extend_from_slice(b"0000000115 00000 n \n");
-        
+
         // Trailer
         pdf.extend_from_slice(b"trailer\n");
         pdf.extend_from_slice(b"<< /Size 4 /Root 1 0 R >>\n");
         pdf.extend_from_slice(b"startxref\n");
         pdf.extend_from_slice(format!("{}\n", xref_pos).as_bytes());
         pdf.extend_from_slice(b"%%EOF\n");
-        
+
         pdf
     }
 
     // Helper to create a PDF with metadata
     fn create_pdf_with_metadata() -> Vec<u8> {
         let mut pdf = Vec::new();
-        
-        // PDF header  
+
+        // PDF header
         pdf.extend_from_slice(b"%PDF-1.5\n");
-        
+
         // Record positions for xref
         let obj1_pos = pdf.len();
-        
+
         // Catalog object
         pdf.extend_from_slice(b"1 0 obj\n");
         pdf.extend_from_slice(b"<< /Type /Catalog /Pages 2 0 R >>\n");
         pdf.extend_from_slice(b"endobj\n");
-        
+
         let obj2_pos = pdf.len();
-        
+
         // Pages object
         pdf.extend_from_slice(b"2 0 obj\n");
         pdf.extend_from_slice(b"<< /Type /Pages /Kids [] /Count 0 >>\n");
         pdf.extend_from_slice(b"endobj\n");
-        
+
         let obj3_pos = pdf.len();
-        
+
         // Info object
         pdf.extend_from_slice(b"3 0 obj\n");
-        pdf.extend_from_slice(b"<< /Title (Test Document) /Author (Test Author) /Subject (Test Subject) >>\n");
+        pdf.extend_from_slice(
+            b"<< /Title (Test Document) /Author (Test Author) /Subject (Test Subject) >>\n",
+        );
         pdf.extend_from_slice(b"endobj\n");
-        
+
         // Cross-reference table
         let xref_pos = pdf.len();
         pdf.extend_from_slice(b"xref\n");
@@ -1010,14 +1014,14 @@ mod tests {
         pdf.extend_from_slice(format!("{:010} 00000 n \n", obj1_pos).as_bytes());
         pdf.extend_from_slice(format!("{:010} 00000 n \n", obj2_pos).as_bytes());
         pdf.extend_from_slice(format!("{:010} 00000 n \n", obj3_pos).as_bytes());
-        
+
         // Trailer
         pdf.extend_from_slice(b"trailer\n");
         pdf.extend_from_slice(b"<< /Size 4 /Root 1 0 R /Info 3 0 R >>\n");
         pdf.extend_from_slice(b"startxref\n");
         pdf.extend_from_slice(format!("{}\n", xref_pos).as_bytes());
         pdf.extend_from_slice(b"%%EOF\n");
-        
+
         pdf
     }
 
@@ -1027,7 +1031,7 @@ mod tests {
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         // Verify document is created with empty caches
         assert!(document.page_tree.borrow().is_none());
         assert!(document.metadata_cache.borrow().is_none());
@@ -1039,7 +1043,7 @@ mod tests {
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         let version = document.version().unwrap();
         assert_eq!(version, "1.4");
     }
@@ -1050,7 +1054,7 @@ mod tests {
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         let count = document.page_count().unwrap();
         assert_eq!(count, 1);
     }
@@ -1061,12 +1065,12 @@ mod tests {
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         let metadata = document.metadata().unwrap();
         assert_eq!(metadata.title, Some("Test Document".to_string()));
         assert_eq!(metadata.author, Some("Test Author".to_string()));
         assert_eq!(metadata.subject, Some("Test Subject".to_string()));
-        
+
         // Verify caching works
         let metadata2 = document.metadata().unwrap();
         assert_eq!(metadata.title, metadata2.title);
@@ -1078,11 +1082,11 @@ mod tests {
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         // Get first page
         let page = document.get_page(0).unwrap();
         assert_eq!(page.media_box, [0.0, 0.0, 612.0, 792.0]);
-        
+
         // Verify caching works
         let page2 = document.get_page(0).unwrap();
         assert_eq!(page.media_box, page2.media_box);
@@ -1094,7 +1098,7 @@ mod tests {
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         // Try to get page that doesn't exist
         let result = document.get_page(10);
         assert!(result.is_err());
@@ -1103,18 +1107,18 @@ mod tests {
     #[test]
     fn test_resource_manager_caching() {
         let resources = ResourceManager::new();
-        
+
         // Test caching an object
         let obj_ref = (1, 0);
         let obj = PdfObject::String(PdfString("Test".as_bytes().to_vec()));
-        
+
         assert!(resources.get_cached(obj_ref).is_none());
-        
+
         resources.cache_object(obj_ref, obj.clone());
-        
+
         let cached = resources.get_cached(obj_ref).unwrap();
         assert_eq!(cached, obj);
-        
+
         // Test clearing cache
         resources.clear_cache();
         assert!(resources.get_cached(obj_ref).is_none());
@@ -1126,7 +1130,7 @@ mod tests {
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         // Get catalog object
         let catalog = document.get_object(1, 0).unwrap();
         if let PdfObject::Dictionary(dict) = catalog {
@@ -1146,10 +1150,10 @@ mod tests {
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         // Create a reference to the catalog
         let ref_obj = PdfObject::Reference(1, 0);
-        
+
         // Resolve it
         let resolved = document.resolve(&ref_obj).unwrap();
         if let PdfObject::Dictionary(dict) = resolved {
@@ -1169,11 +1173,11 @@ mod tests {
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         // Try to resolve a non-reference object
         let obj = PdfObject::String(PdfString("Test".as_bytes().to_vec()));
         let resolved = document.resolve(&obj).unwrap();
-        
+
         // Should return the same object
         assert_eq!(resolved, obj);
     }
@@ -1183,7 +1187,7 @@ mod tests {
         let invalid_data = b"This is not a PDF";
         let cursor = Cursor::new(invalid_data.to_vec());
         let result = PdfReader::new(cursor);
-        
+
         assert!(result.is_err());
     }
 
@@ -1194,10 +1198,10 @@ mod tests {
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         let count = document.page_count().unwrap();
         assert_eq!(count, 0);
-        
+
         // Try to get a page from empty document
         let result = document.get_page(0);
         assert!(result.is_err());
@@ -1209,7 +1213,7 @@ mod tests {
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         let text = document.extract_text().unwrap();
         assert!(text.is_empty());
     }
@@ -1220,12 +1224,12 @@ mod tests {
         let cursor = Cursor::new(pdf_data);
         let reader = PdfReader::new(cursor).unwrap();
         let document = PdfDocument::new(reader);
-        
+
         // Access multiple things concurrently
         let version = document.version().unwrap();
         let count = document.page_count().unwrap();
         let page = document.get_page(0).unwrap();
-        
+
         assert_eq!(version, "1.4");
         assert_eq!(count, 1);
         assert_eq!(page.media_box[2], 612.0);
@@ -1234,108 +1238,111 @@ mod tests {
     // Additional comprehensive tests
     mod comprehensive_tests {
         use super::*;
-        
+
         #[test]
         fn test_resource_manager_default() {
             let resources = ResourceManager::default();
             assert!(resources.get_cached((1, 0)).is_none());
         }
-        
+
         #[test]
         fn test_resource_manager_multiple_objects() {
             let resources = ResourceManager::new();
-            
+
             // Cache multiple objects
             resources.cache_object((1, 0), PdfObject::Integer(42));
             resources.cache_object((2, 0), PdfObject::Boolean(true));
-            resources.cache_object((3, 0), PdfObject::String(PdfString("test".as_bytes().to_vec())));
-            
+            resources.cache_object(
+                (3, 0),
+                PdfObject::String(PdfString("test".as_bytes().to_vec())),
+            );
+
             // Verify all are cached
             assert!(resources.get_cached((1, 0)).is_some());
             assert!(resources.get_cached((2, 0)).is_some());
             assert!(resources.get_cached((3, 0)).is_some());
-            
+
             // Clear and verify empty
             resources.clear_cache();
             assert!(resources.get_cached((1, 0)).is_none());
             assert!(resources.get_cached((2, 0)).is_none());
             assert!(resources.get_cached((3, 0)).is_none());
         }
-        
+
         #[test]
         fn test_resource_manager_object_overwrite() {
             let resources = ResourceManager::new();
-            
+
             // Cache an object
             resources.cache_object((1, 0), PdfObject::Integer(42));
             assert_eq!(resources.get_cached((1, 0)), Some(PdfObject::Integer(42)));
-            
+
             // Overwrite with different object
             resources.cache_object((1, 0), PdfObject::Boolean(true));
             assert_eq!(resources.get_cached((1, 0)), Some(PdfObject::Boolean(true)));
         }
-        
+
         #[test]
         fn test_get_object_caching() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Get object first time (should cache)
             let obj1 = document.get_object(1, 0).unwrap();
-            
+
             // Get same object again (should use cache)
             let obj2 = document.get_object(1, 0).unwrap();
-            
+
             // Objects should be identical
             assert_eq!(obj1, obj2);
-            
+
             // Verify it's cached
             assert!(document.resources.get_cached((1, 0)).is_some());
         }
-        
+
         #[test]
         fn test_get_object_different_generations() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Get object with generation 0
             let _obj1 = document.get_object(1, 0).unwrap();
-            
+
             // Try to get same object with different generation (should fail)
             let result = document.get_object(1, 1);
             assert!(result.is_err());
-            
+
             // Original should still be cached
             assert!(document.resources.get_cached((1, 0)).is_some());
         }
-        
+
         #[test]
         fn test_get_object_nonexistent() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Try to get non-existent object
             let result = document.get_object(999, 0);
             assert!(result.is_err());
         }
-        
+
         #[test]
         fn test_resolve_nested_references() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Test resolving a reference
             let ref_obj = PdfObject::Reference(2, 0);
             let resolved = document.resolve(&ref_obj).unwrap();
-            
+
             // Should resolve to the pages object
             if let PdfObject::Dictionary(dict) = resolved {
                 if let Some(PdfObject::Name(name)) = dict.get("Type") {
@@ -1343,14 +1350,14 @@ mod tests {
                 }
             }
         }
-        
+
         #[test]
         fn test_resolve_various_object_types() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Test resolving different object types
             let test_objects = vec![
                 PdfObject::Integer(42),
@@ -1359,160 +1366,161 @@ mod tests {
                 PdfObject::Real(3.14),
                 PdfObject::Null,
             ];
-            
+
             for obj in test_objects {
                 let resolved = document.resolve(&obj).unwrap();
                 assert_eq!(resolved, obj);
             }
         }
-        
+
         #[test]
         fn test_get_page_cached() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Get page first time
             let page1 = document.get_page(0).unwrap();
-            
+
             // Get same page again
             let page2 = document.get_page(0).unwrap();
-            
+
             // Should be identical
             assert_eq!(page1.media_box, page2.media_box);
             assert_eq!(page1.rotation, page2.rotation);
             assert_eq!(page1.obj_ref, page2.obj_ref);
         }
-        
+
         #[test]
         fn test_metadata_caching() {
             let pdf_data = create_pdf_with_metadata();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Get metadata first time
             let meta1 = document.metadata().unwrap();
-            
+
             // Get metadata again
             let meta2 = document.metadata().unwrap();
-            
+
             // Should be identical
             assert_eq!(meta1.title, meta2.title);
             assert_eq!(meta1.author, meta2.author);
             assert_eq!(meta1.subject, meta2.subject);
             assert_eq!(meta1.version, meta2.version);
         }
-        
+
         #[test]
         fn test_page_tree_initialization() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Initially page tree should be None
             assert!(document.page_tree.borrow().is_none());
-            
+
             // After getting page count, page tree should be initialized
             let _count = document.page_count().unwrap();
             // Note: page_tree is private, so we can't directly check it
             // But we can verify it works by getting a page
             let _page = document.get_page(0).unwrap();
         }
-        
+
         #[test]
         fn test_get_page_resources() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             let page = document.get_page(0).unwrap();
             let resources = document.get_page_resources(&page).unwrap();
-            
+
             // The minimal PDF has empty resources
             assert!(resources.is_some());
         }
-        
+
         #[test]
         fn test_get_page_content_streams_empty() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             let page = document.get_page(0).unwrap();
             let streams = document.get_page_content_streams(&page).unwrap();
-            
+
             // Minimal PDF has no content streams
             assert!(streams.is_empty());
         }
-        
+
         #[test]
         fn test_extract_text_from_page() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             let result = document.extract_text_from_page(0);
             // Should succeed even with empty page
             assert!(result.is_ok());
         }
-        
+
         #[test]
         fn test_extract_text_from_page_out_of_bounds() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             let result = document.extract_text_from_page(999);
             assert!(result.is_err());
         }
-        
+
         #[test]
         fn test_extract_text_with_options() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             let options = crate::text::ExtractionOptions {
                 preserve_layout: true,
                 space_threshold: 0.5,
                 newline_threshold: 15.0,
                 ..Default::default()
             };
-            
+
             let result = document.extract_text_with_options(options);
             assert!(result.is_ok());
         }
-        
+
         #[test]
         fn test_version_different_pdf_versions() {
             // Test with different PDF versions
             let versions = vec!["1.3", "1.4", "1.5", "1.6", "1.7"];
-            
+
             for version in versions {
                 let mut pdf_data = Vec::new();
-                
+
                 // PDF header
                 pdf_data.extend_from_slice(format!("%PDF-{}\n", version).as_bytes());
-                
+
                 // Track positions for xref
                 let obj1_pos = pdf_data.len();
-                
+
                 // Catalog object
                 pdf_data.extend_from_slice(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
-                
+
                 let obj2_pos = pdf_data.len();
-                
+
                 // Pages object
-                pdf_data.extend_from_slice(b"2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\n");
-                
+                pdf_data
+                    .extend_from_slice(b"2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\n");
+
                 // Cross-reference table
                 let xref_pos = pdf_data.len();
                 pdf_data.extend_from_slice(b"xref\n");
@@ -1520,153 +1528,153 @@ mod tests {
                 pdf_data.extend_from_slice(b"0000000000 65535 f \n");
                 pdf_data.extend_from_slice(format!("{:010} 00000 n \n", obj1_pos).as_bytes());
                 pdf_data.extend_from_slice(format!("{:010} 00000 n \n", obj2_pos).as_bytes());
-                
+
                 // Trailer
                 pdf_data.extend_from_slice(b"trailer\n");
                 pdf_data.extend_from_slice(b"<< /Size 3 /Root 1 0 R >>\n");
                 pdf_data.extend_from_slice(b"startxref\n");
                 pdf_data.extend_from_slice(format!("{}\n", xref_pos).as_bytes());
                 pdf_data.extend_from_slice(b"%%EOF\n");
-                
+
                 let cursor = Cursor::new(pdf_data);
                 let reader = PdfReader::new(cursor).unwrap();
                 let document = PdfDocument::new(reader);
-                
+
                 let pdf_version = document.version().unwrap();
                 assert_eq!(pdf_version, version);
             }
         }
-        
+
         #[test]
         fn test_page_count_zero() {
             let pdf_data = create_pdf_with_metadata(); // Has 0 pages
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             let count = document.page_count().unwrap();
             assert_eq!(count, 0);
         }
-        
+
         #[test]
         fn test_multiple_object_access() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Access multiple objects
             let catalog = document.get_object(1, 0).unwrap();
             let pages = document.get_object(2, 0).unwrap();
             let page = document.get_object(3, 0).unwrap();
-            
+
             // Verify they're all different objects
             assert_ne!(catalog, pages);
             assert_ne!(pages, page);
             assert_ne!(catalog, page);
         }
-        
+
         #[test]
         fn test_error_handling_invalid_object_reference() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Try to resolve an invalid reference
             let invalid_ref = PdfObject::Reference(999, 0);
             let result = document.resolve(&invalid_ref);
             assert!(result.is_err());
         }
-        
+
         #[test]
         fn test_concurrent_metadata_access() {
             let pdf_data = create_pdf_with_metadata();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Access metadata and other properties concurrently
             let metadata = document.metadata().unwrap();
             let version = document.version().unwrap();
             let count = document.page_count().unwrap();
-            
+
             assert_eq!(metadata.title, Some("Test Document".to_string()));
             assert_eq!(version, "1.5");
             assert_eq!(count, 0);
         }
-        
+
         #[test]
         fn test_page_properties_comprehensive() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             let page = document.get_page(0).unwrap();
-            
+
             // Test all page properties
             assert_eq!(page.media_box, [0.0, 0.0, 612.0, 792.0]);
             assert_eq!(page.crop_box, None);
             assert_eq!(page.rotation, 0);
             assert_eq!(page.obj_ref, (3, 0));
-            
+
             // Test width/height calculation
             assert_eq!(page.width(), 612.0);
             assert_eq!(page.height(), 792.0);
         }
-        
+
         #[test]
         fn test_memory_usage_efficiency() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Access same page multiple times
             for _ in 0..10 {
                 let _page = document.get_page(0).unwrap();
             }
-            
+
             // Should only have one copy in cache
             let page_count = document.page_count().unwrap();
             assert_eq!(page_count, 1);
         }
-        
+
         #[test]
         fn test_reader_borrow_safety() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Multiple concurrent borrows should work
             let version = document.version().unwrap();
             let count = document.page_count().unwrap();
             let metadata = document.metadata().unwrap();
-            
+
             assert_eq!(version, "1.4");
             assert_eq!(count, 1);
             assert!(metadata.title.is_none());
         }
-        
+
         #[test]
         fn test_cache_consistency() {
             let pdf_data = create_minimal_pdf();
             let cursor = Cursor::new(pdf_data);
             let reader = PdfReader::new(cursor).unwrap();
             let document = PdfDocument::new(reader);
-            
+
             // Get object and verify caching
             let obj1 = document.get_object(1, 0).unwrap();
             let cached = document.resources.get_cached((1, 0)).unwrap();
-            
+
             assert_eq!(obj1, cached);
-            
+
             // Clear cache and get object again
             document.resources.clear_cache();
             let obj2 = document.get_object(1, 0).unwrap();
-            
+
             // Should be same content but loaded fresh
             assert_eq!(obj1, obj2);
         }

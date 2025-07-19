@@ -324,7 +324,7 @@ impl TextExtractor {
         if self.options.sort_by_position && !fragments.is_empty() {
             self.sort_and_merge_fragments(&mut fragments);
         }
-        
+
         // Reconstruct text from sorted fragments if layout is preserved
         if self.options.preserve_layout && !fragments.is_empty() {
             extracted_text = self.reconstruct_text_from_fragments(&fragments);
@@ -335,7 +335,7 @@ impl TextExtractor {
             fragments,
         })
     }
-    
+
     /// Sort text fragments by position and merge them appropriately
     fn sort_and_merge_fragments(&self, fragments: &mut Vec<TextFragment>) {
         // Sort fragments by Y position (top to bottom) then X position (left to right)
@@ -350,27 +350,27 @@ impl TextExtractor {
                 b.y.partial_cmp(&a.y).unwrap_or(std::cmp::Ordering::Equal)
             }
         });
-        
+
         // Detect columns if requested
         if self.options.detect_columns {
             self.detect_and_sort_columns(fragments);
         }
     }
-    
+
     /// Detect columns and re-sort fragments accordingly
     fn detect_and_sort_columns(&self, fragments: &mut Vec<TextFragment>) {
         // Group fragments by approximate Y position
         let mut lines: Vec<Vec<&mut TextFragment>> = Vec::new();
         let mut current_line: Vec<&mut TextFragment> = Vec::new();
         let mut last_y = f64::INFINITY;
-        
+
         for fragment in fragments.iter_mut() {
             let fragment_y = fragment.y;
-            if (last_y - fragment_y).abs() > self.options.newline_threshold {
-                if !current_line.is_empty() {
-                    lines.push(current_line);
-                    current_line = Vec::new();
-                }
+            if (last_y - fragment_y).abs() > self.options.newline_threshold
+                && !current_line.is_empty()
+            {
+                lines.push(current_line);
+                current_line = Vec::new();
             }
             current_line.push(fragment);
             last_y = fragment_y;
@@ -378,7 +378,7 @@ impl TextExtractor {
         if !current_line.is_empty() {
             lines.push(current_line);
         }
-        
+
         // Detect column boundaries
         let mut column_boundaries = vec![0.0];
         for line in &lines {
@@ -387,7 +387,10 @@ impl TextExtractor {
                     let gap = line[i + 1].x - (line[i].x + line[i].width);
                     if gap > self.options.column_threshold {
                         let boundary = line[i].x + line[i].width + gap / 2.0;
-                        if !column_boundaries.iter().any(|&b| (b - boundary).abs() < 10.0) {
+                        if !column_boundaries
+                            .iter()
+                            .any(|&b| (b - boundary).abs() < 10.0)
+                        {
                             column_boundaries.push(boundary);
                         }
                     }
@@ -395,14 +398,22 @@ impl TextExtractor {
             }
         }
         column_boundaries.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         // Re-sort fragments by column then Y position
         if column_boundaries.len() > 1 {
             fragments.sort_by(|a, b| {
                 // Determine column for each fragment
-                let col_a = column_boundaries.iter().position(|&boundary| a.x < boundary).unwrap_or(column_boundaries.len()) - 1;
-                let col_b = column_boundaries.iter().position(|&boundary| b.x < boundary).unwrap_or(column_boundaries.len()) - 1;
-                
+                let col_a = column_boundaries
+                    .iter()
+                    .position(|&boundary| a.x < boundary)
+                    .unwrap_or(column_boundaries.len())
+                    - 1;
+                let col_b = column_boundaries
+                    .iter()
+                    .position(|&boundary| b.x < boundary)
+                    .unwrap_or(column_boundaries.len())
+                    - 1;
+
                 if col_a != col_b {
                     col_a.cmp(&col_b)
                 } else {
@@ -412,14 +423,14 @@ impl TextExtractor {
             });
         }
     }
-    
+
     /// Reconstruct text from sorted fragments
     fn reconstruct_text_from_fragments(&self, fragments: &[TextFragment]) -> String {
         let mut result = String::new();
         let mut last_y = f64::INFINITY;
         let mut last_x = 0.0;
         let mut last_line_ended_with_hyphen = false;
-        
+
         for fragment in fragments {
             // Check if we need a newline
             let y_diff = (last_y - fragment.y).abs();
@@ -440,13 +451,13 @@ impl TextExtractor {
                     result.push(' ');
                 }
             }
-            
+
             result.push_str(&fragment.text);
             last_line_ended_with_hyphen = fragment.text.ends_with('-');
             last_y = fragment.y;
             last_x = fragment.x + fragment.width;
         }
-        
+
         result
     }
 
@@ -463,7 +474,10 @@ impl TextExtractor {
                 name if name.contains("pdfdoc") => TextEncoding::PdfDocEncoding,
                 _ => {
                     // Default based on common patterns
-                    if font_name.starts_with("Times") || font_name.starts_with("Helvetica") || font_name.starts_with("Courier") {
+                    if font_name.starts_with("Times")
+                        || font_name.starts_with("Helvetica")
+                        || font_name.starts_with("Courier")
+                    {
                         TextEncoding::WinAnsiEncoding // Most common for standard fonts
                     } else {
                         TextEncoding::PdfDocEncoding // Safe default
@@ -603,12 +617,12 @@ mod tests {
                 font_size: 10.0,
             },
         ];
-        
+
         let extracted = ExtractedText {
             text: "Hello World".to_string(),
             fragments: fragments.clone(),
         };
-        
+
         assert_eq!(extracted.text, "Hello World");
         assert_eq!(extracted.fragments.len(), 2);
         assert_eq!(extracted.fragments[0].text, "Hello");
@@ -638,13 +652,13 @@ mod tests {
         let (x, y) = transform_point(1.0, 0.0, &rotation);
         assert_eq!(x, 0.0);
         assert_eq!(y, 1.0);
-        
+
         // Test scaling matrix
         let scale = [2.0, 0.0, 0.0, 3.0, 0.0, 0.0];
         let (x, y) = transform_point(5.0, 5.0, &scale);
         assert_eq!(x, 10.0);
         assert_eq!(y, 15.0);
-        
+
         // Test complex transformation
         let complex = [2.0, 1.0, 1.0, 2.0, 10.0, 20.0];
         let (x, y) = transform_point(1.0, 1.0, &complex);
@@ -679,7 +693,10 @@ mod tests {
         let extractor = TextExtractor::with_options(options.clone());
         assert_eq!(extractor.options.preserve_layout, options.preserve_layout);
         assert_eq!(extractor.options.space_threshold, options.space_threshold);
-        assert_eq!(extractor.options.newline_threshold, options.newline_threshold);
+        assert_eq!(
+            extractor.options.newline_threshold,
+            options.newline_threshold
+        );
         assert_eq!(extractor.options.sort_by_position, options.sort_by_position);
         assert_eq!(extractor.options.detect_columns, options.detect_columns);
         assert_eq!(extractor.options.column_threshold, options.column_threshold);

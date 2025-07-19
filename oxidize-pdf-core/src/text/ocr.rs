@@ -975,11 +975,13 @@ mod tests {
             for error in errors {
                 let display = format!("{}", error);
                 assert!(!display.is_empty());
-                
+
                 // Verify error messages contain expected content
                 match &error {
                     OcrError::ProviderNotAvailable(msg) => assert!(display.contains(msg)),
-                    OcrError::UnsupportedImageFormat(_) => assert!(display.contains("Unsupported image format")),
+                    OcrError::UnsupportedImageFormat(_) => {
+                        assert!(display.contains("Unsupported image format"))
+                    }
                     OcrError::InvalidImageData(msg) => assert!(display.contains(msg)),
                     OcrError::ProcessingFailed(msg) => assert!(display.contains(msg)),
                     OcrError::NetworkError(msg) => assert!(display.contains(msg)),
@@ -995,10 +997,10 @@ mod tests {
         #[test]
         fn test_ocr_error_from_io_error() {
             use std::io::{Error as IoError, ErrorKind};
-            
+
             let io_error = IoError::new(ErrorKind::NotFound, "File not found");
             let ocr_error: OcrError = io_error.into();
-            
+
             match ocr_error {
                 OcrError::Io(_) => {
                     let display = format!("{}", ocr_error);
@@ -1021,10 +1023,10 @@ mod tests {
         fn test_ocr_options_custom_language() {
             let mut options = OcrOptions::default();
             assert_eq!(options.language, "en");
-            
+
             options.language = "spa+eng".to_string();
             assert_eq!(options.language, "spa+eng");
-            
+
             options.language = "jpn".to_string();
             assert_eq!(options.language, "jpn");
         }
@@ -1033,14 +1035,14 @@ mod tests {
         fn test_ocr_options_confidence_threshold() {
             let mut options = OcrOptions::default();
             assert_eq!(options.min_confidence, 0.6);
-            
+
             // Test various thresholds
             options.min_confidence = 0.0;
             assert_eq!(options.min_confidence, 0.0);
-            
+
             options.min_confidence = 1.0;
             assert_eq!(options.min_confidence, 1.0);
-            
+
             options.min_confidence = 0.85;
             assert_eq!(options.min_confidence, 0.85);
         }
@@ -1049,13 +1051,21 @@ mod tests {
         fn test_ocr_options_engine_specific() {
             let mut options = OcrOptions::default();
             assert!(options.engine_options.is_empty());
-            
+
             // Add engine-specific options
-            options.engine_options.insert("tessedit_char_whitelist".to_string(), "0123456789".to_string());
-            options.engine_options.insert("tessedit_ocr_engine_mode".to_string(), "3".to_string());
-            
+            options.engine_options.insert(
+                "tessedit_char_whitelist".to_string(),
+                "0123456789".to_string(),
+            );
+            options
+                .engine_options
+                .insert("tessedit_ocr_engine_mode".to_string(), "3".to_string());
+
             assert_eq!(options.engine_options.len(), 2);
-            assert_eq!(options.engine_options.get("tessedit_char_whitelist"), Some(&"0123456789".to_string()));
+            assert_eq!(
+                options.engine_options.get("tessedit_char_whitelist"),
+                Some(&"0123456789".to_string())
+            );
         }
 
         #[test]
@@ -1074,14 +1084,19 @@ mod tests {
                 engine_options: HashMap::new(),
                 timeout_seconds: 60,
             };
-            
-            options.engine_options.insert("key".to_string(), "value".to_string());
-            
+
+            options
+                .engine_options
+                .insert("key".to_string(), "value".to_string());
+
             let cloned = options.clone();
             assert_eq!(cloned.language, options.language);
             assert_eq!(cloned.min_confidence, options.min_confidence);
             assert_eq!(cloned.preserve_layout, options.preserve_layout);
-            assert_eq!(cloned.preprocessing.scale_factor, options.preprocessing.scale_factor);
+            assert_eq!(
+                cloned.preprocessing.scale_factor,
+                options.preprocessing.scale_factor
+            );
             assert_eq!(cloned.engine_options.get("key"), Some(&"value".to_string()));
             assert_eq!(cloned.timeout_seconds, options.timeout_seconds);
         }
@@ -1090,10 +1105,10 @@ mod tests {
         fn test_ocr_options_timeout_configuration() {
             let mut options = OcrOptions::default();
             assert_eq!(options.timeout_seconds, 30);
-            
+
             options.timeout_seconds = 0; // No timeout
             assert_eq!(options.timeout_seconds, 0);
-            
+
             options.timeout_seconds = 300; // 5 minutes
             assert_eq!(options.timeout_seconds, 300);
         }
@@ -1107,7 +1122,7 @@ mod tests {
                 (true, false, true, false),
                 (false, true, false, true),
             ];
-            
+
             for (denoise, deskew, enhance, sharpen) in test_cases {
                 let preprocessing = ImagePreprocessing {
                     denoise,
@@ -1116,7 +1131,7 @@ mod tests {
                     sharpen,
                     scale_factor: 1.0,
                 };
-                
+
                 assert_eq!(preprocessing.denoise, denoise);
                 assert_eq!(preprocessing.deskew, deskew);
                 assert_eq!(preprocessing.enhance_contrast, enhance);
@@ -1128,14 +1143,14 @@ mod tests {
         fn test_image_preprocessing_scale_factor() {
             let mut preprocessing = ImagePreprocessing::default();
             assert_eq!(preprocessing.scale_factor, 1.0);
-            
+
             // Test various scale factors
             preprocessing.scale_factor = 0.5;
             assert_eq!(preprocessing.scale_factor, 0.5);
-            
+
             preprocessing.scale_factor = 2.0;
             assert_eq!(preprocessing.scale_factor, 2.0);
-            
+
             preprocessing.scale_factor = 1.25;
             assert_eq!(preprocessing.scale_factor, 1.25);
         }
@@ -1149,7 +1164,7 @@ mod tests {
                 sharpen: true,
                 scale_factor: 1.5,
             };
-            
+
             let cloned = preprocessing.clone();
             assert_eq!(cloned.denoise, preprocessing.denoise);
             assert_eq!(cloned.deskew, preprocessing.deskew);
@@ -1171,7 +1186,7 @@ mod tests {
                 font_size: 14.0,
                 fragment_type: FragmentType::Line,
             };
-            
+
             assert_eq!(fragment.text, "Hello World");
             assert_eq!(fragment.x, 100.0);
             assert_eq!(fragment.y, 200.0);
@@ -1194,7 +1209,7 @@ mod tests {
                 font_size: 11.0,
                 fragment_type: FragmentType::Word,
             };
-            
+
             let cloned = fragment.clone();
             assert_eq!(cloned.text, fragment.text);
             assert_eq!(cloned.x, fragment.x);
@@ -1222,11 +1237,11 @@ mod tests {
                 font_size: 12.0,
                 fragment_type: FragmentType::Word,
             };
-            
+
             // Calculate bounding box
             let right = fragment.x + fragment.width;
             let bottom = fragment.y + fragment.height;
-            
+
             assert_eq!(right, 150.0);
             assert_eq!(bottom, 220.0);
         }
@@ -1237,30 +1252,46 @@ mod tests {
             let fragments = vec![
                 OcrTextFragment {
                     text: "A".to_string(),
-                    x: 10.0, y: 10.0, width: 20.0, height: 20.0,
-                    confidence: 0.9, font_size: 12.0,
+                    x: 10.0,
+                    y: 10.0,
+                    width: 20.0,
+                    height: 20.0,
+                    confidence: 0.9,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Character,
                 },
                 OcrTextFragment {
                     text: "B".to_string(),
-                    x: 25.0, y: 10.0, width: 20.0, height: 20.0,
-                    confidence: 0.9, font_size: 12.0,
+                    x: 25.0,
+                    y: 10.0,
+                    width: 20.0,
+                    height: 20.0,
+                    confidence: 0.9,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Character,
                 },
                 OcrTextFragment {
                     text: "C".to_string(),
-                    x: 10.0, y: 35.0, width: 20.0, height: 20.0,
-                    confidence: 0.9, font_size: 12.0,
+                    x: 10.0,
+                    y: 35.0,
+                    width: 20.0,
+                    height: 20.0,
+                    confidence: 0.9,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Character,
                 },
                 OcrTextFragment {
                     text: "D".to_string(),
-                    x: 100.0, y: 100.0, width: 20.0, height: 20.0,
-                    confidence: 0.9, font_size: 12.0,
+                    x: 100.0,
+                    y: 100.0,
+                    width: 20.0,
+                    height: 20.0,
+                    confidence: 0.9,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Character,
                 },
             ];
-            
+
             let result = OcrProcessingResult {
                 text: "ABCD".to_string(),
                 confidence: 0.9,
@@ -1270,15 +1301,15 @@ mod tests {
                 language: "en".to_string(),
                 image_dimensions: (200, 200),
             };
-            
+
             // Test overlapping region - B is partially outside (starts at x=25, width=20, so ends at x=45)
             let region1 = result.fragments_in_region(0.0, 0.0, 50.0, 50.0);
             assert_eq!(region1.len(), 2); // A and C (B extends beyond the region)
-            
+
             // Test exact fit
             let region2 = result.fragments_in_region(10.0, 10.0, 20.0, 20.0);
             assert_eq!(region2.len(), 1); // Only A
-            
+
             // Test empty region
             let region3 = result.fragments_in_region(200.0, 200.0, 50.0, 50.0);
             assert_eq!(region3.len(), 0);
@@ -1289,24 +1320,36 @@ mod tests {
             let fragments = vec![
                 OcrTextFragment {
                     text: "Perfect".to_string(),
-                    x: 0.0, y: 0.0, width: 100.0, height: 20.0,
-                    confidence: 1.0, font_size: 12.0,
+                    x: 0.0,
+                    y: 0.0,
+                    width: 100.0,
+                    height: 20.0,
+                    confidence: 1.0,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Word,
                 },
                 OcrTextFragment {
                     text: "Zero".to_string(),
-                    x: 0.0, y: 25.0, width: 50.0, height: 20.0,
-                    confidence: 0.0, font_size: 12.0,
+                    x: 0.0,
+                    y: 25.0,
+                    width: 50.0,
+                    height: 20.0,
+                    confidence: 0.0,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Word,
                 },
                 OcrTextFragment {
                     text: "Mid".to_string(),
-                    x: 0.0, y: 50.0, width: 30.0, height: 20.0,
-                    confidence: 0.5, font_size: 12.0,
+                    x: 0.0,
+                    y: 50.0,
+                    width: 30.0,
+                    height: 20.0,
+                    confidence: 0.5,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Word,
                 },
             ];
-            
+
             let result = OcrProcessingResult {
                 text: "Perfect Zero Mid".to_string(),
                 confidence: 0.5,
@@ -1316,7 +1359,7 @@ mod tests {
                 language: "en".to_string(),
                 image_dimensions: (200, 200),
             };
-            
+
             // Test boundary conditions
             assert_eq!(result.filter_by_confidence(0.0).len(), 3);
             assert_eq!(result.filter_by_confidence(0.5).len(), 2);
@@ -1329,30 +1372,46 @@ mod tests {
             let fragments = vec![
                 OcrTextFragment {
                     text: "A".to_string(),
-                    x: 0.0, y: 0.0, width: 10.0, height: 20.0,
-                    confidence: 0.9, font_size: 12.0,
+                    x: 0.0,
+                    y: 0.0,
+                    width: 10.0,
+                    height: 20.0,
+                    confidence: 0.9,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Character,
                 },
                 OcrTextFragment {
                     text: "Word".to_string(),
-                    x: 20.0, y: 0.0, width: 40.0, height: 20.0,
-                    confidence: 0.9, font_size: 12.0,
+                    x: 20.0,
+                    y: 0.0,
+                    width: 40.0,
+                    height: 20.0,
+                    confidence: 0.9,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Word,
                 },
                 OcrTextFragment {
                     text: "Line of text".to_string(),
-                    x: 0.0, y: 25.0, width: 100.0, height: 20.0,
-                    confidence: 0.9, font_size: 12.0,
+                    x: 0.0,
+                    y: 25.0,
+                    width: 100.0,
+                    height: 20.0,
+                    confidence: 0.9,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Line,
                 },
                 OcrTextFragment {
                     text: "Paragraph text...".to_string(),
-                    x: 0.0, y: 50.0, width: 200.0, height: 100.0,
-                    confidence: 0.9, font_size: 12.0,
+                    x: 0.0,
+                    y: 50.0,
+                    width: 200.0,
+                    height: 100.0,
+                    confidence: 0.9,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Paragraph,
                 },
             ];
-            
+
             let result = OcrProcessingResult {
                 text: "Combined".to_string(),
                 confidence: 0.9,
@@ -1362,7 +1421,7 @@ mod tests {
                 language: "en".to_string(),
                 image_dimensions: (300, 300),
             };
-            
+
             assert_eq!(result.fragments_of_type(FragmentType::Character).len(), 1);
             assert_eq!(result.fragments_of_type(FragmentType::Word).len(), 1);
             assert_eq!(result.fragments_of_type(FragmentType::Line).len(), 1);
@@ -1382,10 +1441,14 @@ mod tests {
                     height: 18.0,
                     confidence: 0.5 + (i as f64 % 50.0) / 100.0,
                     font_size: 12.0,
-                    fragment_type: if i % 4 == 0 { FragmentType::Line } else { FragmentType::Word },
+                    fragment_type: if i % 4 == 0 {
+                        FragmentType::Line
+                    } else {
+                        FragmentType::Word
+                    },
                 });
             }
-            
+
             let result = OcrProcessingResult {
                 text: "Large document".to_string(),
                 confidence: 0.75,
@@ -1395,17 +1458,17 @@ mod tests {
                 language: "en".to_string(),
                 image_dimensions: (500, 2000),
             };
-            
+
             // Test various operations on large set
             let high_conf = result.filter_by_confidence(0.8);
             assert!(high_conf.len() < 1000);
-            
+
             let lines = result.fragments_of_type(FragmentType::Line);
             assert_eq!(lines.len(), 250); // 1/4 of fragments
-            
+
             let region = result.fragments_in_region(0.0, 0.0, 200.0, 200.0);
             assert!(region.len() > 0);
-            
+
             let avg = result.average_confidence();
             assert!(avg > 0.5 && avg < 1.0);
         }
@@ -1421,7 +1484,7 @@ mod tests {
                 language: "en".to_string(),
                 image_dimensions: (0, 0),
             };
-            
+
             assert_eq!(result.filter_by_confidence(0.5).len(), 0);
             assert_eq!(result.fragments_in_region(0.0, 0.0, 100.0, 100.0).len(), 0);
             assert_eq!(result.fragments_of_type(FragmentType::Word).len(), 0);
@@ -1432,19 +1495,19 @@ mod tests {
         #[test]
         fn test_mock_provider_configuration_mutations() {
             let mut provider = MockOcrProvider::new();
-            
+
             // Test text mutation
             provider.set_mock_text("Custom mock text".to_string());
-            
+
             // Test confidence mutation
             provider.set_confidence(0.95);
-            
+
             // Test delay mutation
             provider.set_processing_delay(200);
-            
+
             let options = OcrOptions::default();
             let jpeg_data = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46];
-            
+
             let result = provider.process_image(&jpeg_data, &options).unwrap();
             assert!(result.text.contains("Custom mock text"));
             assert_eq!(result.confidence, 0.95);
@@ -1454,15 +1517,15 @@ mod tests {
         #[test]
         fn test_mock_provider_confidence_clamping() {
             let mut provider = MockOcrProvider::new();
-            
+
             // Test clamping above 1.0
             provider.set_confidence(1.5);
             assert_eq!(provider.confidence, 1.0);
-            
+
             // Test clamping below 0.0
             provider.set_confidence(-0.5);
             assert_eq!(provider.confidence, 0.0);
-            
+
             // Test normal values
             provider.set_confidence(0.75);
             assert_eq!(provider.confidence, 0.75);
@@ -1471,11 +1534,11 @@ mod tests {
         #[test]
         fn test_mock_provider_validate_png() {
             let provider = MockOcrProvider::new();
-            
+
             // Valid PNG signature
             let png_data = vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
             assert!(provider.validate_image_data(&png_data).is_ok());
-            
+
             // Invalid PNG (corrupted signature)
             let bad_png = vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0B];
             assert!(provider.validate_image_data(&bad_png).is_err());
@@ -1484,11 +1547,11 @@ mod tests {
         #[test]
         fn test_mock_provider_validate_tiff() {
             let provider = MockOcrProvider::new();
-            
+
             // Valid TIFF (little endian)
             let tiff_le = vec![0x49, 0x49, 0x2A, 0x00, 0x00, 0x00, 0x00, 0x00];
             assert!(provider.validate_image_data(&tiff_le).is_ok());
-            
+
             // Valid TIFF (big endian)
             let tiff_be = vec![0x4D, 0x4D, 0x00, 0x2A, 0x00, 0x00, 0x00, 0x00];
             assert!(provider.validate_image_data(&tiff_be).is_ok());
@@ -1498,7 +1561,7 @@ mod tests {
         fn test_mock_provider_process_page() {
             let provider = MockOcrProvider::new();
             let options = OcrOptions::default();
-            
+
             // Create a mock ContentAnalysis
             let analysis = ContentAnalysis {
                 page_number: 0,
@@ -1510,11 +1573,13 @@ mod tests {
                 image_count: 1,
                 character_count: 0,
             };
-            
+
             let jpeg_data = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46];
-            
+
             // Test that process_page works (default implementation calls process_image)
-            let result = provider.process_page(&analysis, &jpeg_data, &options).unwrap();
+            let result = provider
+                .process_page(&analysis, &jpeg_data, &options)
+                .unwrap();
             assert!(result.text.contains("Mock OCR"));
         }
 
@@ -1522,27 +1587,30 @@ mod tests {
         fn test_mock_provider_thread_safety() {
             use std::sync::Arc;
             use std::thread;
-            
+
             let provider = Arc::new(MockOcrProvider::new());
             let options = Arc::new(OcrOptions::default());
-            
+
             let mut handles = vec![];
-            
+
             // Spawn multiple threads to test Send + Sync
             for i in 0..5 {
                 let provider_clone = Arc::clone(&provider);
                 let options_clone = Arc::clone(&options);
-                
+
                 let handle = thread::spawn(move || {
-                    let jpeg_data = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46];
-                    let result = provider_clone.process_image(&jpeg_data, &options_clone).unwrap();
+                    let jpeg_data =
+                        vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46];
+                    let result = provider_clone
+                        .process_image(&jpeg_data, &options_clone)
+                        .unwrap();
                     assert!(result.text.contains("Mock OCR"));
                     i
                 });
-                
+
                 handles.push(handle);
             }
-            
+
             // Wait for all threads
             for handle in handles {
                 let thread_id = handle.join().unwrap();
@@ -1564,7 +1632,7 @@ mod tests {
         fn test_ocr_engine_equality() {
             assert_eq!(OcrEngine::Mock, OcrEngine::Mock);
             assert_ne!(OcrEngine::Mock, OcrEngine::Tesseract);
-            
+
             // Test Copy trait
             let engine1 = OcrEngine::Azure;
             let engine2 = engine1;
@@ -1581,13 +1649,9 @@ mod tests {
                 OcrEngine::Aws,
                 OcrEngine::GoogleCloud,
             ];
-            
-            let formats = vec![
-                ImageFormat::Jpeg,
-                ImageFormat::Png,
-                ImageFormat::Tiff,
-            ];
-            
+
+            let formats = vec![ImageFormat::Jpeg, ImageFormat::Png, ImageFormat::Tiff];
+
             // Expected support matrix
             let expected = vec![
                 (OcrEngine::Mock, vec![true, true, true]),
@@ -1596,7 +1660,7 @@ mod tests {
                 (OcrEngine::Aws, vec![true, true, false]),
                 (OcrEngine::GoogleCloud, vec![true, true, false]),
             ];
-            
+
             for (engine, expected_support) in expected {
                 for (i, format) in formats.iter().enumerate() {
                     assert_eq!(
@@ -1614,7 +1678,7 @@ mod tests {
         #[test]
         fn test_validate_image_data_all_formats() {
             let provider = MockOcrProvider::new();
-            
+
             // Test all supported formats
             let test_cases = vec![
                 // JPEG with JFIF marker
@@ -1636,7 +1700,7 @@ mod tests {
                 // Empty
                 (vec![], false),
             ];
-            
+
             for (data, should_succeed) in test_cases {
                 let result = provider.validate_image_data(&data);
                 assert_eq!(
@@ -1669,7 +1733,7 @@ mod tests {
                 },
                 timeout_seconds: 120,
             };
-            
+
             // Verify all fields
             assert_eq!(options.language, "deu+eng+fra");
             assert_eq!(options.min_confidence, 0.85);
@@ -1688,24 +1752,38 @@ mod tests {
             let fragments = vec![
                 OcrTextFragment {
                     text: "TopLeft".to_string(),
-                    x: 0.0, y: 0.0, width: 50.0, height: 20.0,
-                    confidence: 0.9, font_size: 12.0,
+                    x: 0.0,
+                    y: 0.0,
+                    width: 50.0,
+                    height: 20.0,
+                    confidence: 0.9,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Word,
                 },
                 OcrTextFragment {
                     text: "BottomRight".to_string(),
-                    x: 550.0, y: 770.0, width: 60.0, height: 20.0,
-                    confidence: 0.9, font_size: 12.0,
+                    x: 550.0,
+                    y: 770.0,
+                    width: 60.0,
+                    height: 20.0,
+                    confidence: 0.9,
+                    font_size: 12.0,
                     fragment_type: FragmentType::Word,
                 },
             ];
-            
+
             // Calculate document bounds
             let min_x = fragments.iter().map(|f| f.x).fold(f64::INFINITY, f64::min);
             let min_y = fragments.iter().map(|f| f.y).fold(f64::INFINITY, f64::min);
-            let max_x = fragments.iter().map(|f| f.x + f.width).fold(f64::NEG_INFINITY, f64::max);
-            let max_y = fragments.iter().map(|f| f.y + f.height).fold(f64::NEG_INFINITY, f64::max);
-            
+            let max_x = fragments
+                .iter()
+                .map(|f| f.x + f.width)
+                .fold(f64::NEG_INFINITY, f64::max);
+            let max_y = fragments
+                .iter()
+                .map(|f| f.y + f.height)
+                .fold(f64::NEG_INFINITY, f64::max);
+
             assert_eq!(min_x, 0.0);
             assert_eq!(min_y, 0.0);
             assert_eq!(max_x, 610.0);
@@ -1715,17 +1793,17 @@ mod tests {
         #[test]
         fn test_error_chain_context() {
             use std::io::{Error as IoError, ErrorKind};
-            
+
             // Test error context preservation
             let io_error = IoError::new(ErrorKind::PermissionDenied, "Access denied to image file");
             let ocr_error: OcrError = io_error.into();
-            
+
             let error_chain = format!("{}", ocr_error);
             assert!(error_chain.contains("IO error"));
-            
+
             // Test custom error with context
             let processing_error = OcrError::ProcessingFailed(
-                "Failed to process page 5: insufficient memory".to_string()
+                "Failed to process page 5: insufficient memory".to_string(),
             );
             let error_msg = format!("{}", processing_error);
             assert!(error_msg.contains("page 5"));
@@ -1736,7 +1814,7 @@ mod tests {
         fn test_concurrent_result_processing() {
             use std::sync::{Arc, Mutex};
             use std::thread;
-            
+
             // Create shared result
             let result = Arc::new(OcrProcessingResult {
                 text: "Concurrent test".to_string(),
@@ -1744,14 +1822,22 @@ mod tests {
                 fragments: vec![
                     OcrTextFragment {
                         text: "Fragment1".to_string(),
-                        x: 0.0, y: 0.0, width: 100.0, height: 20.0,
-                        confidence: 0.9, font_size: 12.0,
+                        x: 0.0,
+                        y: 0.0,
+                        width: 100.0,
+                        height: 20.0,
+                        confidence: 0.9,
+                        font_size: 12.0,
                         fragment_type: FragmentType::Word,
                     },
                     OcrTextFragment {
                         text: "Fragment2".to_string(),
-                        x: 0.0, y: 25.0, width: 100.0, height: 20.0,
-                        confidence: 0.8, font_size: 12.0,
+                        x: 0.0,
+                        y: 25.0,
+                        width: 100.0,
+                        height: 20.0,
+                        confidence: 0.8,
+                        font_size: 12.0,
                         fragment_type: FragmentType::Word,
                     },
                 ],
@@ -1760,33 +1846,33 @@ mod tests {
                 language: "en".to_string(),
                 image_dimensions: (200, 100),
             });
-            
+
             let counter = Arc::new(Mutex::new(0));
             let mut handles = vec![];
-            
+
             // Spawn threads to process result concurrently
             for _ in 0..10 {
                 let result_clone = Arc::clone(&result);
                 let counter_clone = Arc::clone(&counter);
-                
+
                 let handle = thread::spawn(move || {
                     // Perform various read operations
                     let _ = result_clone.filter_by_confidence(0.85);
                     let _ = result_clone.fragments_in_region(0.0, 0.0, 200.0, 100.0);
                     let _ = result_clone.average_confidence();
-                    
+
                     let mut count = counter_clone.lock().unwrap();
                     *count += 1;
                 });
-                
+
                 handles.push(handle);
             }
-            
+
             // Wait for all threads
             for handle in handles {
                 handle.join().unwrap();
             }
-            
+
             assert_eq!(*counter.lock().unwrap(), 10);
         }
     }

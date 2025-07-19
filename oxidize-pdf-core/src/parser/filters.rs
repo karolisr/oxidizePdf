@@ -279,7 +279,7 @@ fn decode_ascii85(data: &[u8]) -> ParseResult<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::objects::{PdfArray, PdfDictionary, PdfObject, PdfName};
+    use crate::parser::objects::{PdfArray, PdfDictionary, PdfName, PdfObject};
 
     #[test]
     fn test_ascii_hex_decode() {
@@ -309,12 +309,24 @@ mod tests {
 
     #[test]
     fn test_filter_from_name() {
-        assert_eq!(Filter::from_name("ASCIIHexDecode"), Some(Filter::ASCIIHexDecode));
-        assert_eq!(Filter::from_name("ASCII85Decode"), Some(Filter::ASCII85Decode));
+        assert_eq!(
+            Filter::from_name("ASCIIHexDecode"),
+            Some(Filter::ASCIIHexDecode)
+        );
+        assert_eq!(
+            Filter::from_name("ASCII85Decode"),
+            Some(Filter::ASCII85Decode)
+        );
         assert_eq!(Filter::from_name("LZWDecode"), Some(Filter::LZWDecode));
         assert_eq!(Filter::from_name("FlateDecode"), Some(Filter::FlateDecode));
-        assert_eq!(Filter::from_name("RunLengthDecode"), Some(Filter::RunLengthDecode));
-        assert_eq!(Filter::from_name("CCITTFaxDecode"), Some(Filter::CCITTFaxDecode));
+        assert_eq!(
+            Filter::from_name("RunLengthDecode"),
+            Some(Filter::RunLengthDecode)
+        );
+        assert_eq!(
+            Filter::from_name("CCITTFaxDecode"),
+            Some(Filter::CCITTFaxDecode)
+        );
         assert_eq!(Filter::from_name("JBIG2Decode"), Some(Filter::JBIG2Decode));
         assert_eq!(Filter::from_name("DCTDecode"), Some(Filter::DCTDecode));
         assert_eq!(Filter::from_name("JPXDecode"), Some(Filter::JPXDecode));
@@ -340,7 +352,7 @@ mod tests {
     fn test_decode_stream_no_filter() {
         let data = b"Hello, world!";
         let dict = PdfDictionary::new();
-        
+
         let result = decode_stream(data, &dict).unwrap();
         assert_eq!(result, data);
     }
@@ -349,8 +361,11 @@ mod tests {
     fn test_decode_stream_single_filter() {
         let data = b"48656C6C6F>";
         let mut dict = PdfDictionary::new();
-        dict.insert("Filter".to_string(), PdfObject::Name(PdfName("ASCIIHexDecode".to_string())));
-        
+        dict.insert(
+            "Filter".to_string(),
+            PdfObject::Name(PdfName("ASCIIHexDecode".to_string())),
+        );
+
         let result = decode_stream(data, &dict).unwrap();
         assert_eq!(result, b"Hello");
     }
@@ -359,8 +374,11 @@ mod tests {
     fn test_decode_stream_invalid_filter() {
         let data = b"test data";
         let mut dict = PdfDictionary::new();
-        dict.insert("Filter".to_string(), PdfObject::Name(PdfName("UnknownFilter".to_string())));
-        
+        dict.insert(
+            "Filter".to_string(),
+            PdfObject::Name(PdfName("UnknownFilter".to_string())),
+        );
+
         let result = decode_stream(data, &dict);
         assert!(result.is_err());
     }
@@ -371,7 +389,7 @@ mod tests {
         let mut dict = PdfDictionary::new();
         let filters = vec![PdfObject::Name(PdfName("ASCIIHexDecode".to_string()))];
         dict.insert("Filter".to_string(), PdfObject::Array(PdfArray(filters)));
-        
+
         let result = decode_stream(data, &dict).unwrap();
         assert_eq!(result, b"Hello");
     }
@@ -381,7 +399,7 @@ mod tests {
         let data = b"test data";
         let mut dict = PdfDictionary::new();
         dict.insert("Filter".to_string(), PdfObject::Integer(42)); // Invalid type
-        
+
         let result = decode_stream(data, &dict);
         assert!(result.is_err());
     }
@@ -427,12 +445,12 @@ mod tests {
         use flate2::write::ZlibEncoder;
         use flate2::Compression;
         use std::io::Write;
-        
+
         let original = b"Hello, compressed world!";
         let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
         encoder.write_all(original).unwrap();
         let compressed = encoder.finish().unwrap();
-        
+
         let result = decode_flate(&compressed).unwrap();
         assert_eq!(result, original);
     }
@@ -464,7 +482,7 @@ mod tests {
             Filter::JPXDecode,
             Filter::Crypt,
         ];
-        
+
         for filter in unsupported_filters {
             let result = apply_filter(data, filter);
             assert!(result.is_err());

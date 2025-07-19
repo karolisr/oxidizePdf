@@ -199,7 +199,7 @@ mod tests {
         let mut dict = PdfDictionary::new();
         dict.insert("Size".to_string(), PdfObject::Integer(100));
         dict.insert("Root".to_string(), PdfObject::Reference(1, 0));
-        
+
         let mut id_array = PdfArray::new();
         id_array.push(PdfObject::String(PdfString(b"ID1".to_vec())));
         id_array.push(PdfObject::String(PdfString(b"ID2".to_vec())));
@@ -217,7 +217,7 @@ mod tests {
         dict.insert("Root".to_string(), PdfObject::Reference(1, 0));
 
         let trailer = PdfTrailer::from_dict(dict, 1000).unwrap();
-        
+
         match trailer.size() {
             Err(ParseError::MissingKey(key)) => assert_eq!(key, "Size"),
             _ => panic!("Expected MissingKey error for Size"),
@@ -230,7 +230,7 @@ mod tests {
         dict.insert("Size".to_string(), PdfObject::Integer(100));
 
         let trailer = PdfTrailer::from_dict(dict, 1000).unwrap();
-        
+
         match trailer.root() {
             Err(ParseError::MissingKey(key)) => assert_eq!(key, "Root"),
             _ => panic!("Expected MissingKey error for Root"),
@@ -240,11 +240,14 @@ mod tests {
     #[test]
     fn test_trailer_invalid_size_type() {
         let mut dict = PdfDictionary::new();
-        dict.insert("Size".to_string(), PdfObject::String(PdfString(b"not a number".to_vec())));
+        dict.insert(
+            "Size".to_string(),
+            PdfObject::String(PdfString(b"not a number".to_vec())),
+        );
         dict.insert("Root".to_string(), PdfObject::Reference(1, 0));
 
         let trailer = PdfTrailer::from_dict(dict, 1000).unwrap();
-        
+
         assert!(trailer.size().is_err());
     }
 
@@ -252,10 +255,13 @@ mod tests {
     fn test_trailer_invalid_root_type() {
         let mut dict = PdfDictionary::new();
         dict.insert("Size".to_string(), PdfObject::Integer(100));
-        dict.insert("Root".to_string(), PdfObject::String(PdfString(b"not a reference".to_vec())));
+        dict.insert(
+            "Root".to_string(),
+            PdfObject::String(PdfString(b"not a reference".to_vec())),
+        );
 
         let trailer = PdfTrailer::from_dict(dict, 1000).unwrap();
-        
+
         assert!(trailer.root().is_err());
     }
 
@@ -267,7 +273,7 @@ mod tests {
         dict.insert("Encrypt".to_string(), PdfObject::Reference(5, 0));
 
         let trailer = PdfTrailer::from_dict(dict, 1000).unwrap();
-        
+
         assert!(trailer.is_encrypted());
         assert_eq!(trailer.encrypt(), Some((5, 0)));
     }
@@ -316,7 +322,7 @@ mod tests {
         dict.insert("Prev".to_string(), PdfObject::Real(5000.0));
 
         let trailer = PdfTrailer::from_dict(dict, 10000).unwrap();
-        
+
         // Real numbers should not be converted to prev offset
         assert_eq!(trailer.prev, None);
     }
@@ -329,7 +335,7 @@ mod tests {
         dict.insert("Prev".to_string(), PdfObject::Integer(i64::MAX));
 
         let trailer = PdfTrailer::from_dict(dict, u64::MAX).unwrap();
-        
+
         assert_eq!(trailer.size().unwrap(), u32::MAX);
         assert_eq!(trailer.root().unwrap(), (u32::MAX, u16::MAX));
         assert_eq!(trailer.prev, Some(i64::MAX as u64));
@@ -343,14 +349,14 @@ mod tests {
         dict.insert("Root".to_string(), PdfObject::Reference(1, 0));
         dict.insert("Info".to_string(), PdfObject::Reference(2, 0));
         dict.insert("Prev".to_string(), PdfObject::Integer(1000));
-        
+
         let mut id_array = PdfArray::new();
         id_array.push(PdfObject::String(PdfString(b"FirstID".to_vec())));
         id_array.push(PdfObject::String(PdfString(b"SecondID".to_vec())));
         dict.insert("ID".to_string(), PdfObject::Array(id_array));
 
         let trailer = PdfTrailer::from_dict(dict.clone(), 5000).unwrap();
-        
+
         assert_eq!(trailer.size().unwrap(), 200);
         assert_eq!(trailer.root().unwrap(), (1, 0));
         assert_eq!(trailer.info(), Some((2, 0)));
@@ -358,22 +364,24 @@ mod tests {
         assert!(trailer.id().is_some());
         assert!(!trailer.is_encrypted());
         assert_eq!(trailer.xref_offset, 5000);
-        
+
         // Verify validation passes
         assert!(trailer.validate().is_ok());
     }
 
     #[test]
     fn test_trailer_chain_ordering() {
-        let trailers: Vec<PdfTrailer> = (0..5).map(|i| {
-            let mut dict = PdfDictionary::new();
-            dict.insert("Size".to_string(), PdfObject::Integer(100 + i));
-            dict.insert("Root".to_string(), PdfObject::Reference(1, 0));
-            if i > 0 {
-                dict.insert("Prev".to_string(), PdfObject::Integer((i * 1000) as i64));
-            }
-            PdfTrailer::from_dict(dict, ((i + 1) * 1000) as u64).unwrap()
-        }).collect();
+        let trailers: Vec<PdfTrailer> = (0..5)
+            .map(|i| {
+                let mut dict = PdfDictionary::new();
+                dict.insert("Size".to_string(), PdfObject::Integer(100 + i));
+                dict.insert("Root".to_string(), PdfObject::Reference(1, 0));
+                if i > 0 {
+                    dict.insert("Prev".to_string(), PdfObject::Integer((i * 1000) as i64));
+                }
+                PdfTrailer::from_dict(dict, ((i + 1) * 1000) as u64).unwrap()
+            })
+            .collect();
 
         let mut chain = TrailerChain::new(trailers[0].clone());
         for trailer in trailers.iter().skip(1) {
@@ -382,7 +390,7 @@ mod tests {
 
         assert_eq!(chain.all().len(), 5);
         assert!(chain.has_previous());
-        
+
         // Verify ordering (newest first)
         assert_eq!(chain.current().xref_offset, 1000);
         assert_eq!(chain.all()[0].xref_offset, 1000);

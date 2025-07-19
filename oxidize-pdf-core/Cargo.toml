@@ -31,7 +31,7 @@ serde_json = { workspace = true, optional = true }
 tracing = { workspace = true }
 
 # Hashing
-md5 = "0.7"
+md5 = "0.8"
 
 # Parallel processing
 num_cpus = "1.16"
@@ -44,7 +44,7 @@ libc = "0.2"
 winapi = { version = "0.3", features = ["memoryapi", "handleapi", "winnt"] }
 
 # OCR dependencies (optional)
-tesseract = { version = "0.13", optional = true }
+tesseract = { version = "0.15", optional = true }
 leptonica-plumbing = { version = "1.0", optional = true }
 
 [dev-dependencies]

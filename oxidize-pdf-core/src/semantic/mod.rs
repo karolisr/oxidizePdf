@@ -27,5 +27,4 @@ pub trait SemanticMarking {
     fn export_entities(&self) -> EntityMap;
 }
 
-#[cfg(test)]
 mod tests;

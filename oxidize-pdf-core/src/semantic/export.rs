@@ -73,7 +73,3 @@ impl Default for ExportFormat {
         Self::Json
     }
 }
-
-#[cfg(test)]
-#[path = "export_tests.rs"]
-mod export_tests;

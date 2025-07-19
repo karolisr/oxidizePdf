@@ -31,29 +31,29 @@ impl ProgressInfo {
             (self.completed_jobs as f64 / self.total_jobs as f64) * 100.0
         }
     }
-    
+
     /// Check if batch is complete
     pub fn is_complete(&self) -> bool {
         self.completed_jobs + self.failed_jobs >= self.total_jobs
     }
-    
+
     /// Get elapsed time
     pub fn elapsed(&self) -> Duration {
         self.start_time.elapsed()
     }
-    
+
     /// Calculate estimated time remaining
     pub fn calculate_eta(&self) -> Option<Duration> {
         let processed = self.completed_jobs + self.failed_jobs;
         if processed == 0 || self.throughput <= 0.0 {
             return None;
         }
-        
+
         let remaining = self.total_jobs.saturating_sub(processed);
         let seconds_remaining = remaining as f64 / self.throughput;
         Some(Duration::from_secs_f64(seconds_remaining))
     }
-    
+
     /// Format progress as a string
     pub fn format_progress(&self) -> String {
         format!(
@@ -65,7 +65,7 @@ impl ProgressInfo {
             self.failed_jobs
         )
     }
-    
+
     /// Format ETA as a string
     pub fn format_eta(&self) -> String {
         match self.estimated_remaining {
@@ -93,6 +93,12 @@ pub struct BatchProgress {
     start_time: Instant,
 }
 
+impl Default for BatchProgress {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BatchProgress {
     /// Create a new progress tracker
     pub fn new() -> Self {
@@ -104,36 +110,36 @@ impl BatchProgress {
             start_time: Instant::now(),
         }
     }
-    
+
     /// Add a job to the total count
     pub fn add_job(&self) {
         self.total_jobs.fetch_add(1, Ordering::SeqCst);
     }
-    
+
     /// Mark a job as started
     pub fn start_job(&self) {
         self.running_jobs.fetch_add(1, Ordering::SeqCst);
     }
-    
+
     /// Mark a job as completed successfully
     pub fn complete_job(&self) {
         self.running_jobs.fetch_sub(1, Ordering::SeqCst);
         self.completed_jobs.fetch_add(1, Ordering::SeqCst);
     }
-    
+
     /// Mark a job as failed
     pub fn fail_job(&self) {
         self.running_jobs.fetch_sub(1, Ordering::SeqCst);
         self.failed_jobs.fetch_add(1, Ordering::SeqCst);
     }
-    
+
     /// Get current progress information
     pub fn get_info(&self) -> ProgressInfo {
         let total = self.total_jobs.load(Ordering::SeqCst);
         let completed = self.completed_jobs.load(Ordering::SeqCst);
         let failed = self.failed_jobs.load(Ordering::SeqCst);
         let running = self.running_jobs.load(Ordering::SeqCst);
-        
+
         let elapsed = self.start_time.elapsed();
         let processed = completed + failed;
         let throughput = if elapsed.as_secs_f64() > 0.0 {
@@ -141,7 +147,7 @@ impl BatchProgress {
         } else {
             0.0
         };
-        
+
         let mut info = ProgressInfo {
             total_jobs: total,
             completed_jobs: completed,
@@ -151,11 +157,11 @@ impl BatchProgress {
             estimated_remaining: None,
             throughput,
         };
-        
+
         info.estimated_remaining = info.calculate_eta();
         info
     }
-    
+
     /// Reset the progress tracker
     pub fn reset(&self) {
         self.total_jobs.store(0, Ordering::SeqCst);
@@ -206,36 +212,32 @@ impl ProgressBar {
             ..Default::default()
         }
     }
-    
+
     /// Render the progress bar
     pub fn render(&self, info: &ProgressInfo) -> String {
         let percentage = info.percentage();
         let filled = (percentage / 100.0 * self.width as f64) as usize;
         let empty = self.width.saturating_sub(filled);
-        
+
         let bar = format!(
             "[{}{}] {:.1}%",
             "=".repeat(filled),
             " ".repeat(empty),
             percentage
         );
-        
+
         let mut parts = vec![bar];
-        
-        parts.push(format!(
-            "{}/{}",
-            info.completed_jobs,
-            info.total_jobs
-        ));
-        
+
+        parts.push(format!("{}/{}", info.completed_jobs, info.total_jobs));
+
         if self.show_throughput && info.throughput > 0.0 {
             parts.push(format!("{:.1} jobs/s", info.throughput));
         }
-        
+
         if self.show_eta {
             parts.push(format!("ETA: {}", info.format_eta()));
         }
-        
+
         parts.join(" | ")
     }
 }
@@ -243,10 +245,10 @@ impl ProgressBar {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_progress_info() {
-        let mut info = ProgressInfo {
+        let info = ProgressInfo {
             total_jobs: 100,
             completed_jobs: 25,
             failed_jobs: 5,
@@ -255,15 +257,15 @@ mod tests {
             estimated_remaining: Some(Duration::from_secs(60)),
             throughput: 2.5,
         };
-        
+
         assert_eq!(info.percentage(), 25.0);
         assert!(!info.is_complete());
         assert!(info.elapsed().as_millis() >= 0);
     }
-    
+
     #[test]
     fn test_progress_info_formatting() {
-        let mut info = ProgressInfo {
+        let info = ProgressInfo {
             total_jobs: 100,
             completed_jobs: 50,
             failed_jobs: 10,
@@ -272,51 +274,51 @@ mod tests {
             estimated_remaining: Some(Duration::from_secs(125)),
             throughput: 1.0,
         };
-        
+
         let progress_str = info.format_progress();
         assert!(progress_str.contains("50/100"));
         assert!(progress_str.contains("50.0%"));
         assert!(progress_str.contains("5 running"));
         assert!(progress_str.contains("10 failed"));
-        
+
         let eta_str = info.format_eta();
         assert!(eta_str.contains("2m"));
     }
-    
+
     #[test]
     fn test_batch_progress() {
         let progress = BatchProgress::new();
-        
+
         // Add jobs
         progress.add_job();
         progress.add_job();
         progress.add_job();
-        
+
         let info = progress.get_info();
         assert_eq!(info.total_jobs, 3);
         assert_eq!(info.completed_jobs, 0);
-        
+
         // Start and complete jobs
         progress.start_job();
         progress.complete_job();
-        
+
         let info = progress.get_info();
         assert_eq!(info.completed_jobs, 1);
         assert_eq!(info.running_jobs, 0);
-        
+
         // Fail a job
         progress.start_job();
         progress.fail_job();
-        
+
         let info = progress.get_info();
         assert_eq!(info.failed_jobs, 1);
     }
-    
+
     #[test]
     fn test_progress_bar() {
         let bar = ProgressBar::new(20);
-        
-        let mut info = ProgressInfo {
+
+        let info = ProgressInfo {
             total_jobs: 100,
             completed_jobs: 50,
             failed_jobs: 0,
@@ -325,7 +327,7 @@ mod tests {
             estimated_remaining: Some(Duration::from_secs(60)),
             throughput: 2.0,
         };
-        
+
         let rendered = bar.render(&info);
         assert!(rendered.contains("[=========="));
         assert!(rendered.contains("50.0%"));
@@ -333,20 +335,20 @@ mod tests {
         assert!(rendered.contains("2.0 jobs/s"));
         assert!(rendered.contains("ETA:"));
     }
-    
+
     #[test]
     fn test_progress_callback() {
-        use std::sync::Arc;
         use std::sync::atomic::AtomicBool;
-        
+        use std::sync::Arc;
+
         let called = Arc::new(AtomicBool::new(false));
         let called_clone = Arc::clone(&called);
-        
+
         let callback = move |_info: &ProgressInfo| {
             called_clone.store(true, Ordering::SeqCst);
         };
-        
-        let mut info = ProgressInfo {
+
+        let info = ProgressInfo {
             total_jobs: 1,
             completed_jobs: 1,
             failed_jobs: 0,
@@ -355,14 +357,14 @@ mod tests {
             estimated_remaining: None,
             throughput: 1.0,
         };
-        
+
         callback.on_progress(&info);
         assert!(called.load(Ordering::SeqCst));
     }
-    
+
     #[test]
     fn test_eta_calculation() {
-        let mut info = ProgressInfo {
+        let info = ProgressInfo {
             total_jobs: 100,
             completed_jobs: 25,
             failed_jobs: 0,
@@ -371,10 +373,10 @@ mod tests {
             estimated_remaining: None,
             throughput: 5.0, // 5 jobs per second
         };
-        
+
         let eta = info.calculate_eta();
         assert!(eta.is_some());
-        
+
         // 75 remaining jobs at 5 jobs/sec = 15 seconds
         assert_eq!(eta.unwrap().as_secs(), 15);
     }

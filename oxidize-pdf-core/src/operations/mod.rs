@@ -260,15 +260,15 @@ mod tests {
     fn test_module_exports() {
         // Verify that all operation types are exported correctly
         // This test just ensures the module structure is correct
-        
+
         // We can create these types through their modules
         use super::extract_images::ExtractImagesOptions;
         use super::merge::MergeOptions;
         use super::page_analysis::{AnalysisOptions, PageType};
         use super::page_extraction::PageExtractionOptions;
         use super::rotate::{RotateOptions, RotationAngle};
-        use super::split::{SplitOptions, SplitMode};
-        
+        use super::split::{SplitMode, SplitOptions};
+
         // Just verify we can access these types
         let _extract: ExtractImagesOptions;
         let _merge: MergeOptions;
@@ -280,7 +280,7 @@ mod tests {
         let _page_type: PageType;
         let _mode: SplitMode;
     }
-    
+
     #[test]
     fn test_operation_error_variants() {
         let errors = vec![
@@ -292,7 +292,7 @@ mod tests {
             OperationError::ParseError("test".to_string()),
             OperationError::ProcessingError("test".to_string()),
         ];
-        
+
         for error in errors {
             let message = error.to_string();
             assert!(!message.is_empty());

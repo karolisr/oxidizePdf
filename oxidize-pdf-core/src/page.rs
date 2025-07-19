@@ -89,6 +89,11 @@ impl Page {
         Self::new(612.0, 792.0)
     }
 
+    /// Creates a new US Legal page (612 x 1008 points).
+    pub fn legal() -> Self {
+        Self::new(612.0, 1008.0)
+    }
+
     /// Returns a mutable reference to the graphics context for drawing shapes.
     pub fn graphics(&mut self) -> &mut GraphicsContext {
         &mut self.graphics_context
@@ -224,7 +229,7 @@ mod tests {
     fn test_set_margins() {
         let mut page = Page::a4();
         page.set_margins(10.0, 20.0, 30.0, 40.0);
-        
+
         assert_eq!(page.margins().left, 10.0);
         assert_eq!(page.margins().right, 20.0);
         assert_eq!(page.margins().top, 30.0);
@@ -235,7 +240,7 @@ mod tests {
     fn test_content_dimensions() {
         let mut page = Page::new(300.0, 400.0);
         page.set_margins(50.0, 50.0, 50.0, 50.0);
-        
+
         assert_eq!(page.content_width(), 200.0);
         assert_eq!(page.content_height(), 300.0);
     }
@@ -244,7 +249,7 @@ mod tests {
     fn test_content_area() {
         let mut page = Page::new(300.0, 400.0);
         page.set_margins(10.0, 20.0, 30.0, 40.0);
-        
+
         let (left, bottom, right, top) = page.content_area();
         assert_eq!(left, 10.0);
         assert_eq!(bottom, 40.0);
@@ -259,7 +264,7 @@ mod tests {
         graphics.set_fill_color(Color::red());
         graphics.rect(100.0, 100.0, 200.0, 150.0);
         graphics.fill();
-        
+
         // Graphics context should be accessible and modifiable
         assert!(page.generate_content().is_ok());
     }
@@ -271,7 +276,7 @@ mod tests {
         text.set_font(Font::Helvetica, 12.0);
         text.at(100.0, 700.0);
         text.write("Hello World").unwrap();
-        
+
         // Text context should be accessible and modifiable
         assert!(page.generate_content().is_ok());
     }
@@ -280,7 +285,7 @@ mod tests {
     fn test_text_flow() {
         let page = Page::a4();
         let text_flow = page.text_flow();
-        
+
         // Text flow should be created with page dimensions and margins
         // Just verify it can be created
         drop(text_flow);
@@ -293,9 +298,9 @@ mod tests {
         text_flow.at(100.0, 700.0);
         text_flow.set_font(Font::TimesRoman, 14.0);
         text_flow.write_wrapped("Test text flow").unwrap();
-        
+
         page.add_text_flow(&text_flow);
-        
+
         let content = page.generate_content().unwrap();
         assert!(!content.is_empty());
     }
@@ -315,7 +320,7 @@ mod tests {
             0xFF, 0xD9, // EOI marker
         ];
         let image = Image::from_jpeg_data(jpeg_data).unwrap();
-        
+
         page.add_image("test_image", image.clone());
         assert!(page.images().contains_key("test_image"));
         assert_eq!(page.images().len(), 1);
@@ -336,7 +341,7 @@ mod tests {
             0xFF, 0xD9, // EOI marker
         ];
         let image = Image::from_jpeg_data(jpeg_data).unwrap();
-        
+
         page.add_image("test_image", image);
         let result = page.draw_image("test_image", 50.0, 50.0, 200.0, 200.0);
         assert!(result.is_ok());
@@ -352,19 +357,20 @@ mod tests {
     #[test]
     fn test_generate_content() {
         let mut page = Page::a4();
-        
+
         // Add some graphics
         page.graphics()
             .set_fill_color(Color::blue())
             .circle(200.0, 400.0, 50.0)
             .fill();
-        
+
         // Add some text
         page.text()
             .set_font(Font::Courier, 10.0)
             .at(50.0, 650.0)
-            .write("Test content").unwrap();
-        
+            .write("Test content")
+            .unwrap();
+
         let content = page.generate_content().unwrap();
         assert!(!content.is_empty());
     }
@@ -395,7 +401,7 @@ mod tests {
         ];
         let image = Image::from_jpeg_data(jpeg_data).unwrap();
         page1.add_image("img1", image);
-        
+
         let page2 = page1.clone();
         assert_eq!(page2.width(), page1.width());
         assert_eq!(page2.height(), page1.height());
@@ -408,8 +414,8 @@ mod tests {
         use super::*;
         use crate::document::Document;
         use crate::writer::PdfWriter;
-        use tempfile::TempDir;
         use std::fs;
+        use tempfile::TempDir;
 
         #[test]
         fn test_page_document_integration() {
@@ -420,10 +426,11 @@ mod tests {
             let page1 = Page::a4();
             let page2 = Page::letter();
             let mut page3 = Page::new(400.0, 600.0);
-            
+
             // Add content to custom page
             page3.set_margins(20.0, 20.0, 20.0, 20.0);
-            page3.text()
+            page3
+                .text()
                 .set_font(Font::Helvetica, 14.0)
                 .at(50.0, 550.0)
                 .write("Custom page content")
@@ -434,12 +441,12 @@ mod tests {
             doc.add_page(page3);
 
             assert_eq!(doc.pages.len(), 3);
-            
+
             // Verify page properties are preserved
             assert_eq!(doc.pages[0].width(), 595.0); // A4
             assert_eq!(doc.pages[1].width(), 612.0); // Letter
             assert_eq!(doc.pages[2].width(), 400.0); // Custom
-            
+
             // Verify content generation works
             let mut page_copy = doc.pages[2].clone();
             let content = page_copy.generate_content().unwrap();
@@ -522,13 +529,19 @@ mod tests {
             // Add content that uses margin information
             for (i, page) in [&mut page1, &mut page2, &mut page3].iter_mut().enumerate() {
                 let (left, bottom, right, top) = page.content_area();
-                
+
                 // Place text at content area boundaries
                 page.text()
                     .set_font(Font::Helvetica, 10.0)
                     .at(left, top - 20.0)
-                    .write(&format!("Page {} - Content area: ({:.1}, {:.1}, {:.1}, {:.1})", 
-                                  i + 1, left, bottom, right, top))
+                    .write(&format!(
+                        "Page {} - Content area: ({:.1}, {:.1}, {:.1}, {:.1})",
+                        i + 1,
+                        left,
+                        bottom,
+                        right,
+                        top
+                    ))
                     .unwrap();
 
                 // Draw border around content area
@@ -578,7 +591,8 @@ mod tests {
             page.add_image("image2", image2);
 
             // Draw images at different positions
-            page.draw_image("image1", 100.0, 600.0, 200.0, 100.0).unwrap();
+            page.draw_image("image1", 100.0, 600.0, 200.0, 100.0)
+                .unwrap();
             page.draw_image("image2", 350.0, 600.0, 50.0, 50.0).unwrap();
 
             // Add text labels
@@ -625,8 +639,10 @@ mod tests {
             let mut text_flow = page.text_flow();
             text_flow.set_font(Font::TimesRoman, 12.0);
             text_flow.at(100.0, 700.0);
-            
-            let long_text = "This is a long paragraph that should demonstrate text flow capabilities. ".repeat(10);
+
+            let long_text =
+                "This is a long paragraph that should demonstrate text flow capabilities. "
+                    .repeat(10);
             text_flow.write_wrapped(&long_text).unwrap();
 
             // Add the text flow to the page
@@ -668,7 +684,7 @@ mod tests {
             page.set_margins(40.0, 40.0, 40.0, 40.0);
 
             // Create complex layered content
-            
+
             // Background graphics
             page.graphics()
                 .set_fill_color(Color::rgb(0.95, 0.95, 0.95))
@@ -708,7 +724,10 @@ mod tests {
                 page.text()
                     .set_font(Font::TimesRoman, 10.0)
                     .at(70.0, y_pos)
-                    .write(&format!("This is the content for section {}. It demonstrates mixed content.", i))
+                    .write(&format!(
+                        "This is the content for section {}. It demonstrates mixed content.",
+                        i
+                    ))
                     .unwrap();
 
                 // Section graphics
@@ -755,7 +774,7 @@ mod tests {
         #[test]
         fn test_page_content_generation_performance() {
             let mut page = Page::a4();
-            
+
             // Add many elements to test performance
             for i in 0..100 {
                 let y = 800.0 - (i as f64 * 7.0);
@@ -795,7 +814,7 @@ mod tests {
             // Test drawing non-existent image
             let result = page.draw_image("nonexistent", 100.0, 100.0, 50.0, 50.0);
             assert!(result.is_err());
-            
+
             // Test with invalid parameters - should still work
             let result = page.draw_image("still_nonexistent", -100.0, -100.0, 0.0, 0.0);
             assert!(result.is_err());
@@ -814,12 +833,12 @@ mod tests {
         #[test]
         fn test_page_memory_management() {
             let mut pages = Vec::new();
-            
+
             // Create many pages to test memory usage
             for i in 0..100 {
                 let mut page = Page::a4();
                 page.set_margins(i as f64, i as f64, i as f64, i as f64);
-                
+
                 page.text()
                     .set_font(Font::Helvetica, 12.0)
                     .at(100.0, 700.0)
@@ -831,7 +850,7 @@ mod tests {
 
             // All pages should be valid
             assert_eq!(pages.len(), 100);
-            
+
             // Content generation should work for all pages
             for page in pages.iter_mut() {
                 let content = page.generate_content().unwrap();

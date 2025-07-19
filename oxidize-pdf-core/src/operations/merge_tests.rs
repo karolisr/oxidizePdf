@@ -413,7 +413,10 @@ mod tests {
         assert!(default_options.preserve_bookmarks);
         assert!(!default_options.preserve_forms);
         assert!(!default_options.optimize);
-        assert!(matches!(default_options.metadata_mode, MetadataMode::FromFirst));
+        assert!(matches!(
+            default_options.metadata_mode,
+            MetadataMode::FromFirst
+        ));
         assert!(default_options.page_ranges.is_none());
 
         let custom_options = MergeOptions {
@@ -458,7 +461,7 @@ mod tests {
     #[test]
     fn test_merge_input_creation() {
         let path = PathBuf::from("test.pdf");
-        
+
         // Test MergeInput::new
         let input1 = MergeInput::new(&path);
         assert_eq!(input1.path, path);
@@ -484,7 +487,7 @@ mod tests {
     #[test]
     fn test_merger_add_inputs() {
         let mut merger = PdfMerger::new(MergeOptions::default());
-        
+
         // Test adding single input
         let input1 = MergeInput::new("doc1.pdf");
         merger.add_input(input1);
@@ -576,7 +579,10 @@ mod tests {
         // Test Clone implementations
         let options = MergeOptions::default();
         let cloned_options = options.clone();
-        assert_eq!(cloned_options.preserve_bookmarks, options.preserve_bookmarks);
+        assert_eq!(
+            cloned_options.preserve_bookmarks,
+            options.preserve_bookmarks
+        );
 
         let metadata_mode = MetadataMode::FromFirst;
         let cloned_mode = metadata_mode.clone();

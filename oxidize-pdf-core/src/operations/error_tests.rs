@@ -57,13 +57,19 @@ mod tests {
     fn test_pdf_error() {
         let pdf_err = PdfError::InvalidStructure("Invalid header".to_string());
         let err = OperationError::PdfError(pdf_err);
-        assert_eq!(err.to_string(), "PDF error: Invalid PDF structure: Invalid header");
+        assert_eq!(
+            err.to_string(),
+            "PDF error: Invalid PDF structure: Invalid header"
+        );
     }
 
     #[test]
     fn test_processing_error() {
         let err = OperationError::ProcessingError("Failed to process content".to_string());
-        assert_eq!(err.to_string(), "Processing error: Failed to process content");
+        assert_eq!(
+            err.to_string(),
+            "Processing error: Failed to process content"
+        );
     }
 
     #[test]
@@ -97,7 +103,7 @@ mod tests {
         // Test that errors can be properly chained
         let io_err = io::Error::new(io::ErrorKind::Other, "Low level error");
         let op_err = OperationError::Io(io_err);
-        
+
         // Verify we can access the source
         let source = std::error::Error::source(&op_err);
         assert!(source.is_some());

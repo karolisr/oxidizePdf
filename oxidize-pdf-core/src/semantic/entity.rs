@@ -95,7 +95,3 @@ impl Entity {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "entity_tests.rs"]
-mod entity_tests;

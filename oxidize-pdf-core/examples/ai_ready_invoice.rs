@@ -133,10 +133,7 @@ fn mark_semantic_regions(page: &mut Page) {
 
     // Mark invoice header
     marker
-        .mark(
-            EntityType::Heading,
-            (50.0, 740.0, 200.0, 40.0),
-        )
+        .mark(EntityType::Heading, (50.0, 740.0, 200.0, 40.0))
         .with_metadata("type", "invoice_header")
         .with_confidence(0.99)
         .build();

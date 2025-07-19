@@ -68,14 +68,14 @@ impl TextStreamer {
             current_y: 0.0,
         }
     }
-    
+
     /// Process a content stream chunk
     pub fn process_chunk(&mut self, data: &[u8]) -> Result<Vec<TextChunk>> {
         let operations = ContentParser::parse(data)
             .map_err(|e| crate::error::PdfError::ParseError(e.to_string()))?;
-        
+
         let mut chunks = Vec::new();
-        
+
         for op in operations {
             match op {
                 ContentOperation::SetFont(name, size) => {
@@ -106,32 +106,32 @@ impl TextStreamer {
                 _ => {} // Ignore other operations
             }
         }
-        
+
         // Add to buffer if needed
         for chunk in &chunks {
             self.buffer.push_back(chunk.clone());
         }
-        
+
         // Check buffer size
         self.check_buffer_size();
-        
+
         Ok(chunks)
     }
-    
+
     /// Get all buffered text chunks
     pub fn get_buffered_chunks(&self) -> Vec<TextChunk> {
         self.buffer.iter().cloned().collect()
     }
-    
+
     /// Clear the buffer
     pub fn clear_buffer(&mut self) {
         self.buffer.clear();
     }
-    
+
     /// Extract text as a single string
     pub fn extract_text(&self) -> String {
         let mut chunks = self.get_buffered_chunks();
-        
+
         if self.options.sort_by_position {
             // Sort by Y position (top to bottom), then X (left to right)
             chunks.sort_by(|a, b| {
@@ -140,18 +140,17 @@ impl TextStreamer {
                     .then(a.x.partial_cmp(&b.x).unwrap_or(std::cmp::Ordering::Equal))
             });
         }
-        
-        chunks.into_iter()
+
+        chunks
+            .into_iter()
             .map(|chunk| chunk.text)
             .collect::<Vec<_>>()
             .join(" ")
     }
-    
+
     fn check_buffer_size(&mut self) {
-        let total_size: usize = self.buffer.iter()
-            .map(|chunk| chunk.text.len())
-            .sum();
-        
+        let total_size: usize = self.buffer.iter().map(|chunk| chunk.text.len()).sum();
+
         // Remove oldest chunks if buffer is too large
         while total_size > self.options.max_buffer_size && !self.buffer.is_empty() {
             self.buffer.pop_front();
@@ -165,21 +164,21 @@ where
     F: FnMut(TextChunk) -> Result<()>,
 {
     let mut streamer = TextStreamer::new(TextStreamOptions::default());
-    
+
     for stream in content_streams {
         let chunks = streamer.process_chunk(&stream)?;
         for chunk in chunks {
             callback(chunk)?;
         }
     }
-    
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_text_chunk() {
         let chunk = TextChunk {
@@ -189,14 +188,14 @@ mod tests {
             font_size: 12.0,
             font_name: Some("Helvetica".to_string()),
         };
-        
+
         assert_eq!(chunk.text, "Hello");
         assert_eq!(chunk.x, 100.0);
         assert_eq!(chunk.y, 700.0);
         assert_eq!(chunk.font_size, 12.0);
         assert_eq!(chunk.font_name, Some("Helvetica".to_string()));
     }
-    
+
     #[test]
     fn test_text_stream_options_default() {
         let options = TextStreamOptions::default();
@@ -205,53 +204,53 @@ mod tests {
         assert!(options.preserve_formatting);
         assert!(options.sort_by_position);
     }
-    
+
     #[test]
     fn test_text_streamer_creation() {
         let options = TextStreamOptions::default();
         let streamer = TextStreamer::new(options);
-        
+
         assert!(streamer.buffer.is_empty());
         assert_eq!(streamer.current_font_size, 12.0);
         assert_eq!(streamer.current_x, 0.0);
         assert_eq!(streamer.current_y, 0.0);
     }
-    
+
     #[test]
     fn test_process_chunk_text() {
         let mut streamer = TextStreamer::new(TextStreamOptions::default());
-        
+
         // Simple text showing operation
         let content = b"BT /F1 14 Tf 100 700 Td (Hello World) Tj ET";
         let chunks = streamer.process_chunk(content).unwrap();
-        
+
         assert!(!chunks.is_empty());
         assert_eq!(chunks[0].text, "Hello World");
         assert_eq!(chunks[0].font_size, 14.0);
     }
-    
+
     #[test]
     fn test_min_font_size_filter() {
         let mut options = TextStreamOptions::default();
         options.min_font_size = 10.0;
         let mut streamer = TextStreamer::new(options);
-        
+
         // Text with small font (8pt) - should be filtered out
         let content = b"BT /F1 8 Tf 100 700 Td (Small Text) Tj ET";
         let chunks = streamer.process_chunk(content).unwrap();
         assert!(chunks.is_empty());
-        
+
         // Text with large font (12pt) - should be included
         let content = b"BT /F1 12 Tf 100 650 Td (Large Text) Tj ET";
         let chunks = streamer.process_chunk(content).unwrap();
         assert_eq!(chunks.len(), 1);
         assert_eq!(chunks[0].text, "Large Text");
     }
-    
+
     #[test]
     fn test_extract_text_sorted() {
         let mut streamer = TextStreamer::new(TextStreamOptions::default());
-        
+
         // Add text in random order
         streamer.buffer.push_back(TextChunk {
             text: "Bottom".to_string(),
@@ -260,7 +259,7 @@ mod tests {
             font_size: 12.0,
             font_name: None,
         });
-        
+
         streamer.buffer.push_back(TextChunk {
             text: "Top".to_string(),
             x: 100.0,
@@ -268,7 +267,7 @@ mod tests {
             font_size: 12.0,
             font_name: None,
         });
-        
+
         streamer.buffer.push_back(TextChunk {
             text: "Middle".to_string(),
             x: 100.0,
@@ -276,17 +275,17 @@ mod tests {
             font_size: 12.0,
             font_name: None,
         });
-        
+
         let text = streamer.extract_text();
         assert_eq!(text, "Top Middle Bottom");
     }
-    
+
     #[test]
     fn test_buffer_management() {
         let mut options = TextStreamOptions::default();
         options.max_buffer_size = 10; // Very small buffer
         let mut streamer = TextStreamer::new(options);
-        
+
         // Add chunks that exceed buffer size
         for i in 0..5 {
             streamer.buffer.push_back(TextChunk {
@@ -297,25 +296,26 @@ mod tests {
                 font_name: None,
             });
         }
-        
+
         streamer.check_buffer_size();
-        
+
         // Buffer should be limited
         assert!(streamer.buffer.len() < 5);
     }
-    
+
     #[test]
     fn test_stream_text_function() {
         let content1 = b"BT /F1 12 Tf 100 700 Td (Page 1) Tj ET".to_vec();
         let content2 = b"BT /F1 12 Tf 100 650 Td (Page 2) Tj ET".to_vec();
         let streams = vec![content1, content2];
-        
+
         let mut collected = Vec::new();
         stream_text(streams, |chunk| {
             collected.push(chunk.text);
             Ok(())
-        }).unwrap();
-        
+        })
+        .unwrap();
+
         assert_eq!(collected.len(), 2);
         assert_eq!(collected[0], "Page 1");
         assert_eq!(collected[1], "Page 2");

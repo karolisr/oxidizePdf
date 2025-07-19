@@ -156,7 +156,7 @@ impl PageTree {
     }
 
     /// Load a specific page by traversing the page tree
-    /// 
+    ///
     /// Note: This method is currently not fully implemented due to architectural constraints
     /// with recursive page tree traversal and borrow checker issues.
     #[allow(dead_code)]
@@ -251,7 +251,7 @@ impl PageTree {
                         // we return a placeholder page for now.
                         // A proper implementation would require refactoring the page tree
                         // traversal to use an iterative approach instead of recursion.
-                        
+
                         return Ok(ParsedPage {
                             obj_ref: kid_ref,
                             dict: PdfDictionary::new(),
