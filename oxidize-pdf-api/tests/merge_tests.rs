@@ -54,7 +54,7 @@ fn create_multipart_merge_request(pdf_files: Vec<Vec<u8>>) -> Request<Body> {
         "preserve_bookmarks": true,
         "optimize": false
     });
-    write!(body, "{}\r\n", options.to_string()).unwrap();
+    write!(body, "{}\r\n", options).unwrap();
 
     write!(body, "--{}--\r\n", boundary).unwrap();
 
@@ -99,7 +99,7 @@ async fn test_merge_endpoint_success() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
-    assert!(body.len() > 0);
+    assert!(!body.is_empty());
 
     // Basic check that it's a PDF file
     assert!(body.starts_with(b"%PDF"));
@@ -179,7 +179,7 @@ async fn test_merge_endpoint_three_files() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
-    assert!(body.len() > 0);
+    assert!(!body.is_empty());
     assert!(body.starts_with(b"%PDF"));
 }
 

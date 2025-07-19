@@ -97,6 +97,7 @@ impl<R: Read + Seek> PageStreamer<R> {
     }
 
     /// Get the next page in the stream
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Result<Option<StreamingPage>> {
         // In a real implementation, this would parse the next page
         if self.current_page >= 3 {

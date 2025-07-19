@@ -252,10 +252,8 @@ impl Worker {
                             if let BatchJob::Custom { operation, .. } = job {
                                 let _ = operation();
                             }
-                        } else {
-                            if let BatchJob::Custom { operation, .. } = job {
-                                let _ = operation();
-                            }
+                        } else if let BatchJob::Custom { operation, .. } = job {
+                            let _ = operation();
                         }
                     }
                     Ok(WorkerMessage::Shutdown) => break,
@@ -303,7 +301,7 @@ fn execute_job(job: BatchJob) -> std::result::Result<Vec<PathBuf>, PdfError> {
         BatchJob::Merge { inputs, output } => {
             let merge_inputs: Vec<_> = inputs
                 .into_iter()
-                .map(|path| crate::operations::MergeInput::new(path))
+                .map(crate::operations::MergeInput::new)
                 .collect();
             let options = crate::operations::MergeOptions::default();
             merge_pdfs(merge_inputs, &output, options)

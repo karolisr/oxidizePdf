@@ -232,7 +232,7 @@ impl PdfRecovery {
         for i in 0..page_count {
             if let Ok(page) = pdf_doc.get_page(i) {
                 // Simple conversion - would need proper implementation
-                let new_page = crate::Page::new(page.width() as f64, page.height() as f64);
+                let new_page = crate::Page::new(page.width(), page.height());
                 doc.add_page(new_page);
             }
         }

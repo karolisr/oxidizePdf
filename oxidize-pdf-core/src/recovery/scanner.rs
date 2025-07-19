@@ -73,6 +73,12 @@ pub struct ScanResult {
     pub stats: ScanStats,
 }
 
+impl Default for ObjectScanner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ObjectScanner {
     /// Create a new object scanner
     pub fn new() -> Self {

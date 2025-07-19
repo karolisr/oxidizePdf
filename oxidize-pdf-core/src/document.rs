@@ -138,6 +138,11 @@ impl Document {
         self.metadata.modification_date = Some(Utc::now());
     }
 
+    /// Gets the number of pages in the document.
+    pub fn page_count(&self) -> usize {
+        self.pages.len()
+    }
+
     /// Saves the document to a file.
     ///
     /// # Errors
@@ -178,11 +183,6 @@ impl Document {
         let id = self.allocate_object_id();
         self.objects.insert(id, obj);
         id
-    }
-
-    /// Gets the number of pages in the document.
-    pub fn page_count(&self) -> usize {
-        self.pages.len()
     }
 }
 

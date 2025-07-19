@@ -59,6 +59,12 @@ pub struct IncrementalParser {
     events: Vec<ParseEvent>,
 }
 
+impl Default for IncrementalParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IncrementalParser {
     /// Create a new incremental parser
     pub fn new() -> Self {
@@ -99,8 +105,8 @@ impl IncrementalParser {
     fn process_line(&mut self, line: &str) -> Result<()> {
         match &self.state {
             ParserState::Initial => {
-                if line.starts_with("%PDF-") {
-                    let version = line[5..].trim().to_string();
+                if let Some(version_part) = line.strip_prefix("%PDF-") {
+                    let version = version_part.trim().to_string();
                     self.events.push(ParseEvent::Header { version });
                 } else if let Some((id, gen)) = self.parse_object_header(line) {
                     self.state = ParserState::InObject {

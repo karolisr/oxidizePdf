@@ -272,7 +272,7 @@ mod tests {
             PdfError::OperationCancelled,
         ];
 
-        // Verify each error can be created and has a proper message
+        // Verify each error can be created and has the expected message structure
         for error in errors {
             let msg = error.to_string();
             assert!(!msg.is_empty(), "Error message should not be empty");

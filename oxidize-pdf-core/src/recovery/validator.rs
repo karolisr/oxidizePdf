@@ -66,6 +66,12 @@ pub struct PdfValidator {
     visited: HashSet<(u32, u16)>,
 }
 
+impl Default for PdfValidator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PdfValidator {
     /// Create a new validator
     pub fn new() -> Self {

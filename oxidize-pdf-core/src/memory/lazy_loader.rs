@@ -105,7 +105,7 @@ impl<R: Read + Seek> LazyDocument<R> {
                 Some(LazyObject::NotLoaded { offset }) => {
                     let offset = *offset;
                     // Mark as loading to prevent recursion
-                    map.insert(id.clone(), LazyObject::Loading);
+                    map.insert(*id, LazyObject::Loading);
 
                     // Load the object
                     let obj = self.load_object_at_offset(offset)?;
@@ -113,11 +113,11 @@ impl<R: Read + Seek> LazyDocument<R> {
 
                     // Cache it
                     if let Some(cache) = self.memory_manager.cache() {
-                        cache.put(id.clone(), obj_arc.clone());
+                        cache.put(*id, obj_arc.clone());
                     }
 
                     // Update map
-                    map.insert(id.clone(), LazyObject::Loaded(obj_arc.clone()));
+                    map.insert(*id, LazyObject::Loaded(obj_arc.clone()));
 
                     return Ok(obj_arc);
                 }
@@ -142,7 +142,7 @@ impl<R: Read + Seek> LazyDocument<R> {
         if let Some(resources) = page.get_resources() {
             // Preload fonts
             if let Some(fonts) = resources.get("Font").and_then(|f| f.as_dict()) {
-                for (_, font_ref) in &fonts.0 {
+                for font_ref in fonts.0.values() {
                     if let PdfObject::Reference(num, gen) = font_ref {
                         let id = ObjectId::new(*num, *gen);
                         let _ = self.get_object(&id);
@@ -152,7 +152,7 @@ impl<R: Read + Seek> LazyDocument<R> {
 
             // Preload XObjects (images)
             if let Some(xobjects) = resources.get("XObject").and_then(|x| x.as_dict()) {
-                for (_, xobj_ref) in &xobjects.0 {
+                for xobj_ref in xobjects.0.values() {
                     if let PdfObject::Reference(num, gen) = xobj_ref {
                         let id = ObjectId::new(*num, *gen);
                         let _ = self.get_object(&id);

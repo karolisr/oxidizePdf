@@ -337,7 +337,7 @@ impl TextExtractor {
     }
 
     /// Sort text fragments by position and merge them appropriately
-    fn sort_and_merge_fragments(&self, fragments: &mut Vec<TextFragment>) {
+    fn sort_and_merge_fragments(&self, fragments: &mut [TextFragment]) {
         // Sort fragments by Y position (top to bottom) then X position (left to right)
         fragments.sort_by(|a, b| {
             // First compare Y position (with threshold for same line)
@@ -358,7 +358,7 @@ impl TextExtractor {
     }
 
     /// Detect columns and re-sort fragments accordingly
-    fn detect_and_sort_columns(&self, fragments: &mut Vec<TextFragment>) {
+    fn detect_and_sort_columns(&self, fragments: &mut [TextFragment]) {
         // Group fragments by approximate Y position
         let mut lines: Vec<Vec<&mut TextFragment>> = Vec::new();
         let mut current_line: Vec<&mut TextFragment> = Vec::new();

@@ -212,7 +212,7 @@ impl<R: Read + Seek> StreamingDocument<R> {
     fn evict_pages(&mut self) {
         // Evict oldest pages until we're under the memory limit
         while self.memory_used > self.options.memory_limit && !self.page_cache.is_empty() {
-            if let Some(_) = self.page_cache.pop_front() {
+            if self.page_cache.pop_front().is_some() {
                 // In a real implementation, update memory_used
                 self.memory_used = self.memory_used.saturating_sub(1024);
             }

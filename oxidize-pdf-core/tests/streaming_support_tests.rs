@@ -1,8 +1,9 @@
 //! Integration tests for streaming support features
 
+use oxidize_pdf::streaming::PageStreamer;
 use oxidize_pdf::{
     process_in_chunks, stream_text, ChunkOptions, ChunkProcessor, ChunkType, IncrementalParser,
-    ParseEvent, StreamOptions, StreamingDocument, StreamingPage, TextStreamOptions, TextStreamer,
+    ParseEvent, StreamOptions, StreamingDocument, TextStreamOptions, TextStreamer,
 };
 use std::io::Cursor;
 
@@ -237,17 +238,22 @@ fn test_chunk_type_filtering() {
 
 #[test]
 fn test_streaming_page_methods() {
-    let page = StreamingPage::new_for_test(5, 612.0, 792.0, 1024, 2048);
+    let data = b"%PDF-1.7\n";
+    let cursor = Cursor::new(data);
+    let mut streamer = PageStreamer::new(cursor);
 
-    assert_eq!(page.number(), 5);
-    assert_eq!(page.width(), 612.0);
-    assert_eq!(page.height(), 792.0);
+    // Get first page
+    let page = streamer.next().unwrap().unwrap();
+
+    assert_eq!(page.number(), 0);
+    assert_eq!(page.width(), 595.0);
+    assert_eq!(page.height(), 842.0);
 
     let media_box = page.media_box();
-    assert_eq!(media_box, [0.0, 0.0, 612.0, 792.0]);
+    assert_eq!(media_box, [0.0, 0.0, 595.0, 842.0]);
 
     let text = page.extract_text_streaming().unwrap();
-    assert!(text.contains("page 6")); // 0-indexed, so page 5 is "page 6"
+    assert!(text.contains("page 1")); // 0-indexed, so page 0 is "page 1"
 }
 
 #[test]

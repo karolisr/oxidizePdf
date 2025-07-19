@@ -195,7 +195,7 @@ fn example_custom_batch() -> Result<(), Box<dyn std::error::Error>> {
                 let num_pages = 4; // Each sample has 4 pages
                 total_clone.fetch_add(num_pages, Ordering::SeqCst);
 
-                for page in 1..=num_pages {
+                for _page in 1..=num_pages {
                     // Simulate processing each page
                     std::thread::sleep(Duration::from_millis(50));
                     processed_clone.fetch_add(1, Ordering::SeqCst);

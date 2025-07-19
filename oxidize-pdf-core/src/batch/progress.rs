@@ -260,7 +260,7 @@ mod tests {
 
         assert_eq!(info.percentage(), 25.0);
         assert!(!info.is_complete());
-        assert!(info.elapsed().as_millis() >= 0);
+        assert!(info.elapsed().as_millis() < u128::MAX); // Just check it's valid
     }
 
     #[test]
