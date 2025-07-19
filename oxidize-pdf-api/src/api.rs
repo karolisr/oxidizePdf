@@ -267,15 +267,13 @@ pub async fn merge_pdfs_handler(mut multipart: Multipart) -> Result<Response, Ap
     for (i, file_data) in pdf_files.iter().enumerate() {
         let temp_file = NamedTempFile::new().map_err(|e| {
             AppError::Io(std::io::Error::other(format!(
-                "Failed to create temp file {}: {e}",
-                i
+                "Failed to create temp file {i}: {e}"
             )))
         })?;
 
         std::fs::write(temp_file.path(), file_data).map_err(|e| {
             AppError::Io(std::io::Error::other(format!(
-                "Failed to write temp file {}: {e}",
-                i
+                "Failed to write temp file {i}: {e}"
             )))
         })?;
 
