@@ -75,8 +75,10 @@ mod windows_mmap {
     use std::os::windows::io::AsRawHandle;
     use std::ptr;
     use winapi::um::handleapi::CloseHandle;
-    use winapi::um::memoryapi::{CreateFileMappingW, MapViewOfFile, UnmapViewOfFile};
-    use winapi::um::winnt::{FILE_MAP_READ, PAGE_READONLY};
+    use winapi::um::memoryapi::{
+        CreateFileMappingW, MapViewOfFile, UnmapViewOfFile, FILE_MAP_READ,
+    };
+    use winapi::um::winnt::PAGE_READONLY;
 
     pub struct MmapInner {
         ptr: *mut u8,
