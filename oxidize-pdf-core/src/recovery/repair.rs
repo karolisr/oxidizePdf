@@ -204,7 +204,7 @@ fn extract_content<P: AsRef<Path>>(path: P, options: &RecoveryOptions) -> Result
         result.recovered_document = Some(doc);
         result
             .warnings
-            .push(format!("Extracted {} pages with content", page_count));
+            .push(format!("Extracted {page_count} pages with content"));
     }
 
     Ok(result)

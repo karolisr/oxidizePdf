@@ -268,7 +268,7 @@ impl BatchSummary {
         if !failed_jobs.is_empty() {
             report.push_str("\nFailed Jobs:\n");
             for job in failed_jobs {
-                report.push_str(&format!("  - {}\n", job));
+                report.push_str(&format!("  - {job}\n"));
             }
         }
 

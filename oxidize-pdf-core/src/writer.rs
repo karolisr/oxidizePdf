@@ -381,7 +381,7 @@ fn format_pdf_date(date: DateTime<Utc>) -> String {
     let formatted = date.format("D:%Y%m%d%H%M%S");
 
     // For UTC, the offset is always +00'00
-    format!("{}+00'00", formatted)
+    format!("{formatted}+00'00")
 }
 
 #[cfg(test)]

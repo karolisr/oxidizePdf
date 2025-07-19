@@ -242,7 +242,7 @@ impl PdfRecovery {
 
     fn recover_page<P: AsRef<Path>>(&mut self, _path: P, _page_num: u32) -> Result<String> {
         // Simplified page recovery
-        Ok(format!("Recovered content for page {}", _page_num))
+        Ok(format!("Recovered content for page {_page_num}"))
     }
 
     fn recover_metadata<P: AsRef<Path>>(&mut self, _path: P) -> Result<HashMap<String, String>> {

@@ -142,7 +142,7 @@ fn check_header<R: Read + Seek>(reader: &mut R, report: &mut CorruptionReport) -
             }
         }
         Err(e) => {
-            report.errors.push(format!("Cannot read header: {}", e));
+            report.errors.push(format!("Cannot read header: {e}"));
             Ok(false)
         }
     }
