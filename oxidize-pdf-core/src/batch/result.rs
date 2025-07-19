@@ -100,14 +100,12 @@ impl fmt::Display for JobResult {
             } => {
                 write!(
                     f,
-                    "✗ {} - failed after {:.2}s: {}",
-                    job_name,
-                    duration.as_secs_f64(),
-                    error
+                    "✗ {job_name} - failed after {:.2}s: {error}",
+                    duration.as_secs_f64()
                 )
             }
             JobResult::Cancelled { job_name } => {
-                write!(f, "⚠ {} - cancelled", job_name)
+                write!(f, "⚠ {job_name} - cancelled")
             }
         }
     }

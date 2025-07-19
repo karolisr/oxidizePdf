@@ -156,7 +156,7 @@ impl PdfValidator {
                 if !version.starts_with("1.") && !version.starts_with("2.") {
                     result
                         .warnings
-                        .push(format!("Unusual PDF version: {}", version));
+                        .push(format!("Unusual PDF version: {version}"));
                 }
             }
             Err(e) => {
@@ -184,8 +184,7 @@ impl PdfValidator {
                     // Validate page dimensions
                     if page.width() <= 0.0 || page.height() <= 0.0 {
                         result.errors.push(ValidationError::InvalidPageTree(format!(
-                            "Page {} has invalid dimensions",
-                            i
+                            "Page {i} has invalid dimensions"
                         )));
                     }
 
@@ -193,8 +192,7 @@ impl PdfValidator {
                 }
                 Err(e) => {
                     result.errors.push(ValidationError::InvalidPageTree(format!(
-                        "Cannot read page {}: {}",
-                        i, e
+                        "Cannot read page {i}: {e}"
                     )));
                 }
             }

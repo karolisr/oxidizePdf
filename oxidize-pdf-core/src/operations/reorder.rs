@@ -97,8 +97,7 @@ impl PageReorderer {
         for &idx in &self.options.page_order {
             if idx >= total_pages {
                 return Err(OperationError::InvalidPageRange(format!(
-                    "Page index {} is out of bounds (document has {} pages)",
-                    idx, total_pages
+                    "Page index {idx} is out of bounds (document has {total_pages} pages)"
                 )));
             }
         }

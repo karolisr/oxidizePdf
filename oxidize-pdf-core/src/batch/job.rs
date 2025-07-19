@@ -44,7 +44,7 @@ impl fmt::Display for JobType {
             JobType::Rotate => write!(f, "Rotate"),
             JobType::Extract => write!(f, "Extract"),
             JobType::Compress => write!(f, "Compress"),
-            JobType::Custom(name) => write!(f, "{}", name),
+            JobType::Custom(name) => write!(f, "{name}"),
         }
     }
 }

@@ -149,8 +149,7 @@ impl PdfRecovery {
                 return self.convert_to_document(doc);
             }
             Err(e) => {
-                self.warnings
-                    .push(format!("Standard parsing failed: {}", e));
+                self.warnings.push(format!("Standard parsing failed: {e}"));
             }
         }
 
