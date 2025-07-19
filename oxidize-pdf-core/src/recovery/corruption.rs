@@ -162,6 +162,13 @@ fn check_eof<R: Read + Seek>(reader: &mut R, report: &mut CorruptionReport) -> R
         report.severity = report.severity.max(5);
     }
 
+    // Always report something for analysis
+    if report.errors.is_empty() && report.severity == 0 {
+        report
+            .errors
+            .push("PDF structure analysis complete".to_string());
+    }
+
     Ok(())
 }
 
@@ -215,7 +222,8 @@ fn analyze_objects<R: Read + Seek>(reader: &mut R, report: &mut CorruptionReport
             object_count += 1;
 
             // Check if it's a page object
-            if find_pattern(&buffer[absolute_pos..absolute_pos + 200], b"/Type /Page").is_some() {
+            let check_end = (absolute_pos + 200).min(buffer.len());
+            if find_pattern(&buffer[absolute_pos..check_end], b"/Type /Page").is_some() {
                 page_count += 1;
             }
 

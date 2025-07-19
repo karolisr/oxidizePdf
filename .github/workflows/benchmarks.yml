@@ -44,19 +44,19 @@ jobs:
         
     - name: Run core library benchmarks
       run: |
-        cargo bench --package oxidize-pdf-test-suite --bench core_benchmarks -- --output-format html
+        cargo bench --package oxidize-pdf-test-suite --bench core_benchmarks
         
     - name: Run parser benchmarks
       run: |
-        cargo bench --package oxidize-pdf-test-suite --bench parser_bench -- --output-format html
+        cargo bench --package oxidize-pdf-test-suite --bench parser_bench
         
     - name: Run memory benchmarks
       run: |
-        cargo bench --package oxidize-pdf-test-suite --bench memory_benchmarks -- --output-format html
+        cargo bench --package oxidize-pdf-test-suite --bench memory_benchmarks
         
     - name: Run CLI benchmarks
       run: |
-        cargo bench --package oxidize-pdf-test-suite --bench cli_benchmarks -- --output-format html
+        cargo bench --package oxidize-pdf-test-suite --bench cli_benchmarks
         
     - name: Archive benchmark results
       uses: actions/upload-artifact@v4

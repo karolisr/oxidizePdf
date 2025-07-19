@@ -243,7 +243,7 @@ mod tests {
     fn test_page_iterator() {
         let data = b"%PDF-1.7\n";
         let cursor = Cursor::new(data);
-        let mut iterator = PageIterator::new(cursor);
+        let iterator = PageIterator::new(cursor);
 
         let mut pages = Vec::new();
         for result in iterator {

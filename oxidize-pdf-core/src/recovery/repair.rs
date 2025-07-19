@@ -326,9 +326,9 @@ fn scan_for_objects(content: &[u8]) -> Vec<PdfObject> {
 
             // Try to extract object ID
             if let Some(id) = extract_object_id(&content[pos..absolute_pos]) {
+                let check_end = (absolute_pos + 200).min(content.len());
                 let is_page =
-                    find_marker(&content[absolute_pos..absolute_pos + 200], b"/Type /Page")
-                        .is_some();
+                    find_marker(&content[absolute_pos..check_end], b"/Type /Page").is_some();
 
                 objects.push(PdfObject {
                     id,

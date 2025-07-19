@@ -23,10 +23,10 @@
 //!     .with_aggressive_recovery(true)
 //!     .with_partial_content(true);
 //!
-//! let recovery = PdfRecovery::new(options);
+//! let mut recovery = PdfRecovery::new(options);
 //!
 //! match recovery.recover_document("corrupted.pdf") {
-//!     Ok(doc) => {
+//!     Ok(mut doc) => {
 //!         println!("Recovered {} pages", doc.page_count());
 //!         doc.save("recovered.pdf")?;
 //!     }

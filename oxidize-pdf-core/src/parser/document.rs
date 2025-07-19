@@ -904,6 +904,7 @@ impl<R: Read + Seek> PdfDocument<R> {
     ///     preserve_layout: true,
     ///     space_threshold: 0.3,
     ///     newline_threshold: 10.0,
+    ///     ..Default::default()
     /// };
     ///
     /// let extracted_pages = document.extract_text_with_options(options)?;
