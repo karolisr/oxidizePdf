@@ -1283,6 +1283,20 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 [[package]]
 name = "oxidize-pdf"
 version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6d7dc427ea5eea0e44d8ad521e19129a9a201210b01fa3901ed34d0870c3d1d"
+dependencies = [
+ "chrono",
+ "flate2",
+ "lazy_static",
+ "md5 0.7.0",
+ "thiserror 2.0.12",
+ "tracing",
+]
+
+[[package]]
+name = "oxidize-pdf"
+version = "1.0.0"
 dependencies = [
  "chrono",
  "criterion",
@@ -1302,20 +1316,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "oxidize-pdf"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6d7dc427ea5eea0e44d8ad521e19129a9a201210b01fa3901ed34d0870c3d1d"
-dependencies = [
- "chrono",
- "flate2",
- "lazy_static",
- "md5 0.7.0",
- "thiserror 2.0.12",
- "tracing",
-]
-
-[[package]]
 name = "oxidize-pdf-api"
 version = "0.1.0"
 dependencies = [
@@ -1323,7 +1323,7 @@ dependencies = [
  "axum",
  "http-body-util",
  "hyper",
- "oxidize-pdf 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "oxidize-pdf 0.1.4",
  "pretty_assertions",
  "serde",
  "serde_json",
@@ -1343,7 +1343,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "oxidize-pdf 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "oxidize-pdf 0.1.4",
  "pretty_assertions",
  "tempfile",
  "tokio",
@@ -1360,7 +1360,7 @@ dependencies = [
  "criterion",
  "hex",
  "insta",
- "oxidize-pdf 0.1.4",
+ "oxidize-pdf 1.0.0",
  "pretty_assertions",
  "proptest",
  "rand 0.8.5",
