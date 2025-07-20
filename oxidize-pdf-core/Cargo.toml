@@ -125,4 +125,4 @@ ocr-tesseract = ["tesseract", "leptonica-plumbing"]
 ocr-full = ["ocr-tesseract"]
 
 # Semantic marking (Community level - basic tagging)
-semantic = ["serde", "serde_json"]
+semantic = ["dep:serde", "dep:serde_json"]
