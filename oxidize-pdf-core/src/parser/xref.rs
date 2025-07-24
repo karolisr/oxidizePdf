@@ -57,7 +57,10 @@ impl XRefTable {
     }
 
     /// Parse xref table from a reader (handles both traditional and stream xrefs)
-    pub fn parse<R: Read + Seek>(reader: &mut BufReader<R>) -> ParseResult<Self> {
+    pub fn parse<R: Read + Seek>(
+        reader: &mut BufReader<R>,
+        options: &super::ParseOptions,
+    ) -> ParseResult<Self> {
         let mut table = Self::new();
 
         // Find and parse xref
@@ -108,7 +111,7 @@ impl XRefTable {
                     .map(|n| n.as_str())
                     == Some("XRef")
                 {
-                    let xref_stream = XRefStream::parse(stream.clone())?;
+                    let xref_stream = XRefStream::parse(stream.clone(), options)?;
 
                     // Copy entries from xref stream
                     for (obj_num, entry) in &xref_stream.entries {
@@ -341,19 +344,22 @@ pub struct XRefStream {
 
 impl XRefStream {
     /// Parse an xref stream object
-    pub fn parse(stream: super::objects::PdfStream) -> ParseResult<Self> {
+    pub fn parse(
+        stream: super::objects::PdfStream,
+        options: &super::ParseOptions,
+    ) -> ParseResult<Self> {
         let mut xref_stream = Self {
             stream,
             entries: HashMap::new(),
             extended_entries: HashMap::new(),
         };
 
-        xref_stream.decode_entries()?;
+        xref_stream.decode_entries(options)?;
         Ok(xref_stream)
     }
 
     /// Decode the xref stream entries
-    fn decode_entries(&mut self) -> ParseResult<()> {
+    fn decode_entries(&mut self, options: &super::ParseOptions) -> ParseResult<()> {
         // Get stream dictionary values
         let dict = &self.stream.dict;
 
@@ -429,7 +435,7 @@ impl XRefStream {
             .collect::<ParseResult<Vec<_>>>()?;
 
         // Decode the stream data
-        let data = self.stream.decode()?;
+        let data = self.stream.decode(options)?;
         let mut offset = 0;
 
         // Process each subsection

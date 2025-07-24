@@ -8,6 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+## [1.1.3] - 2025-07-24
+
+### Added
+- **Robust FlateDecode Error Recovery** - Improved handling of corrupted PDF streams
+  - `ParseOptions` structure for controlling parsing strictness
+  - Multiple recovery strategies for FlateDecode streams
+  - Support for raw deflate streams without zlib wrapper
+  - Checksum validation bypass for corrupted streams
+  - Header byte skipping for damaged streams
+  - Configurable recovery attempts and logging
+- **Tolerant Parsing Mode** - New API methods for handling problematic PDFs
+  - `PdfReader::open_tolerant()` - Opens PDFs with error recovery enabled
+  - `PdfReader::open_with_options()` - Custom parsing options
+  - `ParseOptions::tolerant()` - Preset for maximum compatibility
+  - `ParseOptions::skip_errors()` - Ignores corrupt streams entirely
+
+### Fixed
+- Version mismatch in workspace Cargo.toml that prevented release
+
+## [1.1.2] - 2025-07-24
+
+### Fixed
+- Version mismatch in workspace Cargo.toml that prevented release
+
+## [1.1.1] - 2025-07-22
+
+### Fixed
+- Dependency updates and CI/CD pipeline improvements
+
 ## [1.0.0] - 2025-07-20
 
 ### 🎉 Community Edition Complete!

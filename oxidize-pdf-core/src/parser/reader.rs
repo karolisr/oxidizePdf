@@ -7,7 +7,7 @@ use super::object_stream::ObjectStream;
 use super::objects::{PdfDictionary, PdfObject};
 use super::trailer::PdfTrailer;
 use super::xref::XRefTable;
-use super::{ParseError, ParseResult};
+use super::{ParseError, ParseOptions, ParseResult};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek};
@@ -25,6 +25,8 @@ pub struct PdfReader<R: Read + Seek> {
     object_stream_cache: HashMap<u32, ObjectStream>,
     /// Page tree navigator
     page_tree: Option<super::page_tree::PageTree>,
+    /// Parse options for error handling
+    options: ParseOptions,
 }
 
 impl PdfReader<File> {
@@ -32,6 +34,17 @@ impl PdfReader<File> {
     pub fn open<P: AsRef<Path>>(path: P) -> ParseResult<Self> {
         let file = File::open(path)?;
         Self::new(file)
+    }
+
+    /// Open a PDF file from a path with custom parse options
+    pub fn open_with_options<P: AsRef<Path>>(path: P, options: ParseOptions) -> ParseResult<Self> {
+        let file = File::open(path)?;
+        Self::with_options(file, options)
+    }
+
+    /// Open a PDF file with tolerant parsing that attempts recovery
+    pub fn open_tolerant<P: AsRef<Path>>(path: P) -> ParseResult<Self> {
+        Self::open_with_options(path, ParseOptions::tolerant())
     }
 
     /// Open a PDF file as a PdfDocument
@@ -44,14 +57,19 @@ impl PdfReader<File> {
 }
 
 impl<R: Read + Seek> PdfReader<R> {
-    /// Create a new PDF reader from a reader
+    /// Create a new PDF reader from a reader with default options
     pub fn new(reader: R) -> ParseResult<Self> {
+        Self::with_options(reader, ParseOptions::default())
+    }
+
+    /// Create a new PDF reader from a reader with custom parse options
+    pub fn with_options(reader: R, options: ParseOptions) -> ParseResult<Self> {
         let mut buf_reader = BufReader::new(reader);
 
         // Parse header
         let header = PdfHeader::parse(&mut buf_reader)?;
         // Parse xref table
-        let xref = XRefTable::parse(&mut buf_reader)?;
+        let xref = XRefTable::parse(&mut buf_reader, &options)?;
 
         // Get trailer
         let trailer_dict = xref.trailer().ok_or(ParseError::InvalidTrailer)?.clone();
@@ -59,8 +77,10 @@ impl<R: Read + Seek> PdfReader<R> {
         let xref_offset = xref.xref_offset();
         let trailer = PdfTrailer::from_dict(trailer_dict, xref_offset)?;
 
-        // Validate trailer
-        trailer.validate()?;
+        // Validate trailer only in strict mode
+        if options.strict_mode {
+            trailer.validate()?;
+        }
 
         Ok(Self {
             reader: buf_reader,
@@ -70,12 +90,18 @@ impl<R: Read + Seek> PdfReader<R> {
             object_cache: HashMap::new(),
             object_stream_cache: HashMap::new(),
             page_tree: None,
+            options,
         })
     }
 
     /// Get the PDF version
     pub fn version(&self) -> &super::header::PdfVersion {
         &self.header.version
+    }
+
+    /// Get the parse options
+    pub fn options(&self) -> &ParseOptions {
+        &self.options
     }
 
     /// Get the document catalog
@@ -243,7 +269,7 @@ impl<R: Read + Seek> PdfReader<R> {
 
             if let Some(stream) = stream_obj.as_stream() {
                 // Parse the object stream
-                let obj_stream = ObjectStream::parse(stream.clone())?;
+                let obj_stream = ObjectStream::parse(stream.clone(), &self.options)?;
                 self.object_stream_cache.insert(stream_obj_num, obj_stream);
             } else {
                 return Err(ParseError::SyntaxError {

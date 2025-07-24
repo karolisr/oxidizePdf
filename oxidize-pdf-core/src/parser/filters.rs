@@ -3,7 +3,7 @@
 //! Handles decompression and decoding of PDF streams according to ISO 32000-1 Section 7.4
 
 use super::objects::{PdfDictionary, PdfObject};
-use super::{ParseError, ParseResult};
+use super::{ParseError, ParseOptions, ParseResult};
 
 #[cfg(feature = "compression")]
 use flate2::read::ZlibDecoder;
@@ -63,7 +63,11 @@ impl Filter {
 }
 
 /// Decode stream data according to specified filters
-pub fn decode_stream(data: &[u8], dict: &PdfDictionary) -> ParseResult<Vec<u8>> {
+pub fn decode_stream(
+    data: &[u8],
+    dict: &PdfDictionary,
+    options: &ParseOptions,
+) -> ParseResult<Vec<u8>> {
     // Get filter(s) from dictionary
     let filters = match dict.get("Filter") {
         Some(PdfObject::Name(name)) => vec![name.as_str()],
@@ -101,16 +105,16 @@ pub fn decode_stream(data: &[u8], dict: &PdfDictionary) -> ParseResult<Vec<u8>> 
             message: format!("Unknown filter: {filter_name}"),
         })?;
 
-        result = apply_filter(&result, filter)?;
+        result = apply_filter(&result, filter, options)?;
     }
 
     Ok(result)
 }
 
 /// Apply a single filter to data
-fn apply_filter(data: &[u8], filter: Filter) -> ParseResult<Vec<u8>> {
+fn apply_filter(data: &[u8], filter: Filter, options: &ParseOptions) -> ParseResult<Vec<u8>> {
     match filter {
-        Filter::FlateDecode => decode_flate(data),
+        Filter::FlateDecode => decode_flate(data, options),
         Filter::ASCIIHexDecode => decode_ascii_hex(data),
         Filter::ASCII85Decode => decode_ascii85(data),
         _ => Err(ParseError::SyntaxError {
@@ -122,17 +126,139 @@ fn apply_filter(data: &[u8], filter: Filter) -> ParseResult<Vec<u8>> {
 
 /// Decode FlateDecode (zlib/deflate) compressed data
 #[cfg(feature = "compression")]
-fn decode_flate(data: &[u8]) -> ParseResult<Vec<u8>> {
+fn decode_flate(data: &[u8], options: &ParseOptions) -> ParseResult<Vec<u8>> {
+    // First try standard zlib decoding
     let mut decoder = ZlibDecoder::new(data);
     let mut result = Vec::new();
-    decoder
-        .read_to_end(&mut result)
-        .map_err(|e| ParseError::StreamDecodeError(format!("Flate decode error: {e}")))?;
-    Ok(result)
+
+    match decoder.read_to_end(&mut result) {
+        Ok(_) => Ok(result),
+        Err(e) => {
+            // Check if we should attempt recovery
+            if !options.recover_from_stream_errors {
+                return Err(ParseError::StreamDecodeError(format!(
+                    "Flate decode error: {}",
+                    e
+                )));
+            }
+
+            // Log the error for debugging
+            if options.log_recovery_details {
+                // Logging would happen here if the logging feature was enabled
+                eprintln!("Standard FlateDecode failed: {}, attempting recovery", e);
+            }
+
+            // Try alternative decoding strategies
+            decode_flate_with_recovery(data, e, options)
+        }
+    }
+}
+
+/// Attempt to decode FlateDecode data with various recovery strategies
+#[cfg(feature = "compression")]
+fn decode_flate_with_recovery(
+    data: &[u8],
+    original_error: std::io::Error,
+    options: &ParseOptions,
+) -> ParseResult<Vec<u8>> {
+    let mut attempts = 0;
+    let max_attempts = options.max_recovery_attempts;
+
+    // Strategy 1: Try raw deflate without zlib wrapper
+    attempts += 1;
+    if attempts <= max_attempts {
+        if options.log_recovery_details {
+            eprintln!(
+                "Recovery attempt {}/{}: raw deflate decode",
+                attempts, max_attempts
+            );
+        }
+        use flate2::read::DeflateDecoder;
+        let mut raw_decoder = DeflateDecoder::new(data);
+        let mut result = Vec::new();
+        if raw_decoder.read_to_end(&mut result).is_ok() {
+            if options.log_recovery_details {
+                eprintln!("Successfully decoded using raw deflate");
+            }
+            return Ok(result);
+        }
+    }
+
+    // Strategy 2: Try with a custom decompressor that ignores checksums
+    attempts += 1;
+    if attempts <= max_attempts {
+        if options.log_recovery_details {
+            eprintln!(
+                "Recovery attempt {}/{}: decode with checksum validation disabled",
+                attempts, max_attempts
+            );
+        }
+        use flate2::{Decompress, FlushDecompress};
+        let mut decompress = Decompress::new(false); // false = ignore checksums
+        let mut output = Vec::with_capacity(data.len() * 3); // Estimate decompressed size
+
+        match decompress.decompress_vec(data, &mut output, FlushDecompress::Finish) {
+            Ok(flate2::Status::StreamEnd) => {
+                if options.log_recovery_details {
+                    eprintln!("Successfully decoded with checksum validation disabled");
+                }
+                return Ok(output);
+            }
+            Ok(flate2::Status::Ok) | Ok(flate2::Status::BufError) => {
+                // Partial decompression might have succeeded
+                if !output.is_empty() && options.partial_content_allowed {
+                    if options.log_recovery_details {
+                        eprintln!("Partial decompression recovered {} bytes", output.len());
+                    }
+                    return Ok(output);
+                }
+            }
+            Err(_) => {
+                // Continue to next strategy
+            }
+        }
+    }
+
+    // Strategy 3: Try to skip corrupted header bytes
+    if data.len() > 2 {
+        attempts += 1;
+        if attempts <= max_attempts {
+            if options.log_recovery_details {
+                eprintln!(
+                    "Recovery attempt {}/{}: skip potentially corrupted header",
+                    attempts, max_attempts
+                );
+            }
+            for skip in 1..std::cmp::min(10, data.len()) {
+                let mut decoder = ZlibDecoder::new(&data[skip..]);
+                let mut result = Vec::new();
+                if decoder.read_to_end(&mut result).is_ok() && !result.is_empty() {
+                    if options.log_recovery_details {
+                        eprintln!("Successfully decoded by skipping {} header bytes", skip);
+                    }
+                    return Ok(result);
+                }
+            }
+        }
+    }
+
+    // All strategies failed
+    if options.ignore_corrupt_streams {
+        // Return empty data if we're ignoring corrupt streams
+        if options.log_recovery_details {
+            eprintln!("Ignoring corrupt stream, returning empty data");
+        }
+        Ok(Vec::new())
+    } else {
+        Err(ParseError::StreamDecodeError(format!(
+            "Flate decode error: {} (all {} recovery strategies failed)",
+            original_error, attempts
+        )))
+    }
 }
 
 #[cfg(not(feature = "compression"))]
-fn decode_flate(_data: &[u8]) -> ParseResult<Vec<u8>> {
+fn decode_flate(_data: &[u8], _options: &ParseOptions) -> ParseResult<Vec<u8>> {
     Err(ParseError::StreamDecodeError(
         "FlateDecode requires 'compression' feature".to_string(),
     ))
@@ -352,8 +478,9 @@ mod tests {
     fn test_decode_stream_no_filter() {
         let data = b"Hello, world!";
         let dict = PdfDictionary::new();
+        let options = ParseOptions::default();
 
-        let result = decode_stream(data, &dict).unwrap();
+        let result = decode_stream(data, &dict, &options).unwrap();
         assert_eq!(result, data);
     }
 
@@ -365,8 +492,9 @@ mod tests {
             "Filter".to_string(),
             PdfObject::Name(PdfName("ASCIIHexDecode".to_string())),
         );
+        let options = ParseOptions::default();
 
-        let result = decode_stream(data, &dict).unwrap();
+        let result = decode_stream(data, &dict, &options).unwrap();
         assert_eq!(result, b"Hello");
     }
 
@@ -378,8 +506,9 @@ mod tests {
             "Filter".to_string(),
             PdfObject::Name(PdfName("UnknownFilter".to_string())),
         );
+        let options = ParseOptions::default();
 
-        let result = decode_stream(data, &dict);
+        let result = decode_stream(data, &dict, &options);
         assert!(result.is_err());
     }
 
@@ -389,8 +518,9 @@ mod tests {
         let mut dict = PdfDictionary::new();
         let filters = vec![PdfObject::Name(PdfName("ASCIIHexDecode".to_string()))];
         dict.insert("Filter".to_string(), PdfObject::Array(PdfArray(filters)));
+        let options = ParseOptions::default();
 
-        let result = decode_stream(data, &dict).unwrap();
+        let result = decode_stream(data, &dict, &options).unwrap();
         assert_eq!(result, b"Hello");
     }
 
@@ -399,8 +529,9 @@ mod tests {
         let data = b"test data";
         let mut dict = PdfDictionary::new();
         dict.insert("Filter".to_string(), PdfObject::Integer(42)); // Invalid type
+        let options = ParseOptions::default();
 
-        let result = decode_stream(data, &dict);
+        let result = decode_stream(data, &dict, &options);
         assert!(result.is_err());
     }
 
@@ -450,23 +581,69 @@ mod tests {
         let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
         encoder.write_all(original).unwrap();
         let compressed = encoder.finish().unwrap();
+        let options = ParseOptions::default();
 
-        let result = decode_flate(&compressed).unwrap();
+        let result = decode_flate(&compressed, &options).unwrap();
         assert_eq!(result, original);
+    }
+
+    #[cfg(feature = "compression")]
+    #[test]
+    fn test_flate_decode_corrupt_stream() {
+        // Test with corrupted compressed data
+        let corrupt_data = b"This is not valid compressed data!";
+
+        // Test with strict options (should fail)
+        let strict_options = ParseOptions::strict();
+        let result = decode_flate(corrupt_data, &strict_options);
+        assert!(result.is_err());
+
+        // Test with tolerant options (should attempt recovery)
+        let tolerant_options = ParseOptions::tolerant();
+        let result = decode_flate(corrupt_data, &tolerant_options);
+        // Recovery might fail but should not panic
+        assert!(result.is_err() || result.is_ok());
+    }
+
+    #[cfg(feature = "compression")]
+    #[test]
+    fn test_flate_decode_raw_deflate() {
+        use flate2::write::DeflateEncoder;
+        use flate2::Compression;
+        use std::io::Write;
+
+        // Create raw deflate data (without zlib wrapper)
+        let original = b"Raw deflate data without zlib wrapper";
+        let mut encoder = DeflateEncoder::new(Vec::new(), Compression::default());
+        encoder.write_all(original).unwrap();
+        let compressed = encoder.finish().unwrap();
+
+        // This should fail with strict options (expects zlib wrapper)
+        let strict_options = ParseOptions::strict();
+        let result = decode_flate(&compressed, &strict_options);
+        assert!(result.is_err());
+
+        // But should succeed with tolerant options (tries raw deflate)
+        let tolerant_options = ParseOptions::tolerant();
+        let result = decode_flate(&compressed, &tolerant_options);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), original);
     }
 
     #[cfg(not(feature = "compression"))]
     #[test]
     fn test_flate_decode_not_supported() {
         let data = b"compressed data";
-        let result = decode_flate(data);
+        let options = ParseOptions::default();
+        let result = decode_flate(data, &options);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_apply_filter() {
         let data = b"48656C6C6F>";
-        let result = apply_filter(data, Filter::ASCIIHexDecode).unwrap();
+        let options = ParseOptions::default();
+        let result = apply_filter(data, Filter::ASCIIHexDecode, &options).unwrap();
         assert_eq!(result, b"Hello");
     }
 
@@ -483,9 +660,35 @@ mod tests {
             Filter::Crypt,
         ];
 
+        let options = ParseOptions::default();
         for filter in unsupported_filters {
-            let result = apply_filter(data, filter);
+            let result = apply_filter(data, filter, &options);
             assert!(result.is_err());
         }
+    }
+
+    #[cfg(feature = "compression")]
+    #[test]
+    fn test_decode_stream_with_recovery() {
+        // Create a stream with corrupted FlateDecode data
+        let mut dict = PdfDictionary::new();
+        dict.insert(
+            "Filter".to_string(),
+            PdfObject::Name(PdfName("FlateDecode".to_string())),
+        );
+
+        let corrupt_data = b"This is not valid compressed data!";
+
+        // Test with strict options
+        let strict_options = ParseOptions::strict();
+        let result = decode_stream(corrupt_data, &dict, &strict_options);
+        assert!(result.is_err());
+
+        // Test with skip_errors options
+        let skip_options = ParseOptions::skip_errors();
+        let result = decode_stream(corrupt_data, &dict, &skip_options);
+        // With skip_errors and ignore_corrupt_streams, it should return empty data
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
     }
 }

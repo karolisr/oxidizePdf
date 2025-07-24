@@ -726,11 +726,13 @@ impl PageContentAnalyzer {
                             {
                                 if subtype.0 == "Image" {
                                     // Get the raw image data
-                                    let image_data = stream.decode().map_err(|e| {
-                                        OperationError::ParseError(format!(
-                                            "Failed to decode image: {e}"
-                                        ))
-                                    })?;
+                                    let parse_options = self.document.options();
+                                    let image_data =
+                                        stream.decode(&parse_options).map_err(|e| {
+                                            OperationError::ParseError(format!(
+                                                "Failed to decode image: {e}"
+                                            ))
+                                        })?;
 
                                     // Return the first (and typically only) image for scanned pages
                                     return Ok(image_data);
