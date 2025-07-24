@@ -26,6 +26,7 @@ pub struct TextContext {
     operations: String,
     current_font: Font,
     font_size: f64,
+    angle: f64,
     text_matrix: [f64; 6],
 }
 
@@ -41,6 +42,7 @@ impl TextContext {
             operations: String::new(),
             current_font: Font::Helvetica,
             font_size: 12.0,
+            angle: 0.0,
             text_matrix: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
         }
     }
@@ -66,6 +68,9 @@ impl TextContext {
         // Begin text object
         self.operations.push_str("BT\n");
 
+        // Safe state
+        self.operations.push_str("q\n");
+
         // Set font
         writeln!(
             &mut self.operations,
@@ -75,13 +80,18 @@ impl TextContext {
         )
         .unwrap();
 
-        // Set text position
+        // Set text position to 0, 0
+        writeln!(&mut self.operations, "0.00 0.00 Td",).unwrap();
+
+        let (sin, cos) = self.angle.sin_cos();
         writeln!(
             &mut self.operations,
-            "{:.2} {:.2} Td",
-            self.text_matrix[4], self.text_matrix[5]
+            "{:.6} {:.6} {:.6} {:.6} {:.6} {:.6} cm",
+            cos, sin, -sin, cos, self.text_matrix[4], self.text_matrix[5]
         )
         .unwrap();
+
+        // self.angle = 0.0;
 
         // Encode text using WinAnsiEncoding
         let encoding = TextEncoding::WinAnsiEncoding;
@@ -105,10 +115,18 @@ impl TextContext {
         }
         self.operations.push_str(") Tj\n");
 
+        // Restore state;
+        self.operations.push_str("Q\n");
+
         // End text object
         self.operations.push_str("ET\n");
 
         Ok(self)
+    }
+
+    pub fn set_text_angle(&mut self, angle: f64) -> &mut Self {
+        self.angle = angle;
+        self
     }
 
     pub fn write_line(&mut self, text: &str) -> Result<&mut Self> {
