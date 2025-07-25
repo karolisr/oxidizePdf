@@ -54,7 +54,7 @@ The Community Edition provides essential PDF processing capabilities suitable fo
 - [x] **Error Recovery** - Handle corrupted PDFs gracefully ✅
 
 #### Phase 5: Basic Document Layout (Q1 2026)
-- [ ] **Headers/Footers Basic** - Simple text headers and footers with page numbers
+- [x] **Headers/Footers Basic** - Simple text headers and footers with page numbers ✅
 - [ ] **Simple Tables** - Basic table rendering without CSS styling
 - [ ] **List Support** - Ordered and unordered lists with basic formatting
 - [ ] **Simple Templates** - Variable substitution and basic conditionals

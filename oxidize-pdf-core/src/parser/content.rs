@@ -1953,7 +1953,8 @@ mod tests {
             // Test empty dash array
             let empty_tokens = vec![];
             let result = parser.parse_dash_array(empty_tokens).unwrap();
-            assert_eq!(result, vec![]);
+            let expected: Vec<f32> = vec![];
+            assert_eq!(result, expected);
         }
 
         #[test]

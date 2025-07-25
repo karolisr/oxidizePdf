@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+### Added
+- **Headers and Footers** - Simple text headers and footers with page numbering (Community Edition - Phase 5)
+  - New `HeaderFooter` type with configurable position, alignment, and formatting
+  - Dynamic placeholders: `{{page_number}}`, `{{total_pages}}`, `{{date}}`, `{{time}}`, `{{year}}`, etc.
+  - Support for custom placeholders via HashMap
+  - Automatic rendering during PDF generation with proper positioning
+  - Full test coverage and comprehensive example
+
 ### Fixed
 - **Issue #20** - "Invalid element in dash array" error when extracting text from PDFs
   - Fixed `pop_array` method to correctly handle `ArrayEnd` tokens

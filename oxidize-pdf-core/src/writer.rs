@@ -80,12 +80,13 @@ impl<W: Write> PdfWriter<W> {
         self.write_object(pages_id, Object::Dictionary(pages_dict))?;
 
         // Write individual pages
+        let total_pages = document.pages.len();
         for (i, page) in document.pages.iter().enumerate() {
             let page_id = ObjectId::new(next_id + i as u32 * 2, 0);
             let content_id = ObjectId::new(next_id + i as u32 * 2 + 1, 0);
 
             self.write_page(page_id, pages_id, content_id, page)?;
-            self.write_page_content(content_id, page)?;
+            self.write_page_content(content_id, page, i + 1, total_pages)?;
         }
 
         Ok(pages_id)
@@ -116,8 +117,15 @@ impl<W: Write> PdfWriter<W> {
         let mut resources = Dictionary::new();
         let mut font_dict = Dictionary::new();
 
-        // Add standard fonts
-        for font_name in &["Helvetica", "Helvetica-Bold", "Times-Roman", "Courier"] {
+        // Add standard fonts (including those potentially used in headers/footers)
+        for font_name in &[
+            "Helvetica",
+            "Helvetica-Bold",
+            "Times-Roman",
+            "Times-Bold",
+            "Courier",
+            "Courier-Bold",
+        ] {
             let mut font_entry = Dictionary::new();
             font_entry.set("Type", Object::Name("Font".to_string()));
             font_entry.set("Subtype", Object::Name("Type1".to_string()));
@@ -152,9 +160,19 @@ impl<W: Write> PdfWriter<W> {
         Ok(())
     }
 
-    fn write_page_content(&mut self, content_id: ObjectId, page: &crate::page::Page) -> Result<()> {
+    fn write_page_content(
+        &mut self,
+        content_id: ObjectId,
+        page: &crate::page::Page,
+        page_number: usize,
+        total_pages: usize,
+    ) -> Result<()> {
         let mut page_copy = page.clone();
-        let content = page_copy.generate_content()?;
+        let content = page_copy.generate_content_with_page_info(
+            Some(page_number),
+            Some(total_pages),
+            None,
+        )?;
 
         // Create stream with compression if enabled
         #[cfg(feature = "compression")]

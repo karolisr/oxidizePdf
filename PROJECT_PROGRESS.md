@@ -2,11 +2,29 @@
 
 ## Estado Actual
 - Rama: development
-- Último commit: 709f0c5 fix: increase timeout for batch parallelism test on CI
-- Tests: ✅ Pasando (1212 tests, todos exitosos)
+- Último commit: (pendiente) feat: implement headers and footers with page numbering
+- Tests: ✅ Pasando (1230 tests, todos exitosos)
 - Pipelines: ✅ Todos en verde (CI y Benchmarks pasando)
 
 ## Sesión de Trabajo Actual
+
+### Headers y Footers Implementados (Q1 2026 Community Feature) ✅
+1. **Funcionalidad completa de headers/footers**:
+   - Creado módulo `text/header_footer.rs` con soporte completo
+   - Tipos: `HeaderFooter`, `HeaderFooterOptions`, `HeaderFooterPosition`
+   - Soporte para placeholders dinámicos: `{{page_number}}`, `{{total_pages}}`, `{{date}}`, etc.
+   - Alineación configurable: Left, Center, Right
+   - Fuentes y tamaños personalizables
+   
+2. **Integración con Page y Writer**:
+   - Añadidos métodos `set_header()` y `set_footer()` a Page
+   - Writer actualizado para pasar información de páginas durante renderizado
+   - Headers/footers se renderizan automáticamente con placeholders sustituidos
+   
+3. **Tests y documentación**:
+   - 16 tests unitarios e integración añadidos
+   - Ejemplo completo `examples/headers_footers.rs` demostrando todas las características
+   - Documentación inline completa con ejemplos de uso
 
 ### Problemas de Pipelines Resueltos
 1. **Clippy Errors en CI** - Resuelto errores de `uninlined_format_args` en Rust beta
