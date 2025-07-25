@@ -1,5 +1,6 @@
 use crate::error::Result;
 use crate::graphics::{GraphicsContext, Image};
+use crate::objects::{Array, Dictionary, Object};
 use crate::text::{HeaderFooter, TextContext, TextFlowContext};
 use std::collections::HashMap;
 
@@ -301,6 +302,28 @@ impl Page {
             .write(&content)?;
 
         text_ctx.generate_operations()
+    }
+
+    /// Convert page to dictionary for PDF structure
+    pub(crate) fn to_dict(&self) -> Dictionary {
+        let mut dict = Dictionary::new();
+
+        // MediaBox
+        let media_box = Array::from(vec![
+            Object::Real(0.0),
+            Object::Real(0.0),
+            Object::Real(self.width),
+            Object::Real(self.height),
+        ]);
+        dict.set("MediaBox", Object::Array(media_box.into()));
+
+        // Resources (empty for now, would include fonts, images, etc.)
+        let resources = Dictionary::new();
+        dict.set("Resources", Object::Dictionary(resources));
+
+        // Contents would be added by the writer
+
+        dict
     }
 }
 
@@ -1118,7 +1141,7 @@ mod tests {
                 let mut page = Page::a4();
 
                 // Set header
-                let header = HeaderFooter::new_header(&format!("Chapter {}", i))
+                let header = HeaderFooter::new_header(format!("Chapter {}", i))
                     .with_font(Font::HelveticaBold, 16.0)
                     .with_alignment(TextAlign::Center);
                 page.set_header(header);

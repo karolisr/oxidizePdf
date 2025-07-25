@@ -2,7 +2,7 @@
 
 ## Estado Actual
 - Rama: development
-- Último commit: (pendiente) feat: implement headers and footers with page numbering
+- Último commit: 5645b51 feat: implement headers and footers with page numbering
 - Tests: ✅ Pasando (1230 tests, todos exitosos)
 - Pipelines: ✅ Todos en verde (CI y Benchmarks pasando)
 
@@ -122,7 +122,7 @@
 - Revisar feedback de usuarios sobre tolerancia de parsing
 
 ## Métricas
-- Coverage estimado: ~85%
-- Tests totales: 1209
+- Coverage estimado: ~50% (REAL - necesita mejora significativa)
+- Tests totales: 1230
 - Warnings: 0
 - Build: ✅ Exitoso
