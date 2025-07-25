@@ -137,15 +137,14 @@ fn decode_flate(data: &[u8], options: &ParseOptions) -> ParseResult<Vec<u8>> {
             // Check if we should attempt recovery
             if !options.recover_from_stream_errors {
                 return Err(ParseError::StreamDecodeError(format!(
-                    "Flate decode error: {}",
-                    e
+                    "Flate decode error: {e}"
                 )));
             }
 
             // Log the error for debugging
             if options.log_recovery_details {
                 // Logging would happen here if the logging feature was enabled
-                eprintln!("Standard FlateDecode failed: {}, attempting recovery", e);
+                eprintln!("Standard FlateDecode failed: {e}, attempting recovery");
             }
 
             // Try alternative decoding strategies
@@ -168,10 +167,7 @@ fn decode_flate_with_recovery(
     attempts += 1;
     if attempts <= max_attempts {
         if options.log_recovery_details {
-            eprintln!(
-                "Recovery attempt {}/{}: raw deflate decode",
-                attempts, max_attempts
-            );
+            eprintln!("Recovery attempt {attempts}/{max_attempts}: raw deflate decode");
         }
         use flate2::read::DeflateDecoder;
         let mut raw_decoder = DeflateDecoder::new(data);
@@ -189,8 +185,7 @@ fn decode_flate_with_recovery(
     if attempts <= max_attempts {
         if options.log_recovery_details {
             eprintln!(
-                "Recovery attempt {}/{}: decode with checksum validation disabled",
-                attempts, max_attempts
+                "Recovery attempt {attempts}/{max_attempts}: decode with checksum validation disabled"
             );
         }
         use flate2::{Decompress, FlushDecompress};
@@ -225,8 +220,7 @@ fn decode_flate_with_recovery(
         if attempts <= max_attempts {
             if options.log_recovery_details {
                 eprintln!(
-                    "Recovery attempt {}/{}: skip potentially corrupted header",
-                    attempts, max_attempts
+                    "Recovery attempt {attempts}/{max_attempts}: skip potentially corrupted header"
                 );
             }
             for skip in 1..std::cmp::min(10, data.len()) {
@@ -234,7 +228,7 @@ fn decode_flate_with_recovery(
                 let mut result = Vec::new();
                 if decoder.read_to_end(&mut result).is_ok() && !result.is_empty() {
                     if options.log_recovery_details {
-                        eprintln!("Successfully decoded by skipping {} header bytes", skip);
+                        eprintln!("Successfully decoded by skipping {skip} header bytes");
                     }
                     return Ok(result);
                 }
@@ -251,8 +245,7 @@ fn decode_flate_with_recovery(
         Ok(Vec::new())
     } else {
         Err(ParseError::StreamDecodeError(format!(
-            "Flate decode error: {} (all {} recovery strategies failed)",
-            original_error, attempts
+            "Flate decode error: {original_error} (all {attempts} recovery strategies failed)"
         )))
     }
 }
