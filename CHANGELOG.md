@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+- **Issue #20** - "Invalid element in dash array" error when extracting text from PDFs
+  - Fixed `pop_array` method to correctly handle `ArrayEnd` tokens
+  - Arrays now properly exclude end markers from their content
+  - Resolves parsing errors with Russian/Cyrillic text PDFs
+  - Text extraction now works correctly without spurious warnings
+
 ## [1.1.3] - 2025-07-24
 
 ### Added

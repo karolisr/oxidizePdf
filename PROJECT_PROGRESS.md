@@ -2,9 +2,9 @@
 
 ## Estado Actual
 - Rama: development
-- Último commit: 132df16 fix: configure CI to not fail on beta rust errors
-- Tests: ✅ Pasando (1209 tests, todos exitosos)
-- Pipelines: ✅ CI configurado (beta no bloquea), ⏳ Esperando confirmación
+- Último commit: 359e3e8 fix: handle non-numeric elements in dash and text arrays (issue #20)
+- Tests: ✅ Pasando (1211 tests, todos exitosos)
+- Pipelines: ✅ CI configurado (beta no bloquea), ✅ Todos pasando
 
 ## Sesión de Trabajo Actual
 
@@ -13,6 +13,15 @@
 2. **Release Workflow Merge a Main** - Actualizado para hacer merge de development en lugar del tag
 3. **Benchmark Pipeline Error** - Corregido error de compilación por falta de ParseOptions
 4. **CI Beta Failures Blocking** - Configurado CI para no fallar por errores en Rust beta
+
+### Issue #20 Resuelto - "Invalid element in dash array"
+1. **Problema**: Error al extraer texto de PDFs con elementos no numéricos en arrays
+2. **Solución**: Actualizado parser para ser más tolerante:
+   - `parse_dash_array` ahora omite elementos no numéricos en lugar de fallar
+   - `parse_text_array` ahora omite tokens inesperados
+   - Parser emite warnings y continúa procesando
+3. **Tests**: Agregados 2 tests de tolerancia para cubrir los casos edge
+4. **Resultado**: PDFs problemáticos ahora se procesan correctamente
 
 ### Cambios Implementados
 1. **oxidize-pdf-core/src/parser/filters.rs**:
