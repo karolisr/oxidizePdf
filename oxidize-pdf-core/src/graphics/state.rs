@@ -683,7 +683,6 @@ impl ExtGStateManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     #[test]
     fn test_rendering_intent_pdf_names() {

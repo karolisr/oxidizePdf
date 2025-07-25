@@ -306,4 +306,319 @@ mod tests {
             _ => panic!("Expected reference"),
         }
     }
+
+    #[test]
+    fn test_all_action_type_names() {
+        assert_eq!(ActionType::GoTo.to_name(), "GoTo");
+        assert_eq!(ActionType::GoToR.to_name(), "GoToR");
+        assert_eq!(ActionType::GoToE.to_name(), "GoToE");
+        assert_eq!(ActionType::Launch.to_name(), "Launch");
+        assert_eq!(ActionType::Named.to_name(), "Named");
+        assert_eq!(ActionType::URI.to_name(), "URI");
+        assert_eq!(ActionType::SubmitForm.to_name(), "SubmitForm");
+        assert_eq!(ActionType::ResetForm.to_name(), "ResetForm");
+        assert_eq!(ActionType::ImportData.to_name(), "ImportData");
+        assert_eq!(ActionType::JavaScript.to_name(), "JavaScript");
+        assert_eq!(ActionType::SetOCGState.to_name(), "SetOCGState");
+        assert_eq!(ActionType::Sound.to_name(), "Sound");
+        assert_eq!(ActionType::Movie.to_name(), "Movie");
+        assert_eq!(ActionType::Rendition.to_name(), "Rendition");
+        assert_eq!(ActionType::Trans.to_name(), "Trans");
+        assert_eq!(ActionType::GoTo3DView.to_name(), "GoTo3DView");
+    }
+
+    #[test]
+    fn test_action_type_debug_clone_partial_eq() {
+        let action_type = ActionType::GoTo;
+        let cloned = action_type.clone();
+        assert_eq!(action_type, cloned);
+
+        let debug_str = format!("{:?}", action_type);
+        assert!(debug_str.contains("GoTo"));
+
+        // Test inequality
+        assert_ne!(ActionType::GoTo, ActionType::URI);
+        assert_ne!(ActionType::Named, ActionType::Launch);
+    }
+
+    #[test]
+    fn test_goto_remote_action() {
+        let dest = Destination::fit(PageDestination::PageNumber(5));
+        let action = Action::goto_remote("external.pdf", Some(dest));
+
+        let dict = action.to_dict();
+        assert_eq!(dict.get("S"), Some(&Object::Name("GoToR".to_string())));
+        assert_eq!(
+            dict.get("F"),
+            Some(&Object::String("external.pdf".to_string()))
+        );
+        assert!(dict.get("D").is_some());
+        assert_eq!(dict.get("NewWindow"), None);
+    }
+
+    #[test]
+    fn test_goto_remote_action_with_new_window() {
+        let action = Action::GoToR {
+            file: "external.pdf".to_string(),
+            destination: None,
+            new_window: Some(true),
+        };
+
+        let dict = action.to_dict();
+        assert_eq!(dict.get("S"), Some(&Object::Name("GoToR".to_string())));
+        assert_eq!(
+            dict.get("F"),
+            Some(&Object::String("external.pdf".to_string()))
+        );
+        assert_eq!(dict.get("D"), None);
+        assert_eq!(dict.get("NewWindow"), Some(&Object::Boolean(true)));
+    }
+
+    #[test]
+    fn test_launch_action() {
+        let action = Action::launch("notepad.exe");
+        let dict = action.to_dict();
+
+        assert_eq!(dict.get("S"), Some(&Object::Name("Launch".to_string())));
+        assert_eq!(
+            dict.get("F"),
+            Some(&Object::String("notepad.exe".to_string()))
+        );
+        assert_eq!(dict.get("P"), None);
+        assert_eq!(dict.get("NewWindow"), None);
+    }
+
+    #[test]
+    fn test_launch_action_with_parameters() {
+        let action = Action::Launch {
+            file: "app.exe".to_string(),
+            parameters: Some("--verbose".to_string()),
+            new_window: Some(false),
+        };
+
+        let dict = action.to_dict();
+        assert_eq!(dict.get("S"), Some(&Object::Name("Launch".to_string())));
+        assert_eq!(dict.get("F"), Some(&Object::String("app.exe".to_string())));
+        assert_eq!(
+            dict.get("P"),
+            Some(&Object::String("--verbose".to_string()))
+        );
+        assert_eq!(dict.get("NewWindow"), Some(&Object::Boolean(false)));
+    }
+
+    #[test]
+    fn test_uri_action_with_is_map() {
+        let action = Action::URI {
+            uri: "https://example.com/map".to_string(),
+            is_map: true,
+        };
+
+        let dict = action.to_dict();
+        assert_eq!(dict.get("S"), Some(&Object::Name("URI".to_string())));
+        assert_eq!(
+            dict.get("URI"),
+            Some(&Object::String("https://example.com/map".to_string()))
+        );
+        assert_eq!(dict.get("IsMap"), Some(&Object::Boolean(true)));
+    }
+
+    #[test]
+    fn test_uri_action_without_is_map() {
+        let action = Action::uri("https://example.com");
+
+        match action {
+            Action::URI { uri, is_map } => {
+                assert_eq!(uri, "https://example.com");
+                assert!(!is_map);
+            }
+            _ => panic!("Expected URI action"),
+        }
+    }
+
+    #[test]
+    fn test_next_action() {
+        let inner_action = Action::named("FirstPage");
+        let next_action = Action::Next(Box::new(inner_action));
+
+        let dict = next_action.to_dict();
+        // Next action should have the same dictionary as its inner action
+        assert_eq!(dict.get("S"), Some(&Object::Name("Named".to_string())));
+        assert_eq!(dict.get("N"), Some(&Object::Name("FirstPage".to_string())));
+    }
+
+    #[test]
+    fn test_action_debug_clone() {
+        let action = Action::uri("https://example.com");
+        let cloned = action.clone();
+
+        let debug_str = format!("{:?}", action);
+        assert!(debug_str.contains("URI"));
+        assert!(debug_str.contains("https://example.com"));
+
+        match (action, cloned) {
+            (
+                Action::URI {
+                    uri: uri1,
+                    is_map: map1,
+                },
+                Action::URI {
+                    uri: uri2,
+                    is_map: map2,
+                },
+            ) => {
+                assert_eq!(uri1, uri2);
+                assert_eq!(map1, map2);
+            }
+            _ => panic!("Expected URI actions"),
+        }
+    }
+
+    #[test]
+    fn test_action_dictionary_without_object_id() {
+        let action = Action::named("LastPage");
+        let action_dict = ActionDictionary::new(action);
+
+        assert_eq!(action_dict.object_id, None);
+
+        match action_dict.to_object() {
+            Object::Dictionary(dict) => {
+                assert_eq!(dict.get("S"), Some(&Object::Name("Named".to_string())));
+                assert_eq!(dict.get("N"), Some(&Object::Name("LastPage".to_string())));
+            }
+            _ => panic!("Expected dictionary"),
+        }
+    }
+
+    #[test]
+    fn test_action_dictionary_to_dict() {
+        let action = Action::uri("https://test.com");
+        let action_dict = ActionDictionary::new(action);
+
+        let dict = action_dict.to_dict();
+        assert_eq!(dict.get("S"), Some(&Object::Name("URI".to_string())));
+        assert_eq!(
+            dict.get("URI"),
+            Some(&Object::String("https://test.com".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_goto_action_destination_handling() {
+        let dest = Destination::fit(PageDestination::PageNumber(10));
+        let action = Action::goto(dest.clone());
+
+        match action {
+            Action::GoTo { destination } => {
+                // Verify destination is properly stored
+                assert_eq!(destination.to_array().len(), dest.to_array().len());
+            }
+            _ => panic!("Expected GoTo action"),
+        }
+    }
+
+    #[test]
+    fn test_action_constructor_string_conversion() {
+        // Test that Into<String> trait is used correctly
+        let uri_action = Action::uri("test");
+        let named_action = Action::named("test");
+        let remote_action = Action::goto_remote("test.pdf", None);
+        let launch_action = Action::launch("test.exe");
+
+        match uri_action {
+            Action::URI { uri, .. } => assert_eq!(uri, "test"),
+            _ => panic!("Expected URI action"),
+        }
+
+        match named_action {
+            Action::Named { name } => assert_eq!(name, "test"),
+            _ => panic!("Expected Named action"),
+        }
+
+        match remote_action {
+            Action::GoToR { file, .. } => assert_eq!(file, "test.pdf"),
+            _ => panic!("Expected GoToR action"),
+        }
+
+        match launch_action {
+            Action::Launch { file, .. } => assert_eq!(file, "test.exe"),
+            _ => panic!("Expected Launch action"),
+        }
+    }
+
+    #[test]
+    fn test_action_dict_type_field() {
+        let actions = vec![
+            Action::uri("https://example.com"),
+            Action::named("NextPage"),
+            Action::launch("app.exe"),
+            Action::goto_remote("file.pdf", None),
+        ];
+
+        for action in actions {
+            let dict = action.to_dict();
+            assert_eq!(dict.get("Type"), Some(&Object::Name("Action".to_string())));
+        }
+    }
+
+    #[test]
+    fn test_complex_action_chaining() {
+        let inner = Action::named("PrevPage");
+        let next = Action::Next(Box::new(inner));
+
+        let dict = next.to_dict();
+        // Should inherit the inner action's dictionary
+        assert_eq!(dict.get("S"), Some(&Object::Name("Named".to_string())));
+        assert_eq!(dict.get("N"), Some(&Object::Name("PrevPage".to_string())));
+    }
+
+    #[test]
+    fn test_action_object_id_generation_increments() {
+        let action1 =
+            ActionDictionary::new(Action::uri("url1")).with_object_id(ObjectId::new(1, 0));
+        let action2 =
+            ActionDictionary::new(Action::uri("url2")).with_object_id(ObjectId::new(2, 0));
+
+        match (action1.to_object(), action2.to_object()) {
+            (Object::Reference(id1), Object::Reference(id2)) => {
+                assert_eq!(id1.number(), 1);
+                assert_eq!(id2.number(), 2);
+                assert_ne!(id1.number(), id2.number());
+            }
+            _ => panic!("Expected references"),
+        }
+    }
+
+    #[test]
+    fn test_action_pattern_matching() {
+        let actions = vec![
+            Action::goto(Destination::fit(PageDestination::PageNumber(0))),
+            Action::uri("https://example.com"),
+            Action::named("Test"),
+            Action::launch("app.exe"),
+            Action::goto_remote("remote.pdf", None),
+        ];
+
+        let mut goto_count = 0;
+        let mut uri_count = 0;
+        let mut named_count = 0;
+        let mut launch_count = 0;
+        let mut gotor_count = 0;
+
+        for action in actions {
+            match action {
+                Action::GoTo { .. } => goto_count += 1,
+                Action::URI { .. } => uri_count += 1,
+                Action::Named { .. } => named_count += 1,
+                Action::Launch { .. } => launch_count += 1,
+                Action::GoToR { .. } => gotor_count += 1,
+                Action::Next(_) => {}
+            }
+        }
+
+        assert_eq!(goto_count, 1);
+        assert_eq!(uri_count, 1);
+        assert_eq!(named_count, 1);
+        assert_eq!(launch_count, 1);
+        assert_eq!(gotor_count, 1);
+    }
 }

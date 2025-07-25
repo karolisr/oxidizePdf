@@ -2,9 +2,7 @@
 
 use oxidize_pdf::{
     graphics::Color,
-    structure::{
-        Destination, NamedDestinations, OutlineBuilder, OutlineItem, PageDestination,
-    },
+    structure::{Destination, NamedDestinations, OutlineBuilder, OutlineItem, PageDestination},
     text::Font,
     Document, Page, Result,
 };
@@ -26,10 +24,12 @@ fn create_document_with_outline() -> Result<()> {
     doc.set_author("oxidize-pdf");
 
     // Create pages for different chapters
-    let chapters = [("Introduction", vec!["Overview", "Getting Started"]),
+    let chapters = [
+        ("Introduction", vec!["Overview", "Getting Started"]),
         ("Core Concepts", vec!["PDF Structure", "Objects", "Streams"]),
         ("Advanced Topics", vec!["Encryption", "Forms", "Multimedia"]),
-        ("Appendix", vec!["References", "Glossary"])];
+        ("Appendix", vec!["References", "Glossary"]),
+    ];
 
     let mut page_num = 0;
     let mut outline_builder = OutlineBuilder::new();
@@ -159,12 +159,14 @@ fn create_document_with_named_destinations() -> Result<()> {
             .end_text();
 
         // Links to named destinations
-        let links = [("home", "Home Page"),
+        let links = [
+            ("home", "Home Page"),
             ("chapter1", "Chapter 1: Introduction"),
             ("chapter2", "Chapter 2: Main Content"),
-            ("appendix", "Appendix")];
+            ("appendix", "Appendix"),
+        ];
 
-        for (idx, (name, title)) in links.iter().enumerate() {
+        for (idx, (_name, title)) in links.iter().enumerate() {
             let y = 700.0 - (idx as f64 * 30.0);
 
             graphics

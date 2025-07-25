@@ -5,8 +5,7 @@ use crate::geometry::{Point, Rectangle};
 use crate::objects::Object;
 
 /// Icon types for text annotations
-#[derive(Debug, Clone, Copy)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum Icon {
     /// Comment icon
     Comment,
@@ -39,7 +38,6 @@ impl Icon {
         }
     }
 }
-
 
 /// Text annotation (sticky note)
 #[derive(Debug, Clone)]

@@ -1,10 +1,9 @@
 //! Example demonstrating Type 1 and TrueType font support
 
 use oxidize_pdf::{
-    graphics::Color,
     text::{
         CustomFont, EncodingDifference, ExtendedFont, ExtendedFontManager, Font, FontDescriptor,
-        FontEncoding, FontFlags, FontManager, FontMetrics,
+        FontEncoding, FontFlags, FontMetrics,
     },
     Document, Page, Result,
 };

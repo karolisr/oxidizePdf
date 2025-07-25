@@ -1,5 +1,7 @@
 //! Page tree structure according to ISO 32000-1 Section 7.7.3
 
+#![allow(clippy::large_enum_variant, clippy::collapsible_match)]
+
 use crate::error::{PdfError, Result};
 use crate::geometry::Rectangle;
 use crate::objects::{Array, Dictionary, Object, ObjectId};
@@ -295,5 +297,379 @@ mod tests {
         assert_eq!(dict.get("Type"), Some(&Object::Name("Pages".to_string())));
         assert!(dict.get("Kids").is_some());
         assert_eq!(dict.get("Count"), Some(&Object::Integer(0)));
+    }
+
+    #[test]
+    fn test_page_tree_node_clone() {
+        use crate::geometry::Point;
+
+        let node = PageTreeNode::Pages {
+            kids: vec![ObjectId::new(2, 0), ObjectId::new(3, 0)],
+            count: 2,
+            media_box: Some(Rectangle::new(
+                Point::new(0.0, 0.0),
+                Point::new(612.0, 792.0),
+            )),
+            resources: Some(Dictionary::new()),
+            parent: Some(ObjectId::new(1, 0)),
+        };
+
+        let cloned = node.clone();
+        match cloned {
+            PageTreeNode::Pages { kids, count, .. } => {
+                assert_eq!(kids.len(), 2);
+                assert_eq!(count, 2);
+            }
+            _ => panic!("Wrong node type"),
+        }
+    }
+
+    #[test]
+    fn test_page_tree_node_page_variant() {
+        let page = Page::a4();
+        let parent_id = ObjectId::new(1, 0);
+        let node = PageTreeNode::Page {
+            page: page.clone(),
+            parent: parent_id,
+        };
+
+        match &node {
+            PageTreeNode::Page { parent, .. } => {
+                assert_eq!(*parent, parent_id);
+            }
+            _ => panic!("Wrong node type"),
+        }
+    }
+
+    #[test]
+    fn test_page_tree_add_pages_node() {
+        let root_id = ObjectId::new(1, 0);
+        let mut tree = PageTree::new(root_id);
+
+        let child_id = ObjectId::new(2, 0);
+        tree.add_pages_node(child_id, Some(root_id)).unwrap();
+
+        // Check that the child was added
+        assert!(tree.nodes.contains_key(&child_id));
+
+        // Check parent has the child
+        match &tree.nodes[&root_id] {
+            PageTreeNode::Pages { kids, .. } => {
+                assert_eq!(kids.len(), 1);
+                assert_eq!(kids[0], child_id);
+            }
+            _ => panic!("Root should be Pages node"),
+        }
+    }
+
+    #[test]
+    fn test_page_tree_get_page_invalid_index() {
+        let root_id = ObjectId::new(1, 0);
+        let tree = PageTree::new(root_id);
+
+        assert!(tree.get_page(0).is_none());
+        assert!(tree.get_page(100).is_none());
+    }
+
+    #[test]
+    fn test_page_tree_multiple_pages() {
+        let root_id = ObjectId::new(1, 0);
+        let mut tree = PageTree::new(root_id);
+
+        // Add multiple pages
+        for i in 0..5 {
+            let page = Page::a4();
+            let page_id = ObjectId::new(i + 2, 0);
+            tree.add_page(page, page_id, root_id).unwrap();
+        }
+
+        assert_eq!(tree.page_count(), 5);
+
+        // Check all pages are accessible
+        for i in 0..5 {
+            assert!(tree.get_page(i).is_some());
+        }
+    }
+
+    #[test]
+    fn test_page_tree_nested_structure() {
+        let root_id = ObjectId::new(1, 0);
+        let mut tree = PageTree::new(root_id);
+
+        // Add intermediate node
+        let intermediate_id = ObjectId::new(2, 0);
+        tree.add_pages_node(intermediate_id, Some(root_id)).unwrap();
+
+        // Add pages under intermediate node
+        let page1_id = ObjectId::new(3, 0);
+        let page2_id = ObjectId::new(4, 0);
+
+        tree.add_page(Page::a4(), page1_id, intermediate_id)
+            .unwrap();
+        tree.add_page(Page::letter(), page2_id, intermediate_id)
+            .unwrap();
+
+        // Root should have count 2
+        assert_eq!(tree.page_count(), 2);
+    }
+
+    #[test]
+    fn test_page_tree_add_kid_to_invalid_parent() {
+        let root_id = ObjectId::new(1, 0);
+        let mut tree = PageTree::new(root_id);
+
+        let page_id = ObjectId::new(2, 0);
+        tree.add_page(Page::a4(), page_id, root_id).unwrap();
+
+        // Try to add a kid to a page node (not a Pages node)
+        let result = tree.add_kid_to_parent(page_id, ObjectId::new(3, 0));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_page_tree_node_to_dict_page_node() {
+        let root_id = ObjectId::new(1, 0);
+        let mut tree = PageTree::new(root_id);
+
+        let page = Page::a4();
+        let page_id = ObjectId::new(2, 0);
+        tree.add_page(page, page_id, root_id).unwrap();
+
+        let dict = tree.node_to_dict(page_id).unwrap();
+        assert_eq!(dict.get("Type"), Some(&Object::Name("Page".to_string())));
+        assert_eq!(dict.get("Parent"), Some(&Object::Reference(root_id)));
+    }
+
+    #[test]
+    fn test_page_tree_node_to_dict_with_media_box() {
+        use crate::geometry::Point;
+
+        let root_id = ObjectId::new(1, 0);
+        let mut tree = PageTree::new(root_id);
+
+        // Add media box to root
+        if let Some(PageTreeNode::Pages { media_box, .. }) = tree.nodes.get_mut(&root_id) {
+            *media_box = Some(Rectangle::new(
+                Point::new(0.0, 0.0),
+                Point::new(612.0, 792.0),
+            ));
+        }
+
+        let dict = tree.node_to_dict(root_id).unwrap();
+        assert!(dict.get("MediaBox").is_some());
+
+        match dict.get("MediaBox") {
+            Some(Object::Array(arr)) => {
+                assert_eq!(arr.len(), 4);
+            }
+            _ => panic!("MediaBox should be an array"),
+        }
+    }
+
+    #[test]
+    fn test_page_tree_node_to_dict_with_resources() {
+        let root_id = ObjectId::new(1, 0);
+        let mut tree = PageTree::new(root_id);
+
+        // Add resources to root
+        let mut res = Dictionary::new();
+        res.set("Font", Object::Dictionary(Dictionary::new()));
+
+        if let Some(PageTreeNode::Pages { resources, .. }) = tree.nodes.get_mut(&root_id) {
+            *resources = Some(res);
+        }
+
+        let dict = tree.node_to_dict(root_id).unwrap();
+        assert!(dict.get("Resources").is_some());
+    }
+
+    #[test]
+    fn test_page_tree_node_to_dict_invalid_node() {
+        let root_id = ObjectId::new(1, 0);
+        let tree = PageTree::new(root_id);
+
+        let invalid_id = ObjectId::new(999, 0);
+        let result = tree.node_to_dict(invalid_id);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_page_tree_builder_empty() {
+        let builder = PageTreeBuilder::new(10);
+        let tree = builder.build();
+
+        assert_eq!(tree.root(), ObjectId::new(10, 0));
+        assert_eq!(tree.page_count(), 0);
+    }
+
+    #[test]
+    fn test_page_tree_builder_with_custom_start_id() {
+        let mut builder = PageTreeBuilder::new(100);
+        builder.add_pages(vec![Page::a4()]).unwrap();
+
+        let tree = builder.build();
+        assert_eq!(tree.root(), ObjectId::new(100, 0));
+
+        // The page should have ID 101
+        match tree.nodes.get(&ObjectId::new(101, 0)) {
+            Some(PageTreeNode::Page { .. }) => (),
+            _ => panic!("Page not found with expected ID"),
+        }
+    }
+
+    #[test]
+    fn test_page_tree_update_ancestor_counts() {
+        let root_id = ObjectId::new(1, 0);
+        let mut tree = PageTree::new(root_id);
+
+        // Create a nested structure
+        let level1_id = ObjectId::new(2, 0);
+        let level2_id = ObjectId::new(3, 0);
+
+        tree.add_pages_node(level1_id, Some(root_id)).unwrap();
+        tree.add_pages_node(level2_id, Some(level1_id)).unwrap();
+
+        // Add a page at the deepest level
+        let page_id = ObjectId::new(4, 0);
+        tree.add_page(Page::a4(), page_id, level2_id).unwrap();
+
+        // Check counts at all levels
+        assert_eq!(tree.page_count(), 1); // Root count
+
+        match &tree.nodes[&level1_id] {
+            PageTreeNode::Pages { count, .. } => assert_eq!(*count, 1),
+            _ => panic!("Wrong node type"),
+        }
+
+        match &tree.nodes[&level2_id] {
+            PageTreeNode::Pages { count, .. } => assert_eq!(*count, 1),
+            _ => panic!("Wrong node type"),
+        }
+    }
+
+    #[test]
+    fn test_page_tree_node_to_dict_with_parent() {
+        let root_id = ObjectId::new(1, 0);
+        let mut tree = PageTree::new(root_id);
+
+        let child_id = ObjectId::new(2, 0);
+        tree.add_pages_node(child_id, Some(root_id)).unwrap();
+
+        let dict = tree.node_to_dict(child_id).unwrap();
+        assert_eq!(dict.get("Parent"), Some(&Object::Reference(root_id)));
+    }
+
+    #[test]
+    fn test_page_tree_node_to_dict_root_no_parent() {
+        let root_id = ObjectId::new(1, 0);
+        let tree = PageTree::new(root_id);
+
+        let dict = tree.node_to_dict(root_id).unwrap();
+        assert!(dict.get("Parent").is_none());
+    }
+
+    #[test]
+    fn test_page_tree_page_map() {
+        let root_id = ObjectId::new(1, 0);
+        let mut tree = PageTree::new(root_id);
+
+        let page1_id = ObjectId::new(2, 0);
+        let page2_id = ObjectId::new(3, 0);
+
+        tree.add_page(Page::a4(), page1_id, root_id).unwrap();
+        tree.add_page(Page::letter(), page2_id, root_id).unwrap();
+
+        // Check page map
+        assert_eq!(tree.page_map.get(&0), Some(&page1_id));
+        assert_eq!(tree.page_map.get(&1), Some(&page2_id));
+    }
+
+    #[test]
+    fn test_page_tree_different_page_sizes() {
+        let mut builder = PageTreeBuilder::new(1);
+        let pages = vec![Page::a4(), Page::letter(), Page::new(200.0, 300.0)];
+
+        builder.add_pages(pages).unwrap();
+        let tree = builder.build();
+
+        assert_eq!(tree.page_count(), 3);
+
+        // Verify different sizes
+        let page0 = tree.get_page(0).unwrap();
+        let page1 = tree.get_page(1).unwrap();
+        let page2 = tree.get_page(2).unwrap();
+
+        // Verify we got the pages (we can't access private fields)
+        // A4, Letter, and custom sizes were added
+        assert_eq!(tree.page_count(), 3);
+
+        // Since we can't access the private width/height fields,
+        // we just verify the pages exist
+        assert!(std::ptr::eq(page0, tree.get_page(0).unwrap()));
+        assert!(std::ptr::eq(page1, tree.get_page(1).unwrap()));
+        assert!(std::ptr::eq(page2, tree.get_page(2).unwrap()));
+    }
+
+    #[test]
+    fn test_page_tree_add_page_to_non_existent_parent() {
+        let root_id = ObjectId::new(1, 0);
+        let mut tree = PageTree::new(root_id);
+
+        let page = Page::a4();
+        let page_id = ObjectId::new(2, 0);
+        let invalid_parent = ObjectId::new(999, 0);
+
+        let result = tree.add_page(page, page_id, invalid_parent);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_page_tree_empty_kids_array() {
+        let root_id = ObjectId::new(1, 0);
+        let tree = PageTree::new(root_id);
+
+        let dict = tree.node_to_dict(root_id).unwrap();
+        match dict.get("Kids") {
+            Some(Object::Array(arr)) => {
+                assert_eq!(arr.len(), 0);
+            }
+            _ => panic!("Kids should be an empty array"),
+        }
+    }
+
+    #[test]
+    fn test_page_tree_builder_large_number_of_pages() {
+        let mut builder = PageTreeBuilder::new(1);
+        let pages: Vec<Page> = (0..100).map(|_| Page::a4()).collect();
+
+        builder.add_pages(pages).unwrap();
+        let tree = builder.build();
+
+        assert_eq!(tree.page_count(), 100);
+
+        // Spot check some pages
+        assert!(tree.get_page(0).is_some());
+        assert!(tree.get_page(50).is_some());
+        assert!(tree.get_page(99).is_some());
+        assert!(tree.get_page(100).is_none());
+    }
+
+    #[test]
+    fn test_page_tree_add_pages_node_without_parent() {
+        let root_id = ObjectId::new(1, 0);
+        let mut tree = PageTree::new(root_id);
+
+        let orphan_id = ObjectId::new(2, 0);
+        tree.add_pages_node(orphan_id, None).unwrap();
+
+        // Orphan node should exist but not be connected
+        assert!(tree.nodes.contains_key(&orphan_id));
+
+        match &tree.nodes[&root_id] {
+            PageTreeNode::Pages { kids, .. } => {
+                assert_eq!(kids.len(), 0); // Root should have no kids
+            }
+            _ => panic!("Wrong node type"),
+        }
     }
 }

@@ -1,7 +1,6 @@
 //! Example demonstrating template rendering in PDF documents
 
 use oxidize_pdf::{
-    graphics::Color,
     text::{AdvancedTemplateEngine, TemplateContext, TemplateEngine, TemplateValue},
     Document, Font, Page, Result,
 };

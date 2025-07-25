@@ -12,7 +12,7 @@ use oxidize_pdf::{
     graphics::Color,
     objects::ObjectReference,
     text::Font,
-    Destination, Document, Page, Point, Rectangle, Result,
+    Document, Page, Point, Rectangle, Result,
 };
 
 fn main() -> Result<()> {

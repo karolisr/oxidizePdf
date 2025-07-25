@@ -326,4 +326,237 @@ mod tests {
         assert!(pdf_dict.get("U").is_some());
         assert!(pdf_dict.get("P").is_some());
     }
+
+    #[test]
+    fn test_stream_filter_names() {
+        let identity = StreamFilter::Identity;
+        let std_cf = StreamFilter::StdCF;
+        let custom = StreamFilter::Custom("MyFilter".to_string());
+
+        // Test that they can be created and cloned
+        let _identity_clone = identity.clone();
+        let _std_cf_clone = std_cf.clone();
+        let _custom_clone = custom.clone();
+    }
+
+    #[test]
+    fn test_string_filter_names() {
+        let identity = StringFilter::Identity;
+        let std_cf = StringFilter::StdCF;
+        let custom = StringFilter::Custom("MyStringFilter".to_string());
+
+        // Test that they can be created and cloned
+        let _identity_clone = identity.clone();
+        let _std_cf_clone = std_cf.clone();
+        let _custom_clone = custom.clone();
+    }
+
+    #[test]
+    fn test_encryption_algorithm_variants() {
+        assert_eq!(EncryptionAlgorithm::RC4, EncryptionAlgorithm::RC4);
+        assert_eq!(EncryptionAlgorithm::AES128, EncryptionAlgorithm::AES128);
+        assert_eq!(EncryptionAlgorithm::AES256, EncryptionAlgorithm::AES256);
+        assert_ne!(EncryptionAlgorithm::RC4, EncryptionAlgorithm::AES128);
+
+        // Test debug format
+        let _ = format!("{:?}", EncryptionAlgorithm::RC4);
+        let _ = format!("{:?}", EncryptionAlgorithm::AES128);
+        let _ = format!("{:?}", EncryptionAlgorithm::AES256);
+    }
+
+    #[test]
+    fn test_crypt_filter_method_variants() {
+        assert_eq!(CryptFilterMethod::None, CryptFilterMethod::None);
+        assert_eq!(CryptFilterMethod::V2, CryptFilterMethod::V2);
+        assert_eq!(CryptFilterMethod::AESV2, CryptFilterMethod::AESV2);
+        assert_eq!(CryptFilterMethod::AESV3, CryptFilterMethod::AESV3);
+        assert_ne!(CryptFilterMethod::None, CryptFilterMethod::V2);
+
+        // Test debug format
+        let _ = format!("{:?}", CryptFilterMethod::None);
+        let _ = format!("{:?}", CryptFilterMethod::V2);
+        let _ = format!("{:?}", CryptFilterMethod::AESV2);
+        let _ = format!("{:?}", CryptFilterMethod::AESV3);
+    }
+
+    #[test]
+    fn test_crypt_filter_custom() {
+        let filter = CryptFilter {
+            name: "CustomFilter".to_string(),
+            method: CryptFilterMethod::AESV2,
+            length: Some(32),
+        };
+
+        let dict = filter.to_dict();
+        assert_eq!(dict.get("CFM"), Some(&Object::Name("AESV2".to_string())));
+        assert_eq!(dict.get("Length"), Some(&Object::Integer(32)));
+    }
+
+    #[test]
+    fn test_crypt_filter_no_optional_fields() {
+        let filter = CryptFilter {
+            name: "MinimalFilter".to_string(),
+            method: CryptFilterMethod::V2,
+            length: None,
+        };
+
+        let dict = filter.to_dict();
+        assert_eq!(dict.get("CFM"), Some(&Object::Name("V2".to_string())));
+        assert!(dict.get("Length").is_none());
+    }
+
+    #[test]
+    fn test_encryption_dict_with_file_id() {
+        let owner_hash = vec![0u8; 32];
+        let user_hash = vec![1u8; 32];
+        let permissions = Permissions::new();
+        let file_id = vec![42u8; 16];
+
+        let enc_dict = EncryptionDictionary::rc4_40bit(
+            owner_hash.clone(),
+            user_hash.clone(),
+            permissions,
+            Some(file_id.clone()),
+        );
+
+        // The file_id is used internally but not stored as a separate field
+        assert_eq!(enc_dict.filter, "Standard");
+        assert_eq!(enc_dict.v, 1);
+    }
+
+    #[test]
+    fn test_encryption_dict_rc4_128bit_with_metadata() {
+        let owner_hash = vec![0u8; 32];
+        let user_hash = vec![1u8; 32];
+        let permissions = Permissions::all();
+
+        let enc_dict = EncryptionDictionary::rc4_128bit(
+            owner_hash.clone(),
+            user_hash.clone(),
+            permissions,
+            None,
+        );
+
+        assert_eq!(enc_dict.v, 2);
+        assert_eq!(enc_dict.length, Some(16));
+        assert_eq!(enc_dict.r, 3);
+        assert!(enc_dict.encrypt_metadata);
+    }
+
+    #[test]
+    fn test_encryption_dict_to_pdf_with_metadata_false() {
+        let mut enc_dict = EncryptionDictionary::rc4_128bit(
+            vec![0u8; 32],
+            vec![1u8; 32],
+            Permissions::new(),
+            None,
+        );
+        enc_dict.encrypt_metadata = false;
+        enc_dict.v = 4; // Ensure V >= 4 for EncryptMetadata
+
+        let pdf_dict = enc_dict.to_dict();
+        assert_eq!(
+            pdf_dict.get("EncryptMetadata"),
+            Some(&Object::Boolean(false))
+        );
+    }
+
+    #[test]
+    fn test_encryption_dict_with_crypt_filters() {
+        let mut enc_dict = EncryptionDictionary::rc4_128bit(
+            vec![0u8; 32],
+            vec![1u8; 32],
+            Permissions::new(),
+            None,
+        );
+
+        let filter = CryptFilter::standard(CryptFilterMethod::AESV2);
+        enc_dict.cf = Some(vec![filter]);
+        enc_dict.stm_f = Some(StreamFilter::StdCF);
+        enc_dict.str_f = Some(StringFilter::StdCF);
+
+        let pdf_dict = enc_dict.to_dict();
+        assert!(pdf_dict.get("CF").is_some());
+        assert_eq!(
+            pdf_dict.get("StmF"),
+            Some(&Object::Name("StdCF".to_string()))
+        );
+        assert_eq!(
+            pdf_dict.get("StrF"),
+            Some(&Object::Name("StdCF".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_encryption_dict_with_identity_filters() {
+        let mut enc_dict = EncryptionDictionary::rc4_128bit(
+            vec![0u8; 32],
+            vec![1u8; 32],
+            Permissions::new(),
+            None,
+        );
+
+        enc_dict.stm_f = Some(StreamFilter::Identity);
+        enc_dict.str_f = Some(StringFilter::Identity);
+
+        let pdf_dict = enc_dict.to_dict();
+        assert_eq!(
+            pdf_dict.get("StmF"),
+            Some(&Object::Name("Identity".to_string()))
+        );
+        assert_eq!(
+            pdf_dict.get("StrF"),
+            Some(&Object::Name("Identity".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_encryption_dict_with_custom_filters() {
+        let mut enc_dict = EncryptionDictionary::rc4_128bit(
+            vec![0u8; 32],
+            vec![1u8; 32],
+            Permissions::new(),
+            None,
+        );
+
+        enc_dict.stm_f = Some(StreamFilter::Custom("MyStreamFilter".to_string()));
+        enc_dict.str_f = Some(StringFilter::Custom("MyStringFilter".to_string()));
+
+        let pdf_dict = enc_dict.to_dict();
+        assert_eq!(
+            pdf_dict.get("StmF"),
+            Some(&Object::Name("MyStreamFilter".to_string()))
+        );
+        assert_eq!(
+            pdf_dict.get("StrF"),
+            Some(&Object::Name("MyStringFilter".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_multiple_crypt_filters() {
+        let mut enc_dict = EncryptionDictionary::rc4_128bit(
+            vec![0u8; 32],
+            vec![1u8; 32],
+            Permissions::new(),
+            None,
+        );
+
+        let filter1 = CryptFilter::standard(CryptFilterMethod::V2);
+        let filter2 = CryptFilter {
+            name: "AESFilter".to_string(),
+            method: CryptFilterMethod::AESV2,
+            length: Some(16),
+        };
+
+        enc_dict.cf = Some(vec![filter1, filter2]);
+
+        let pdf_dict = enc_dict.to_dict();
+        if let Some(Object::Dictionary(cf_dict)) = pdf_dict.get("CF") {
+            assert!(cf_dict.get("StdCF").is_some());
+            assert!(cf_dict.get("AESFilter").is_some());
+        } else {
+            panic!("CF should be a dictionary");
+        }
+    }
 }

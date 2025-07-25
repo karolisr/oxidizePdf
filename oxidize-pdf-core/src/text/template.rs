@@ -305,13 +305,13 @@ impl AdvancedTemplateEngine {
                     let expression: String = chars[pos + 2..end_pos].iter().collect();
                     let expr = expression.trim();
 
-                    if expr.starts_with("#if ") {
-                        let var_name = expr[4..].trim();
+                    if let Some(stripped) = expr.strip_prefix("#if ") {
+                        let var_name = stripped.trim();
                         tokens.push(Token::IfStart(var_name.to_string()));
                     } else if expr == "/if" {
                         tokens.push(Token::IfEnd);
-                    } else if expr.starts_with("#each ") {
-                        let var_name = expr[6..].trim();
+                    } else if let Some(stripped) = expr.strip_prefix("#each ") {
+                        let var_name = stripped.trim();
                         tokens.push(Token::EachStart(var_name.to_string()));
                     } else if expr == "/each" {
                         tokens.push(Token::EachEnd);

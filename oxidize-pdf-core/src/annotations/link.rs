@@ -167,8 +167,7 @@ pub struct LinkAnnotation {
 }
 
 /// Highlight mode for links
-#[derive(Debug, Clone, Copy)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum HighlightMode {
     /// No highlight
     None,
@@ -192,7 +191,6 @@ impl HighlightMode {
         }
     }
 }
-
 
 impl LinkAnnotation {
     /// Create a new link annotation

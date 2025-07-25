@@ -6,8 +6,7 @@ use crate::structure::destination::Destination;
 use std::collections::VecDeque;
 
 /// Outline item flags
-#[derive(Debug, Clone, Copy)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct OutlineFlags {
     /// Italic text
     pub italic: bool,
@@ -15,9 +14,9 @@ pub struct OutlineFlags {
     pub bold: bool,
 }
 
-
 impl OutlineFlags {
     /// Convert to integer flags
+    #[allow(clippy::wrong_self_convention)]
     pub fn to_int(&self) -> i64 {
         let mut flags = 0;
         if self.italic {
@@ -381,5 +380,406 @@ mod tests {
 
         let flags3 = OutlineFlags::default();
         assert_eq!(flags3.to_int(), 0);
+    }
+
+    #[test]
+    fn test_outline_flags_debug_clone_default() {
+        let flags = OutlineFlags {
+            italic: true,
+            bold: false,
+        };
+        let debug_str = format!("{:?}", flags);
+        assert!(debug_str.contains("OutlineFlags"));
+        assert!(debug_str.contains("italic: true"));
+        assert!(debug_str.contains("bold: false"));
+
+        let cloned = flags.clone();
+        assert_eq!(cloned.italic, flags.italic);
+        assert_eq!(cloned.bold, flags.bold);
+
+        let default_flags = OutlineFlags::default();
+        assert!(!default_flags.italic);
+        assert!(!default_flags.bold);
+    }
+
+    #[test]
+    fn test_outline_item_italic() {
+        let item = OutlineItem::new("Italic Text").italic();
+        assert!(item.flags.italic);
+        assert!(!item.flags.bold);
+    }
+
+    #[test]
+    fn test_outline_item_bold_italic() {
+        let item = OutlineItem::new("Bold Italic").bold().italic();
+        assert!(item.flags.italic);
+        assert!(item.flags.bold);
+        assert_eq!(item.flags.to_int(), 3);
+    }
+
+    #[test]
+    fn test_outline_item_with_complex_destination() {
+        use crate::geometry::{Point, Rectangle};
+
+        let dest = Destination::fit_r(
+            PageDestination::PageNumber(5),
+            Rectangle::new(Point::new(100.0, 200.0), Point::new(300.0, 400.0)),
+        );
+        let item = OutlineItem::new("Complex Destination").with_destination(dest.clone());
+
+        assert!(item.destination.is_some());
+        match &item.destination {
+            Some(d) => match &d.page {
+                PageDestination::PageNumber(n) => assert_eq!(*n, 5),
+                _ => panic!("Wrong destination type"),
+            },
+            None => panic!("Destination should be set"),
+        }
+    }
+
+    #[test]
+    fn test_outline_item_with_different_colors() {
+        let rgb_item = OutlineItem::new("RGB Color").with_color(Color::rgb(0.5, 0.7, 1.0));
+        assert!(rgb_item.color.is_some());
+
+        let gray_item = OutlineItem::new("Gray Color").with_color(Color::gray(0.5));
+        assert!(gray_item.color.is_some());
+
+        let cmyk_item = OutlineItem::new("CMYK Color").with_color(Color::cmyk(0.1, 0.2, 0.3, 0.4));
+        assert!(cmyk_item.color.is_some());
+    }
+
+    #[test]
+    fn test_outline_item_debug_clone() {
+        let item = OutlineItem::new("Test Item")
+            .bold()
+            .with_color(Color::rgb(1.0, 0.0, 0.0));
+
+        let debug_str = format!("{:?}", item);
+        assert!(debug_str.contains("OutlineItem"));
+        assert!(debug_str.contains("Test Item"));
+
+        let cloned = item.clone();
+        assert_eq!(cloned.title, item.title);
+        assert_eq!(cloned.flags.bold, item.flags.bold);
+        assert_eq!(cloned.open, item.open);
+    }
+
+    #[test]
+    fn test_outline_tree_default() {
+        let tree = OutlineTree::default();
+        assert!(tree.items.is_empty());
+        assert_eq!(tree.total_count(), 0);
+        assert_eq!(tree.visible_count(), 0);
+    }
+
+    #[test]
+    fn test_outline_tree_add_multiple_items() {
+        let mut tree = OutlineTree::new();
+
+        tree.add_item(OutlineItem::new("First"));
+        tree.add_item(OutlineItem::new("Second"));
+        tree.add_item(OutlineItem::new("Third"));
+
+        assert_eq!(tree.items.len(), 3);
+        assert_eq!(tree.total_count(), 3);
+        assert_eq!(tree.visible_count(), 3);
+    }
+
+    #[test]
+    fn test_outline_tree_with_closed_items() {
+        let mut tree = OutlineTree::new();
+
+        let mut chapter = OutlineItem::new("Chapter").closed();
+        chapter.add_child(OutlineItem::new("Hidden Section 1"));
+        chapter.add_child(OutlineItem::new("Hidden Section 2"));
+
+        tree.add_item(chapter);
+        tree.add_item(OutlineItem::new("Visible Item"));
+
+        assert_eq!(tree.total_count(), 4); // All items
+        assert_eq!(tree.visible_count(), 2); // Only chapter and visible item
+    }
+
+    #[test]
+    fn test_outline_builder_default() {
+        let builder = OutlineBuilder::default();
+        let tree = builder.build();
+        assert!(tree.items.is_empty());
+    }
+
+    #[test]
+    fn test_outline_builder_nested_structure() {
+        let mut builder = OutlineBuilder::new();
+
+        // Build a complex nested structure
+        builder.push_item(OutlineItem::new("Part I"));
+        builder.push_item(OutlineItem::new("Chapter 1"));
+        builder.add_item(OutlineItem::new("Section 1.1"));
+        builder.add_item(OutlineItem::new("Section 1.2"));
+        builder.pop_item(); // Pop Chapter 1
+        builder.push_item(OutlineItem::new("Chapter 2"));
+        builder.add_item(OutlineItem::new("Section 2.1"));
+        builder.pop_item(); // Pop Chapter 2
+        builder.pop_item(); // Pop Part I
+
+        builder.add_item(OutlineItem::new("Part II"));
+
+        let tree = builder.build();
+        assert_eq!(tree.items.len(), 2); // Part I and Part II
+        assert_eq!(tree.total_count(), 7); // All items
+    }
+
+    #[test]
+    fn test_outline_builder_auto_pop() {
+        let mut builder = OutlineBuilder::new();
+
+        // Push items without popping - should auto-pop on build
+        builder.push_item(OutlineItem::new("Root"));
+        builder.push_item(OutlineItem::new("Child"));
+        builder.add_item(OutlineItem::new("Grandchild"));
+
+        let tree = builder.build();
+        assert_eq!(tree.items.len(), 1); // Only root
+        assert_eq!(tree.total_count(), 3); // Root + Child + Grandchild
+    }
+
+    #[test]
+    fn test_outline_item_count_deep_hierarchy() {
+        let mut root = OutlineItem::new("Root");
+
+        let mut level1 = OutlineItem::new("Level 1");
+        let mut level2 = OutlineItem::new("Level 2");
+        let mut level3 = OutlineItem::new("Level 3");
+        level3.add_child(OutlineItem::new("Level 4"));
+        level2.add_child(level3);
+        level1.add_child(level2);
+        root.add_child(level1);
+
+        assert_eq!(root.count_all(), 5); // All 5 levels
+        assert_eq!(root.count_visible(), 5); // All visible
+
+        // Close level2 - should hide level 3 and 4
+        root.children[0].children[0].open = false;
+        assert_eq!(root.count_visible(), 3); // Root, Level1, Level2 (closed)
+    }
+
+    #[test]
+    fn test_outline_item_to_dict_basic() {
+        let item = OutlineItem::new("Test Title");
+        let parent_ref = ObjectId::new(1, 0);
+
+        let dict = outline_item_to_dict(&item, parent_ref, None, None, None, None);
+
+        assert_eq!(
+            dict.get("Title"),
+            Some(&Object::String("Test Title".to_string()))
+        );
+        assert_eq!(dict.get("Parent"), Some(&Object::Reference(parent_ref)));
+        assert!(dict.get("Prev").is_none());
+        assert!(dict.get("Next").is_none());
+        assert!(dict.get("First").is_none());
+        assert!(dict.get("Last").is_none());
+    }
+
+    #[test]
+    fn test_outline_item_to_dict_with_siblings() {
+        let item = OutlineItem::new("Middle Child");
+        let parent_ref = ObjectId::new(1, 0);
+        let prev_ref = Some(ObjectId::new(2, 0));
+        let next_ref = Some(ObjectId::new(3, 0));
+
+        let dict = outline_item_to_dict(&item, parent_ref, None, None, prev_ref, next_ref);
+
+        assert_eq!(
+            dict.get("Prev"),
+            Some(&Object::Reference(ObjectId::new(2, 0)))
+        );
+        assert_eq!(
+            dict.get("Next"),
+            Some(&Object::Reference(ObjectId::new(3, 0)))
+        );
+    }
+
+    #[test]
+    fn test_outline_item_to_dict_with_children() {
+        let mut item = OutlineItem::new("Parent");
+        item.add_child(OutlineItem::new("Child 1"));
+        item.add_child(OutlineItem::new("Child 2"));
+
+        let parent_ref = ObjectId::new(1, 0);
+        let first_ref = Some(ObjectId::new(10, 0));
+        let last_ref = Some(ObjectId::new(11, 0));
+
+        let dict = outline_item_to_dict(&item, parent_ref, first_ref, last_ref, None, None);
+
+        assert_eq!(
+            dict.get("First"),
+            Some(&Object::Reference(ObjectId::new(10, 0)))
+        );
+        assert_eq!(
+            dict.get("Last"),
+            Some(&Object::Reference(ObjectId::new(11, 0)))
+        );
+        assert_eq!(dict.get("Count"), Some(&Object::Integer(2))); // 2 visible children
+    }
+
+    #[test]
+    fn test_outline_item_to_dict_closed_with_children() {
+        let mut item = OutlineItem::new("Closed Parent").closed();
+        item.add_child(OutlineItem::new("Hidden 1"));
+        item.add_child(OutlineItem::new("Hidden 2"));
+        item.add_child(OutlineItem::new("Hidden 3"));
+
+        let dict = outline_item_to_dict(
+            &item,
+            ObjectId::new(1, 0),
+            Some(ObjectId::new(10, 0)),
+            Some(ObjectId::new(12, 0)),
+            None,
+            None,
+        );
+
+        // Count should be negative for closed items
+        assert_eq!(dict.get("Count"), Some(&Object::Integer(-3)));
+    }
+
+    #[test]
+    fn test_outline_item_to_dict_with_destination() {
+        let dest = Destination::xyz(
+            PageDestination::PageNumber(5),
+            Some(100.0),
+            Some(200.0),
+            Some(1.5),
+        );
+        let item = OutlineItem::new("With Destination").with_destination(dest);
+
+        let dict = outline_item_to_dict(&item, ObjectId::new(1, 0), None, None, None, None);
+
+        assert!(dict.get("Dest").is_some());
+        match dict.get("Dest") {
+            Some(Object::Array(arr)) => {
+                // Should be the destination array
+                assert!(arr.len() > 0);
+            }
+            _ => panic!("Dest should be an array"),
+        }
+    }
+
+    #[test]
+    fn test_outline_item_to_dict_with_color_rgb() {
+        let item = OutlineItem::new("Red Item").with_color(Color::rgb(1.0, 0.0, 0.0));
+
+        let dict = outline_item_to_dict(&item, ObjectId::new(1, 0), None, None, None, None);
+
+        match dict.get("C") {
+            Some(Object::Array(arr)) => {
+                assert_eq!(arr.len(), 3);
+                assert_eq!(arr.get(0), Some(&Object::Real(1.0)));
+                assert_eq!(arr.get(1), Some(&Object::Real(0.0)));
+                assert_eq!(arr.get(2), Some(&Object::Real(0.0)));
+            }
+            _ => panic!("C should be an array"),
+        }
+    }
+
+    #[test]
+    fn test_outline_item_to_dict_with_color_gray() {
+        let item = OutlineItem::new("Gray Item").with_color(Color::gray(0.5));
+
+        let dict = outline_item_to_dict(&item, ObjectId::new(1, 0), None, None, None, None);
+
+        match dict.get("C") {
+            Some(Object::Array(arr)) => {
+                assert_eq!(arr.len(), 3);
+                // Gray color should be converted to RGB with equal components
+                assert_eq!(arr.get(0), Some(&Object::Real(0.5)));
+                assert_eq!(arr.get(1), Some(&Object::Real(0.5)));
+                assert_eq!(arr.get(2), Some(&Object::Real(0.5)));
+            }
+            _ => panic!("C should be an array"),
+        }
+    }
+
+    #[test]
+    fn test_outline_item_to_dict_with_color_cmyk() {
+        let item = OutlineItem::new("CMYK Item").with_color(Color::cmyk(0.0, 1.0, 1.0, 0.0));
+
+        let dict = outline_item_to_dict(&item, ObjectId::new(1, 0), None, None, None, None);
+
+        match dict.get("C") {
+            Some(Object::Array(arr)) => {
+                assert_eq!(arr.len(), 3);
+                // CMYK (0,1,1,0) should convert to RGB (1,0,0) - red
+                assert_eq!(arr.get(0), Some(&Object::Real(1.0)));
+                assert_eq!(arr.get(1), Some(&Object::Real(0.0)));
+                assert_eq!(arr.get(2), Some(&Object::Real(0.0)));
+            }
+            _ => panic!("C should be an array"),
+        }
+    }
+
+    #[test]
+    fn test_outline_item_to_dict_with_flags() {
+        let item = OutlineItem::new("Styled Item").bold().italic();
+
+        let dict = outline_item_to_dict(&item, ObjectId::new(1, 0), None, None, None, None);
+
+        assert_eq!(dict.get("F"), Some(&Object::Integer(3))); // Both bold and italic
+    }
+
+    #[test]
+    fn test_outline_item_to_dict_no_flags() {
+        let item = OutlineItem::new("Plain Item");
+
+        let dict = outline_item_to_dict(&item, ObjectId::new(1, 0), None, None, None, None);
+
+        // F field should not be present when flags are 0
+        assert!(dict.get("F").is_none());
+    }
+
+    #[test]
+    fn test_outline_tree_empty_counts() {
+        let tree = OutlineTree::new();
+        assert_eq!(tree.total_count(), 0);
+        assert_eq!(tree.visible_count(), 0);
+    }
+
+    #[test]
+    fn test_outline_builder_empty_pop() {
+        let mut builder = OutlineBuilder::new();
+        // Popping from empty stack should not panic
+        builder.pop_item();
+        let tree = builder.build();
+        assert!(tree.items.is_empty());
+    }
+
+    #[test]
+    fn test_outline_complex_visibility() {
+        let mut root = OutlineItem::new("Book");
+
+        let mut part1 = OutlineItem::new("Part 1"); // open
+        let mut ch1 = OutlineItem::new("Chapter 1").closed();
+        ch1.add_child(OutlineItem::new("Section 1.1"));
+        ch1.add_child(OutlineItem::new("Section 1.2"));
+        part1.add_child(ch1);
+
+        let mut ch2 = OutlineItem::new("Chapter 2"); // open
+        ch2.add_child(OutlineItem::new("Section 2.1"));
+        part1.add_child(ch2);
+
+        root.add_child(part1);
+
+        // Structure:
+        // Book (open)
+        //   Part 1 (open)
+        //     Chapter 1 (closed)
+        //       Section 1.1 (hidden)
+        //       Section 1.2 (hidden)
+        //     Chapter 2 (open)
+        //       Section 2.1 (visible)
+
+        assert_eq!(root.count_all(), 7); // All items
+        assert_eq!(root.count_visible(), 5); // Hidden: Section 1.1, 1.2
     }
 }

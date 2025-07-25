@@ -147,6 +147,7 @@ pub struct FontDescriptor {
 
 impl FontDescriptor {
     /// Create a new font descriptor with required fields
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         font_name: String,
         flags: FontFlags,

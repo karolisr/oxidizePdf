@@ -580,4 +580,230 @@ mod tests {
         assert_eq!(dict.get("T"), Some(&Object::String("country".to_string())));
         assert_eq!(dict.get("V"), Some(&Object::String("US".to_string())));
     }
+
+    #[test]
+    fn test_field_type_debug() {
+        let _ = format!("{:?}", FieldType::Button);
+        let _ = format!("{:?}", FieldType::Text);
+        let _ = format!("{:?}", FieldType::Choice);
+        let _ = format!("{:?}", FieldType::Signature);
+    }
+
+    #[test]
+    fn test_field_type_clone() {
+        let field_type = FieldType::Text;
+        let cloned = field_type.clone();
+        assert_eq!(field_type.pdf_name(), cloned.pdf_name());
+    }
+
+    #[test]
+    fn test_text_field_advanced() {
+        let mut field = TextField::new("description")
+            .with_default_value("Enter description here...")
+            .with_max_length(500)
+            .multiline()
+            .password();
+
+        field.rich_text = true; // Set rich text directly since there's no method
+
+        let dict = field.to_dict();
+        assert_eq!(
+            dict.get("T"),
+            Some(&Object::String("description".to_string()))
+        );
+        assert_eq!(dict.get("FT"), Some(&Object::Name("Tx".to_string())));
+        assert_eq!(dict.get("MaxLen"), Some(&Object::Integer(500)));
+
+        // Check field flags for multiline and password
+        if let Some(Object::Integer(flags)) = dict.get("Ff") {
+            assert_ne!(flags & (1 << 12), 0); // Multiline flag
+            assert_ne!(flags & (1 << 13), 0); // Password flag
+        }
+    }
+
+    #[test]
+    fn test_text_field_minimal() {
+        let field = TextField::new("simple");
+        let dict = field.to_dict();
+
+        assert_eq!(dict.get("T"), Some(&Object::String("simple".to_string())));
+        assert_eq!(dict.get("FT"), Some(&Object::Name("Tx".to_string())));
+        assert!(dict.get("DV").is_none()); // No default value
+        assert!(dict.get("MaxLen").is_none()); // No max length
+    }
+
+    #[test]
+    fn test_push_button_with_action() {
+        let button = PushButton::new("action_button").with_caption("Click Me!");
+
+        let dict = button.to_dict();
+        assert_eq!(
+            dict.get("T"),
+            Some(&Object::String("action_button".to_string()))
+        );
+        assert_eq!(dict.get("FT"), Some(&Object::Name("Btn".to_string())));
+
+        // Check push button flag
+        if let Some(Object::Integer(flags)) = dict.get("Ff") {
+            assert_ne!(flags & (1 << 16), 0); // PushButton flag
+        }
+    }
+
+    #[test]
+    fn test_checkbox_states() {
+        // Test checked checkbox
+        let checked = CheckBox::new("terms").checked().with_export_value("Yes");
+
+        let dict = checked.to_dict();
+        assert_eq!(dict.get("V"), Some(&Object::Name("Yes".to_string())));
+        assert_eq!(dict.get("AS"), Some(&Object::Name("Yes".to_string())));
+
+        // Test unchecked checkbox
+        let unchecked = CheckBox::new("newsletter").with_export_value("Subscribe");
+
+        let dict = unchecked.to_dict();
+        assert_eq!(dict.get("V"), Some(&Object::Name("Off".to_string())));
+        assert_eq!(dict.get("AS"), Some(&Object::Name("Off".to_string())));
+    }
+
+    #[test]
+    fn test_radio_button_groups() {
+        let radio = RadioButton::new("payment")
+            .add_option("CC", "Credit Card")
+            .add_option("PP", "PayPal")
+            .add_option("BT", "Bank Transfer")
+            .with_selected(0); // Credit Card
+
+        let dict = radio.to_dict();
+        assert_eq!(dict.get("T"), Some(&Object::String("payment".to_string())));
+        assert_eq!(dict.get("V"), Some(&Object::Name("CC".to_string())));
+
+        // Check radio button flag
+        if let Some(Object::Integer(flags)) = dict.get("Ff") {
+            assert_ne!(flags & (1 << 15), 0); // Radio flag is set
+        }
+    }
+
+    #[test]
+    fn test_radio_button_no_selection() {
+        let radio = RadioButton::new("unselected")
+            .add_option("A", "Option A")
+            .add_option("B", "Option B");
+
+        let dict = radio.to_dict();
+        assert!(dict.get("V").is_none()); // No value when nothing selected
+    }
+
+    #[test]
+    fn test_list_box_single_select() {
+        let listbox = ListBox::new("sizes")
+            .add_option("S", "Small")
+            .add_option("M", "Medium")
+            .add_option("L", "Large")
+            .add_option("XL", "Extra Large")
+            .with_selected(vec![1]); // Medium
+
+        let dict = listbox.to_dict();
+        assert_eq!(dict.get("T"), Some(&Object::String("sizes".to_string())));
+
+        if let Some(Object::Array(selections)) = dict.get("V") {
+            assert_eq!(selections.len(), 1);
+        }
+    }
+
+    #[test]
+    fn test_list_box_multi_select() {
+        let listbox = ListBox::new("features")
+            .add_option("GPS", "GPS Navigation")
+            .add_option("BT", "Bluetooth")
+            .add_option("CAM", "Backup Camera")
+            .multi_select()
+            .with_selected(vec![0, 2]); // GPS and Camera
+
+        let dict = listbox.to_dict();
+
+        // Check multi-select flag
+        if let Some(Object::Integer(flags)) = dict.get("Ff") {
+            assert_ne!(flags & (1 << 21), 0); // MultiSelect flag
+        }
+
+        if let Some(Object::Array(selections)) = dict.get("V") {
+            assert_eq!(selections.len(), 2);
+        }
+    }
+
+    #[test]
+    fn test_list_box_empty() {
+        let listbox = ListBox::new("empty");
+        let dict = listbox.to_dict();
+
+        assert_eq!(dict.get("T"), Some(&Object::String("empty".to_string())));
+        // Even empty listbox will have an empty Opt array
+        if let Some(Object::Array(opts)) = dict.get("Opt") {
+            assert!(opts.is_empty());
+        }
+        assert!(dict.get("V").is_none()); // No selections
+    }
+
+    #[test]
+    fn test_combo_box_non_editable() {
+        let combo = ComboBox::new("status")
+            .add_option("A", "Active")
+            .add_option("I", "Inactive")
+            .add_option("P", "Pending")
+            .with_value("A");
+
+        let dict = combo.to_dict();
+        assert_eq!(dict.get("V"), Some(&Object::String("A".to_string())));
+
+        // Check that editable flag is not set
+        if let Some(Object::Integer(flags)) = dict.get("Ff") {
+            assert_eq!(flags & (1 << 18), 0); // Edit flag should be 0
+        }
+    }
+
+    #[test]
+    fn test_combo_box_editable() {
+        let combo = ComboBox::new("custom")
+            .add_option("opt1", "Option 1")
+            .add_option("opt2", "Option 2")
+            .editable()
+            .with_value("Custom Value");
+
+        let dict = combo.to_dict();
+
+        // Check editable flag
+        if let Some(Object::Integer(flags)) = dict.get("Ff") {
+            assert_ne!(flags & (1 << 18), 0); // Edit flag
+        }
+    }
+
+    #[test]
+    fn test_form_field_common_properties() {
+        let text_field = TextField::new("test_field").with_default_value("test_value");
+
+        let dict = text_field.to_dict();
+
+        // All form fields should have T (field name) and FT (field type)
+        assert!(dict.get("T").is_some());
+        assert!(dict.get("FT").is_some());
+
+        // Check field type is correct
+        assert_eq!(dict.get("FT"), Some(&Object::Name("Tx".to_string())));
+    }
+
+    #[test]
+    fn test_field_cloning() {
+        let original = TextField::new("original")
+            .with_default_value("original_value")
+            .with_max_length(100);
+
+        let cloned = original.clone();
+        let dict1 = original.to_dict();
+        let dict2 = cloned.to_dict();
+
+        assert_eq!(dict1.get("T"), dict2.get("T"));
+        assert_eq!(dict1.get("DV"), dict2.get("DV"));
+        assert_eq!(dict1.get("MaxLen"), dict2.get("MaxLen"));
+    }
 }

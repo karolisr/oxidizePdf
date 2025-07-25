@@ -2,7 +2,7 @@
 //! according to ISO 32000-1 Section 8.4
 
 use oxidize_pdf::{
-    graphics::{BlendMode, Color, ExtGState, LineCap, LineDashPattern, LineJoin, RenderingIntent},
+    graphics::{BlendMode, Color, LineCap, LineDashPattern, LineJoin, RenderingIntent},
     Document, Font, Page, Result,
 };
 

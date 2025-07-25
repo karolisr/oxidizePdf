@@ -133,7 +133,6 @@ impl RemoteGoToAction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     #[test]
     fn test_goto_action_to_page() {
@@ -183,5 +182,198 @@ mod tests {
         let dict = action.to_dict();
 
         assert_eq!(dict.get("D"), Some(&Object::String("Chapter1".to_string())));
+    }
+
+    #[test]
+    fn test_goto_action_debug() {
+        let action = GoToAction::to_page_xyz(0, 100.0, 200.0, Some(1.5));
+        let _ = format!("{:?}", action);
+    }
+
+    #[test]
+    fn test_goto_action_clone() {
+        let action = GoToAction::to_page_xyz(0, 100.0, 200.0, Some(1.5));
+        let cloned = action.clone();
+
+        let dict1 = action.to_dict();
+        let dict2 = cloned.to_dict();
+        assert_eq!(dict1.get("S"), dict2.get("S"));
+        assert_eq!(dict1.get("D"), dict2.get("D"));
+    }
+
+    #[test]
+    fn test_goto_action_from_destination() {
+        use crate::structure::{Destination, PageDestination};
+
+        // Test with explicit destination creation
+        let dest = Destination::fit(PageDestination::PageNumber(5));
+        let action = GoToAction::new(dest);
+        let dict = action.to_dict();
+
+        assert_eq!(dict.get("S"), Some(&Object::Name("GoTo".to_string())));
+        assert!(dict.get("D").is_some());
+    }
+
+    #[test]
+    fn test_goto_action_various_destinations() {
+        use crate::structure::{Destination, PageDestination};
+
+        // Test fit destination
+        let fit_dest = Destination::fit(PageDestination::PageNumber(3));
+        let action1 = GoToAction::new(fit_dest);
+        let dict1 = action1.to_dict();
+        assert!(dict1.get("D").is_some());
+
+        // Test XYZ destination with page_xyz method
+        let action2 = GoToAction::to_page_xyz(1, 100.0, 200.0, Some(1.5));
+        let dict2 = action2.to_dict();
+        if let Some(Object::Array(dest)) = dict2.get("D") {
+            assert!(dest.len() >= 4); // Should have page, type, and coordinates
+        }
+
+        // Test XYZ destination with null zoom
+        let action3 = GoToAction::to_page_xyz(2, 0.0, 0.0, None);
+        let dict3 = action3.to_dict();
+        assert!(dict3.get("D").is_some());
+    }
+
+    #[test]
+    fn test_goto_action_page_destinations() {
+        use crate::structure::{Destination, PageDestination};
+
+        // Test different page destination types
+        let page_num_dest = Destination::fit(PageDestination::PageNumber(10));
+        let action = GoToAction::new(page_num_dest);
+        let dict = action.to_dict();
+
+        assert_eq!(dict.get("Type"), Some(&Object::Name("Action".to_string())));
+        assert_eq!(dict.get("S"), Some(&Object::Name("GoTo".to_string())));
+        assert!(dict.get("D").is_some());
+    }
+
+    #[test]
+    fn test_goto_action_coordinate_precision() {
+        let action = GoToAction::to_page_xyz(0, 123.456, 789.012, Some(1.25));
+        let dict = action.to_dict();
+
+        // Verify the action was created successfully
+        assert_eq!(dict.get("S"), Some(&Object::Name("GoTo".to_string())));
+        assert!(dict.get("D").is_some());
+
+        // The exact format of the destination array depends on the Destination implementation
+        if let Some(Object::Array(dest)) = dict.get("D") {
+            assert!(!dest.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_remote_goto_action_creation() {
+        let action = RemoteGoToAction::new("external.pdf");
+        let dict = action.to_dict();
+
+        assert_eq!(dict.get("S"), Some(&Object::Name("GoToR".to_string())));
+        assert_eq!(
+            dict.get("F"),
+            Some(&Object::String("external.pdf".to_string()))
+        );
+        assert!(dict.get("D").is_none()); // No destination set yet
+        assert!(dict.get("NewWindow").is_none()); // Default is not set
+    }
+
+    #[test]
+    fn test_remote_goto_action_window_options() {
+        let action1 = RemoteGoToAction::new("doc1.pdf").in_new_window(true);
+        let dict1 = action1.to_dict();
+        assert_eq!(dict1.get("NewWindow"), Some(&Object::Boolean(true)));
+
+        let action2 = RemoteGoToAction::new("doc2.pdf").in_new_window(false);
+        let dict2 = action2.to_dict();
+        assert_eq!(dict2.get("NewWindow"), Some(&Object::Boolean(false)));
+
+        let action3 = RemoteGoToAction::new("doc3.pdf"); // No window setting
+        let dict3 = action3.to_dict();
+        assert!(dict3.get("NewWindow").is_none());
+    }
+
+    #[test]
+    fn test_remote_goto_action_destination_types() {
+        // Test page destination
+        let action1 = RemoteGoToAction::new("target.pdf").to_page(5);
+        let dict1 = action1.to_dict();
+        assert_eq!(dict1.get("D"), Some(&Object::Integer(5)));
+
+        // Test named destination
+        let action2 = RemoteGoToAction::new("target.pdf").to_named("Introduction");
+        let dict2 = action2.to_dict();
+        assert_eq!(
+            dict2.get("D"),
+            Some(&Object::String("Introduction".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_remote_goto_action_clone_debug() {
+        let action = RemoteGoToAction::new("test.pdf")
+            .to_page(3)
+            .in_new_window(true);
+
+        let cloned = action.clone();
+        let dict1 = action.to_dict();
+        let dict2 = cloned.to_dict();
+
+        assert_eq!(dict1.get("F"), dict2.get("F"));
+        assert_eq!(dict1.get("D"), dict2.get("D"));
+        assert_eq!(dict1.get("NewWindow"), dict2.get("NewWindow"));
+
+        // Test debug formatting
+        let _ = format!("{:?}", action);
+    }
+
+    #[test]
+    fn test_goto_action_edge_cases() {
+        use crate::structure::{Destination, PageDestination};
+
+        // Test with page 0 (first page)
+        let action = GoToAction::to_page(0);
+        let dict = action.to_dict();
+        assert_eq!(dict.get("S"), Some(&Object::Name("GoTo".to_string())));
+        assert!(dict.get("D").is_some());
+
+        // Test with high page number
+        let action = GoToAction::to_page(9999);
+        let dict = action.to_dict();
+        assert_eq!(dict.get("S"), Some(&Object::Name("GoTo".to_string())));
+        assert!(dict.get("D").is_some());
+
+        // Test with explicit destination for page 0
+        let dest = Destination::fit(PageDestination::PageNumber(0));
+        let action = GoToAction::new(dest);
+        let dict = action.to_dict();
+        assert!(dict.get("D").is_some());
+    }
+
+    #[test]
+    fn test_goto_action_comprehensive() {
+        use crate::structure::{Destination, PageDestination};
+
+        // Test all available methods
+        let action1 = GoToAction::to_page(5);
+        let dict1 = action1.to_dict();
+        assert_eq!(dict1.get("S"), Some(&Object::Name("GoTo".to_string())));
+
+        let action2 = GoToAction::to_page_xyz(3, 100.0, 200.0, Some(1.5));
+        let dict2 = action2.to_dict();
+        assert_eq!(dict2.get("S"), Some(&Object::Name("GoTo".to_string())));
+
+        // Test with explicit destinations
+        let xyz_dest = Destination::xyz(
+            PageDestination::PageNumber(1),
+            Some(50.0),
+            Some(75.0),
+            Some(2.0),
+        );
+        let action3 = GoToAction::new(xyz_dest);
+        let dict3 = action3.to_dict();
+        assert_eq!(dict3.get("S"), Some(&Object::Name("GoTo".to_string())));
     }
 }

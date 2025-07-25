@@ -149,7 +149,6 @@ impl EncryptionContext {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     #[test]
     fn test_document_encryption_new() {

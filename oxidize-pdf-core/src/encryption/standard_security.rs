@@ -1,5 +1,7 @@
 //! Standard Security Handler implementation according to ISO 32000-1
 
+#![allow(clippy::needless_range_loop)]
+
 use crate::encryption::{Permissions, Rc4, Rc4Key};
 use crate::error::Result;
 use crate::objects::ObjectId;

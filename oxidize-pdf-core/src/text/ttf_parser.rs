@@ -387,7 +387,7 @@ impl TrueTypeFontInfo {
             self.metrics.ascender as f64 * scale,
             self.metrics.descender as f64 * scale,
             self.metrics.ascender as f64 * scale, // Approximate cap height
-            100.0,                                         // Default stem width
+            100.0,                                // Default stem width
         );
 
         descriptor.x_height = Some(self.metrics.ascender as f64 * scale * 0.7); // Approximate

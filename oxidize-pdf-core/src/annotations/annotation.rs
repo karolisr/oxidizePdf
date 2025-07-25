@@ -490,4 +490,574 @@ mod tests {
         assert!(manager.get_page_annotations(&page_ref).is_some());
         assert_eq!(manager.get_page_annotations(&page_ref).unwrap().len(), 1);
     }
+
+    #[test]
+    fn test_all_annotation_types() {
+        let types = [
+            AnnotationType::Text,
+            AnnotationType::Link,
+            AnnotationType::FreeText,
+            AnnotationType::Line,
+            AnnotationType::Square,
+            AnnotationType::Circle,
+            AnnotationType::Polygon,
+            AnnotationType::PolyLine,
+            AnnotationType::Highlight,
+            AnnotationType::Underline,
+            AnnotationType::Squiggly,
+            AnnotationType::StrikeOut,
+            AnnotationType::Stamp,
+            AnnotationType::Caret,
+            AnnotationType::Ink,
+            AnnotationType::Popup,
+            AnnotationType::FileAttachment,
+            AnnotationType::Sound,
+            AnnotationType::Movie,
+            AnnotationType::Widget,
+            AnnotationType::Screen,
+            AnnotationType::PrinterMark,
+            AnnotationType::TrapNet,
+            AnnotationType::Watermark,
+        ];
+
+        let expected_names = [
+            "Text",
+            "Link",
+            "FreeText",
+            "Line",
+            "Square",
+            "Circle",
+            "Polygon",
+            "PolyLine",
+            "Highlight",
+            "Underline",
+            "Squiggly",
+            "StrikeOut",
+            "Stamp",
+            "Caret",
+            "Ink",
+            "Popup",
+            "FileAttachment",
+            "Sound",
+            "Movie",
+            "Widget",
+            "Screen",
+            "PrinterMark",
+            "TrapNet",
+            "Watermark",
+        ];
+
+        for (annotation_type, expected_name) in types.iter().zip(expected_names.iter()) {
+            assert_eq!(annotation_type.pdf_name(), *expected_name);
+        }
+    }
+
+    #[test]
+    fn test_annotation_type_debug_clone_partial_eq() {
+        let annotation_type = AnnotationType::Highlight;
+        let debug_str = format!("{:?}", annotation_type);
+        assert!(debug_str.contains("Highlight"));
+
+        let cloned = annotation_type.clone();
+        assert_eq!(annotation_type, cloned);
+
+        assert_eq!(AnnotationType::Text, AnnotationType::Text);
+        assert_ne!(AnnotationType::Text, AnnotationType::Link);
+    }
+
+    #[test]
+    fn test_annotation_flags_comprehensive() {
+        // Test default flags
+        let default_flags = AnnotationFlags::default();
+        assert_eq!(default_flags.to_flags(), 0);
+
+        // Test individual flags
+        let invisible_flag = AnnotationFlags {
+            invisible: true,
+            ..Default::default()
+        };
+        assert_eq!(invisible_flag.to_flags(), 1); // bit 0
+
+        let hidden_flag = AnnotationFlags {
+            hidden: true,
+            ..Default::default()
+        };
+        assert_eq!(hidden_flag.to_flags(), 2); // bit 1
+
+        let print_flag = AnnotationFlags {
+            print: true,
+            ..Default::default()
+        };
+        assert_eq!(print_flag.to_flags(), 4); // bit 2
+
+        let no_zoom_flag = AnnotationFlags {
+            no_zoom: true,
+            ..Default::default()
+        };
+        assert_eq!(no_zoom_flag.to_flags(), 8); // bit 3
+
+        let no_rotate_flag = AnnotationFlags {
+            no_rotate: true,
+            ..Default::default()
+        };
+        assert_eq!(no_rotate_flag.to_flags(), 16); // bit 4
+
+        let no_view_flag = AnnotationFlags {
+            no_view: true,
+            ..Default::default()
+        };
+        assert_eq!(no_view_flag.to_flags(), 32); // bit 5
+
+        let read_only_flag = AnnotationFlags {
+            read_only: true,
+            ..Default::default()
+        };
+        assert_eq!(read_only_flag.to_flags(), 64); // bit 6
+
+        let locked_flag = AnnotationFlags {
+            locked: true,
+            ..Default::default()
+        };
+        assert_eq!(locked_flag.to_flags(), 128); // bit 7
+
+        let locked_contents_flag = AnnotationFlags {
+            locked_contents: true,
+            ..Default::default()
+        };
+        assert_eq!(locked_contents_flag.to_flags(), 512); // bit 9
+    }
+
+    #[test]
+    fn test_annotation_flags_combined() {
+        let combined_flags = AnnotationFlags {
+            print: true,
+            read_only: true,
+            locked: true,
+            ..Default::default()
+        };
+        assert_eq!(combined_flags.to_flags(), 4 + 64 + 128); // bits 2, 6, 7
+
+        // Test all flags set
+        let all_flags = AnnotationFlags {
+            invisible: true,
+            hidden: true,
+            print: true,
+            no_zoom: true,
+            no_rotate: true,
+            no_view: true,
+            read_only: true,
+            locked: true,
+            locked_contents: true,
+        };
+        assert_eq!(
+            all_flags.to_flags(),
+            1 + 2 + 4 + 8 + 16 + 32 + 64 + 128 + 512
+        );
+    }
+
+    #[test]
+    fn test_annotation_flags_debug_clone() {
+        let flags = AnnotationFlags {
+            print: true,
+            read_only: true,
+            ..Default::default()
+        };
+        let debug_str = format!("{:?}", flags);
+        assert!(debug_str.contains("AnnotationFlags"));
+
+        let cloned = flags.clone();
+        assert_eq!(flags.print, cloned.print);
+        assert_eq!(flags.read_only, cloned.read_only);
+        assert_eq!(flags.to_flags(), cloned.to_flags());
+    }
+
+    #[test]
+    fn test_border_style_types() {
+        assert_eq!(BorderStyleType::Solid.pdf_name(), "S");
+        assert_eq!(BorderStyleType::Dashed.pdf_name(), "D");
+        assert_eq!(BorderStyleType::Beveled.pdf_name(), "B");
+        assert_eq!(BorderStyleType::Inset.pdf_name(), "I");
+        assert_eq!(BorderStyleType::Underline.pdf_name(), "U");
+    }
+
+    #[test]
+    fn test_border_style_debug_clone() {
+        let style = BorderStyleType::Dashed;
+        let debug_str = format!("{:?}", style);
+        assert!(debug_str.contains("Dashed"));
+
+        let cloned = style.clone();
+        assert_eq!(style.pdf_name(), cloned.pdf_name());
+    }
+
+    #[test]
+    fn test_border_style_default() {
+        let default_border = BorderStyle::default();
+        assert_eq!(default_border.width, 1.0);
+        assert_eq!(default_border.style.pdf_name(), "S");
+        assert!(default_border.dash_pattern.is_none());
+    }
+
+    #[test]
+    fn test_border_style_with_dash_pattern() {
+        let dashed_border = BorderStyle {
+            width: 1.5,
+            style: BorderStyleType::Dashed,
+            dash_pattern: Some(vec![5.0, 2.0, 3.0, 2.0]),
+        };
+
+        assert_eq!(dashed_border.width, 1.5);
+        assert_eq!(dashed_border.style.pdf_name(), "D");
+        assert_eq!(dashed_border.dash_pattern.as_ref().unwrap().len(), 4);
+    }
+
+    #[test]
+    fn test_border_style_debug_clone_comprehensive() {
+        let border = BorderStyle {
+            width: 2.5,
+            style: BorderStyleType::Beveled,
+            dash_pattern: Some(vec![1.0, 2.0]),
+        };
+
+        let debug_str = format!("{:?}", border);
+        assert!(debug_str.contains("BorderStyle"));
+        assert!(debug_str.contains("2.5"));
+
+        let cloned = border.clone();
+        assert_eq!(border.width, cloned.width);
+        assert_eq!(border.style.pdf_name(), cloned.style.pdf_name());
+        assert_eq!(border.dash_pattern, cloned.dash_pattern);
+    }
+
+    #[test]
+    fn test_annotation_creation_comprehensive() {
+        let rect = Rectangle::new(Point::new(10.0, 20.0), Point::new(110.0, 120.0));
+
+        // Test basic creation
+        let annotation = Annotation::new(AnnotationType::Circle, rect);
+        assert_eq!(annotation.annotation_type, AnnotationType::Circle);
+        assert!(annotation.flags.print); // Default should have print enabled
+        assert!(annotation.contents.is_none());
+        assert!(annotation.name.is_none());
+        assert!(annotation.color.is_none());
+        assert!(annotation.border.is_none());
+        assert!(annotation.page.is_none());
+    }
+
+    #[test]
+    fn test_annotation_builder_pattern() {
+        let rect = Rectangle::new(Point::new(0.0, 0.0), Point::new(100.0, 50.0));
+        let border = BorderStyle {
+            width: 3.0,
+            style: BorderStyleType::Inset,
+            dash_pattern: None,
+        };
+        let flags = AnnotationFlags {
+            print: true,
+            no_zoom: true,
+            ..Default::default()
+        };
+
+        let annotation = Annotation::new(AnnotationType::FreeText, rect)
+            .with_contents("Free text annotation")
+            .with_name("annotation_1")
+            .with_color(Color::Rgb(0.0, 1.0, 0.0))
+            .with_border(border.clone())
+            .with_flags(flags);
+
+        assert_eq!(
+            annotation.contents,
+            Some("Free text annotation".to_string())
+        );
+        assert_eq!(annotation.name, Some("annotation_1".to_string()));
+        assert!(matches!(annotation.color, Some(Color::Rgb(0.0, 1.0, 0.0))));
+        assert!(annotation.border.is_some());
+        assert_eq!(annotation.border.unwrap().width, 3.0);
+        assert!(annotation.flags.print);
+        assert!(annotation.flags.no_zoom);
+    }
+
+    #[test]
+    fn test_annotation_debug_clone() {
+        let rect = Rectangle::new(Point::new(50.0, 50.0), Point::new(150.0, 100.0));
+        let annotation =
+            Annotation::new(AnnotationType::Stamp, rect).with_contents("Stamp annotation");
+
+        let debug_str = format!("{:?}", annotation);
+        assert!(debug_str.contains("Annotation"));
+        assert!(debug_str.contains("Stamp"));
+
+        let cloned = annotation.clone();
+        assert_eq!(annotation.annotation_type, cloned.annotation_type);
+        assert_eq!(annotation.contents, cloned.contents);
+        assert_eq!(annotation.rect.lower_left.x, cloned.rect.lower_left.x);
+    }
+
+    #[test]
+    fn test_annotation_to_dict_comprehensive() {
+        let rect = Rectangle::new(Point::new(25.0, 25.0), Point::new(125.0, 75.0));
+        let border = BorderStyle {
+            width: 2.0,
+            style: BorderStyleType::Dashed,
+            dash_pattern: Some(vec![4.0, 2.0]),
+        };
+        let flags = AnnotationFlags {
+            print: true,
+            read_only: true,
+            ..Default::default()
+        };
+        let page_ref = ObjectReference::new(5, 0);
+
+        let mut annotation = Annotation::new(AnnotationType::Underline, rect)
+            .with_contents("Underline annotation")
+            .with_name("underline_1")
+            .with_color(Color::Cmyk(0.1, 0.2, 0.3, 0.4))
+            .with_border(border)
+            .with_flags(flags);
+        annotation.page = Some(page_ref);
+        annotation.modified = Some("D:20230101120000Z".to_string());
+
+        let dict = annotation.to_dict();
+
+        // Check required fields
+        assert_eq!(dict.get("Type"), Some(&Object::Name("Annot".to_string())));
+        assert_eq!(
+            dict.get("Subtype"),
+            Some(&Object::Name("Underline".to_string()))
+        );
+
+        // Check rectangle
+        if let Some(Object::Array(rect_array)) = dict.get("Rect") {
+            assert_eq!(rect_array.len(), 4);
+            assert_eq!(rect_array[0], Object::Real(25.0));
+            assert_eq!(rect_array[1], Object::Real(25.0));
+            assert_eq!(rect_array[2], Object::Real(125.0));
+            assert_eq!(rect_array[3], Object::Real(75.0));
+        } else {
+            panic!("Rect should be an array");
+        }
+
+        // Check optional fields
+        assert_eq!(
+            dict.get("Contents"),
+            Some(&Object::String("Underline annotation".to_string()))
+        );
+        assert_eq!(
+            dict.get("NM"),
+            Some(&Object::String("underline_1".to_string()))
+        );
+        assert_eq!(
+            dict.get("M"),
+            Some(&Object::String("D:20230101120000Z".to_string()))
+        );
+        assert_eq!(dict.get("P"), Some(&Object::Reference(page_ref)));
+
+        // Check flags
+        assert_eq!(dict.get("F"), Some(&Object::Integer(68))); // bits 2 and 6
+
+        // Check border
+        if let Some(Object::Dictionary(bs_dict)) = dict.get("BS") {
+            assert_eq!(bs_dict.get("W"), Some(&Object::Real(2.0)));
+            assert_eq!(bs_dict.get("S"), Some(&Object::Name("D".to_string())));
+            if let Some(Object::Array(dash_array)) = bs_dict.get("D") {
+                assert_eq!(dash_array.len(), 2);
+                assert_eq!(dash_array[0], Object::Real(4.0));
+                assert_eq!(dash_array[1], Object::Real(2.0));
+            }
+        } else {
+            panic!("BS should be a dictionary");
+        }
+
+        // Check color
+        if let Some(Object::Array(color_array)) = dict.get("C") {
+            assert_eq!(color_array.len(), 4);
+            assert_eq!(color_array[0], Object::Real(0.1));
+            assert_eq!(color_array[1], Object::Real(0.2));
+            assert_eq!(color_array[2], Object::Real(0.3));
+            assert_eq!(color_array[3], Object::Real(0.4));
+        } else {
+            panic!("C should be an array");
+        }
+    }
+
+    #[test]
+    fn test_annotation_color_variants() {
+        let rect = Rectangle::new(Point::new(0.0, 0.0), Point::new(50.0, 50.0));
+
+        // Test RGB color
+        let rgb_annotation =
+            Annotation::new(AnnotationType::Square, rect).with_color(Color::Rgb(1.0, 0.5, 0.0));
+        let rgb_dict = rgb_annotation.to_dict();
+        if let Some(Object::Array(color)) = rgb_dict.get("C") {
+            assert_eq!(color.len(), 3);
+            assert_eq!(color[0], Object::Real(1.0));
+            assert_eq!(color[1], Object::Real(0.5));
+            assert_eq!(color[2], Object::Real(0.0));
+        }
+
+        // Test Gray color
+        let gray_annotation =
+            Annotation::new(AnnotationType::Circle, rect).with_color(Color::Gray(0.7));
+        let gray_dict = gray_annotation.to_dict();
+        if let Some(Object::Array(color)) = gray_dict.get("C") {
+            assert_eq!(color.len(), 1);
+            assert_eq!(color[0], Object::Real(0.7));
+        }
+
+        // Test CMYK color
+        let cmyk_annotation = Annotation::new(AnnotationType::Polygon, rect)
+            .with_color(Color::Cmyk(0.2, 0.4, 0.6, 0.1));
+        let cmyk_dict = cmyk_annotation.to_dict();
+        if let Some(Object::Array(color)) = cmyk_dict.get("C") {
+            assert_eq!(color.len(), 4);
+            assert_eq!(color[0], Object::Real(0.2));
+            assert_eq!(color[1], Object::Real(0.4));
+            assert_eq!(color[2], Object::Real(0.6));
+            assert_eq!(color[3], Object::Real(0.1));
+        }
+    }
+
+    #[test]
+    fn test_annotation_without_optional_fields() {
+        let rect = Rectangle::new(Point::new(10.0, 10.0), Point::new(60.0, 40.0));
+        let annotation = Annotation::new(AnnotationType::Line, rect);
+
+        let dict = annotation.to_dict();
+
+        // Should have required fields
+        assert_eq!(dict.get("Type"), Some(&Object::Name("Annot".to_string())));
+        assert_eq!(dict.get("Subtype"), Some(&Object::Name("Line".to_string())));
+        assert!(dict.get("Rect").is_some());
+
+        // Should not have optional fields when not set
+        assert!(dict.get("Contents").is_none());
+        assert!(dict.get("NM").is_none());
+        assert!(dict.get("M").is_none());
+        assert!(dict.get("P").is_none());
+        assert!(dict.get("BS").is_none());
+        assert!(dict.get("C").is_none());
+
+        // F should not be present when flags are 0 (except default print flag)
+        // Actually, print is set by default, so F should be present
+        assert_eq!(dict.get("F"), Some(&Object::Integer(4))); // bit 2 for print
+    }
+
+    #[test]
+    fn test_annotation_manager_comprehensive() {
+        let mut manager = AnnotationManager::new();
+        let page1_ref = ObjectReference::new(10, 0);
+        let page2_ref = ObjectReference::new(20, 0);
+
+        let rect1 = Rectangle::new(Point::new(0.0, 0.0), Point::new(50.0, 50.0));
+        let rect2 = Rectangle::new(Point::new(100.0, 100.0), Point::new(150.0, 150.0));
+        let rect3 = Rectangle::new(Point::new(200.0, 200.0), Point::new(250.0, 250.0));
+
+        let annotation1 = Annotation::new(AnnotationType::Text, rect1).with_contents("Text 1");
+        let annotation2 = Annotation::new(AnnotationType::Link, rect2).with_contents("Link 1");
+        let annotation3 =
+            Annotation::new(AnnotationType::Highlight, rect3).with_contents("Highlight 1");
+
+        // Add annotations to different pages
+        let annot1_ref = manager.add_annotation(page1_ref, annotation1);
+        let annot2_ref = manager.add_annotation(page1_ref, annotation2);
+        let annot3_ref = manager.add_annotation(page2_ref, annotation3);
+
+        // Check annotation references are sequential
+        assert_eq!(annot1_ref.number(), 1);
+        assert_eq!(annot2_ref.number(), 2);
+        assert_eq!(annot3_ref.number(), 3);
+
+        // Check page 1 has 2 annotations
+        let page1_annotations = manager.get_page_annotations(&page1_ref).unwrap();
+        assert_eq!(page1_annotations.len(), 2);
+        assert_eq!(page1_annotations[0].annotation_type, AnnotationType::Text);
+        assert_eq!(page1_annotations[1].annotation_type, AnnotationType::Link);
+        assert_eq!(page1_annotations[0].page, Some(page1_ref));
+        assert_eq!(page1_annotations[1].page, Some(page1_ref));
+
+        // Check page 2 has 1 annotation
+        let page2_annotations = manager.get_page_annotations(&page2_ref).unwrap();
+        assert_eq!(page2_annotations.len(), 1);
+        assert_eq!(
+            page2_annotations[0].annotation_type,
+            AnnotationType::Highlight
+        );
+        assert_eq!(page2_annotations[0].page, Some(page2_ref));
+
+        // Check non-existent page
+        let page3_ref = ObjectReference::new(30, 0);
+        assert!(manager.get_page_annotations(&page3_ref).is_none());
+
+        // Check all annotations
+        let all_annotations = manager.all_annotations();
+        assert_eq!(all_annotations.len(), 2); // 2 pages with annotations
+        assert!(all_annotations.contains_key(&page1_ref));
+        assert!(all_annotations.contains_key(&page2_ref));
+    }
+
+    #[test]
+    fn test_annotation_manager_debug_default() {
+        let manager = AnnotationManager::new();
+        let debug_str = format!("{:?}", manager);
+        assert!(debug_str.contains("AnnotationManager"));
+
+        let default_manager = AnnotationManager::default();
+        assert_eq!(default_manager.next_id, 1);
+        assert!(default_manager.annotations.is_empty());
+    }
+
+    #[test]
+    fn test_annotation_properties_dictionary() {
+        let rect = Rectangle::new(Point::new(0.0, 0.0), Point::new(100.0, 100.0));
+        let mut annotation = Annotation::new(AnnotationType::Widget, rect);
+
+        // Add custom properties
+        annotation
+            .properties
+            .set("CustomProp1", Object::String("Value1".to_string()));
+        annotation
+            .properties
+            .set("CustomProp2", Object::Integer(42));
+        annotation
+            .properties
+            .set("CustomProp3", Object::Boolean(true));
+
+        let dict = annotation.to_dict();
+
+        // Check that custom properties are included
+        assert_eq!(
+            dict.get("CustomProp1"),
+            Some(&Object::String("Value1".to_string()))
+        );
+        assert_eq!(dict.get("CustomProp2"), Some(&Object::Integer(42)));
+        assert_eq!(dict.get("CustomProp3"), Some(&Object::Boolean(true)));
+    }
+
+    #[test]
+    fn test_annotation_edge_cases() {
+        let rect = Rectangle::new(Point::new(-10.0, -20.0), Point::new(10.0, 20.0));
+
+        // Test with empty contents
+        let annotation = Annotation::new(AnnotationType::Ink, rect).with_contents("");
+        let dict = annotation.to_dict();
+        assert_eq!(dict.get("Contents"), Some(&Object::String("".to_string())));
+
+        // Test with very long contents
+        let long_content = "a".repeat(1000);
+        let annotation =
+            Annotation::new(AnnotationType::Sound, rect).with_contents(long_content.clone());
+        let dict = annotation.to_dict();
+        assert_eq!(dict.get("Contents"), Some(&Object::String(long_content)));
+
+        // Test with special characters in name
+        let annotation = Annotation::new(AnnotationType::Movie, rect)
+            .with_name("test@#$%^&*()_+-=[]{}|;':\",./<>?");
+        let dict = annotation.to_dict();
+        assert_eq!(
+            dict.get("NM"),
+            Some(&Object::String(
+                "test@#$%^&*()_+-=[]{}|;':\",./<>?".to_string()
+            ))
+        );
+    }
 }

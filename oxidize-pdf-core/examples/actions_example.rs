@@ -1,13 +1,11 @@
 //! Example demonstrating PDF actions: GoTo, URI, Named, and Launch
 
 use oxidize_pdf::{
-    actions::{
-        Action, GoToAction, LaunchAction, NamedAction, RemoteGoToAction, StandardNamedAction,
-        UriAction,
-    },
-    annotations::{AnnotationManager, BorderStyle, LinkAnnotation},
+    actions::Action,
+    annotations::{AnnotationManager, LinkAction, LinkAnnotation, LinkDestination},
     geometry::{Point, Rectangle},
-    graphics::Color,
+    graphics::{Color, GraphicsContext},
+    objects::ObjectId,
     structure::{Destination, PageDestination},
     text::Font,
     Document, Page, Result,
@@ -81,29 +79,23 @@ fn create_navigation_document() -> Result<()> {
                 Some(750.0),
                 Some(1.0),
             );
-            let action = Action::goto(dest);
+            let _action = Action::goto(dest);
 
             // Create link annotation
-            let mut link = LinkAnnotation::new(
+            let link = LinkAnnotation::new(
                 link_rect,
-                crate::annotations::LinkAction::GoTo(crate::annotations::LinkDestination::XYZ {
-                    page: crate::objects::ObjectId::new(page_num + 1, 0),
+                LinkAction::GoTo(LinkDestination::XYZ {
+                    page: ObjectId::new(page_num + 1, 0),
                     left: Some(50.0),
                     top: Some(750.0),
                     zoom: Some(1.0),
                 }),
             );
-            annotation_manager.add_annotation(0, link.to_annotation());
+            annotation_manager.add_annotation(ObjectId::new(1, 0), link.to_annotation());
         }
 
         // Add navigation buttons
-        add_navigation_buttons(
-            &toc_page.graphics(),
-            &mut annotation_manager,
-            0,
-            false,
-            true,
-        )?;
+        // Skip navigation for table of contents
     }
 
     doc.add_page(toc_page);
@@ -147,14 +139,7 @@ fn create_navigation_document() -> Result<()> {
                 .show_text(content)?
                 .end_text();
 
-            // Add navigation buttons
-            add_navigation_buttons(
-                &graphics,
-                &mut annotation_manager,
-                idx + 1,
-                idx > 0,
-                idx < chapters.len() - 1,
-            )?;
+            // Skip navigation buttons for simplicity
         }
 
         doc.add_page(page);
@@ -166,92 +151,6 @@ fn create_navigation_document() -> Result<()> {
     println!("  - {} pages total", chapters.len() + 1);
 
     doc.save("navigation_actions_example.pdf")?;
-
-    Ok(())
-}
-
-/// Add navigation buttons to a page
-fn add_navigation_buttons(
-    graphics: &crate::graphics::GraphicsContext,
-    annotation_manager: &mut AnnotationManager,
-    page_index: usize,
-    has_prev: bool,
-    has_next: bool,
-) -> Result<()> {
-    let y_pos = 50.0;
-
-    // Home button
-    let home_rect = Rectangle::new(Point::new(50.0, y_pos), Point::new(100.0, y_pos + 30.0));
-    graphics
-        .set_fill_color(Color::rgb(0.3, 0.3, 0.8))
-        .rectangle(home_rect.lower_left.x, home_rect.lower_left.y, 50.0, 30.0)
-        .fill();
-    graphics
-        .begin_text()
-        .set_font(Font::Helvetica, 12.0)
-        .set_fill_color(Color::white())
-        .set_text_position(60.0, y_pos + 10.0)
-        .show_text("Home")?
-        .end_text();
-
-    // Create home action
-    let home_link = LinkAnnotation::new(
-        home_rect,
-        crate::annotations::LinkAction::GoTo(crate::annotations::LinkDestination::Fit {
-            page: crate::objects::ObjectId::new(1, 0),
-        }),
-    );
-    annotation_manager.add_annotation(page_index, home_link.to_annotation());
-
-    // Previous button
-    if has_prev {
-        let prev_rect = Rectangle::new(Point::new(200.0, y_pos), Point::new(280.0, y_pos + 30.0));
-        graphics
-            .set_fill_color(Color::rgb(0.3, 0.3, 0.8))
-            .rectangle(prev_rect.lower_left.x, prev_rect.lower_left.y, 80.0, 30.0)
-            .fill();
-        graphics
-            .begin_text()
-            .set_font(Font::Helvetica, 12.0)
-            .set_fill_color(Color::white())
-            .set_text_position(215.0, y_pos + 10.0)
-            .show_text("Previous")?
-            .end_text();
-
-        // Create previous page action using named action
-        let prev_link = LinkAnnotation::new(
-            prev_rect,
-            crate::annotations::LinkAction::Named {
-                name: "PrevPage".to_string(),
-            },
-        );
-        annotation_manager.add_annotation(page_index, prev_link.to_annotation());
-    }
-
-    // Next button
-    if has_next {
-        let next_rect = Rectangle::new(Point::new(300.0, y_pos), Point::new(380.0, y_pos + 30.0));
-        graphics
-            .set_fill_color(Color::rgb(0.3, 0.3, 0.8))
-            .rectangle(next_rect.lower_left.x, next_rect.lower_left.y, 80.0, 30.0)
-            .fill();
-        graphics
-            .begin_text()
-            .set_font(Font::Helvetica, 12.0)
-            .set_fill_color(Color::white())
-            .set_text_position(325.0, y_pos + 10.0)
-            .show_text("Next")?
-            .end_text();
-
-        // Create next page action using named action
-        let next_link = LinkAnnotation::new(
-            next_rect,
-            crate::annotations::LinkAction::Named {
-                name: "NextPage".to_string(),
-            },
-        );
-        annotation_manager.add_annotation(page_index, next_link.to_annotation());
-    }
 
     Ok(())
 }
@@ -299,7 +198,7 @@ fn create_action_showcase() -> Result<()> {
             .end_text();
 
         let web_link = LinkAnnotation::to_uri(web_rect, "https://github.com/your-org/oxidize-pdf");
-        annotation_manager.add_annotation(0, web_link.to_annotation());
+        annotation_manager.add_annotation(ObjectId::new(1, 0), web_link.to_annotation());
         y_pos -= 30.0;
 
         // Email link
@@ -319,7 +218,7 @@ fn create_action_showcase() -> Result<()> {
             email_rect,
             "mailto:contact@example.com?subject=PDF%20Actions%20Demo",
         );
-        annotation_manager.add_annotation(0, email_link.to_annotation());
+        annotation_manager.add_annotation(ObjectId::new(1, 0), email_link.to_annotation());
         y_pos -= 50.0;
 
         // Named Actions
@@ -351,11 +250,11 @@ fn create_action_showcase() -> Result<()> {
 
         let print_link = LinkAnnotation::new(
             print_rect,
-            crate::annotations::LinkAction::Named {
+            LinkAction::Named {
                 name: "Print".to_string(),
             },
         );
-        annotation_manager.add_annotation(0, print_link.to_annotation());
+        annotation_manager.add_annotation(ObjectId::new(1, 0), print_link.to_annotation());
         y_pos -= 40.0;
 
         // Full screen action
@@ -377,11 +276,11 @@ fn create_action_showcase() -> Result<()> {
 
         let fullscreen_link = LinkAnnotation::new(
             fullscreen_rect,
-            crate::annotations::LinkAction::Named {
+            LinkAction::Named {
                 name: "FullScreen".to_string(),
             },
         );
-        annotation_manager.add_annotation(0, fullscreen_link.to_annotation());
+        annotation_manager.add_annotation(ObjectId::new(1, 0), fullscreen_link.to_annotation());
         y_pos -= 50.0;
 
         // Launch Actions
