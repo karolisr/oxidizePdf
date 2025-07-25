@@ -2,14 +2,16 @@
 
 ## Estado Actual
 - Rama: development
-- Último commit: 2b45a4d fix: update release workflow to merge development branch instead of tag
+- Último commit: 296b30a fix: add missing ParseOptions parameter to ObjectStream::parse in benchmarks
 - Tests: ✅ Pasando (1209 tests, todos exitosos)
+- Pipelines: ✅ CI pasando, ⏳ Benchmarks corregido (esperando confirmación)
 
 ## Sesión de Trabajo Actual
 
 ### Problemas de Pipelines Resueltos
 1. **Clippy Errors en CI** - Resuelto errores de `uninlined_format_args` en Rust beta
 2. **Release Workflow Merge a Main** - Actualizado para hacer merge de development en lugar del tag
+3. **Benchmark Pipeline Error** - Corregido error de compilación por falta de ParseOptions
 
 ### Cambios Implementados
 1. **oxidize-pdf-core/src/parser/filters.rs**:
@@ -21,6 +23,11 @@
    - Cambiada estrategia de merge: ahora hace merge de development a main
    - Resuelve el problema de divergencia entre branches
    - Mantiene la integridad del historial de commits
+
+3. **test-suite/benches/core_benchmarks.rs**:
+   - Agregado import de ParseOptions
+   - Actualizado ObjectStream::parse para incluir &ParseOptions::default()
+   - Fixes benchmark compilation error introducido por FlateDecode recovery
 
 ## Sesión de Trabajo Anterior - 2025-07-24 23:22:00
 
