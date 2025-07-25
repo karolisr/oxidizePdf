@@ -1,11 +1,28 @@
-# Progreso del Proyecto - 2025-07-24 23:22:00
+# Progreso del Proyecto - 2025-07-25 
 
 ## Estado Actual
 - Rama: development
-- Último commit: aad54c4 fix: version mismatch and add FlateDecode error recovery
+- Último commit: 2b45a4d fix: update release workflow to merge development branch instead of tag
 - Tests: ✅ Pasando (1209 tests, todos exitosos)
 
-## Sesión de Trabajo Completada
+## Sesión de Trabajo Actual
+
+### Problemas de Pipelines Resueltos
+1. **Clippy Errors en CI** - Resuelto errores de `uninlined_format_args` en Rust beta
+2. **Release Workflow Merge a Main** - Actualizado para hacer merge de development en lugar del tag
+
+### Cambios Implementados
+1. **oxidize-pdf-core/src/parser/filters.rs**:
+   - Corregidos 7 errores de formato de strings
+   - Actualizado para usar interpolación inline en format! y eprintln!
+   - Compatible con Rust stable y beta
+
+2. **.github/workflows/release.yml**:
+   - Cambiada estrategia de merge: ahora hace merge de development a main
+   - Resuelve el problema de divergencia entre branches
+   - Mantiene la integridad del historial de commits
+
+## Sesión de Trabajo Anterior - 2025-07-24 23:22:00
 
 ### Problemas Resueltos
 1. **Pipeline de Release Fallando** - Resuelto versión incorrecta en workspace (1.0.0 → 1.1.3)
