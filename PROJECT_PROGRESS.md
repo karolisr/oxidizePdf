@@ -2,9 +2,9 @@
 
 ## Estado Actual
 - Rama: development
-- Último commit: 29a8c34 fix: correct array parsing to handle ArrayEnd tokens properly (issue #20)
+- Último commit: 709f0c5 fix: increase timeout for batch parallelism test on CI
 - Tests: ✅ Pasando (1212 tests, todos exitosos)
-- Pipelines: ✅ CI configurado (beta no bloquea), ✅ Todos pasando
+- Pipelines: ✅ Todos en verde (CI y Benchmarks pasando)
 
 ## Sesión de Trabajo Actual
 
@@ -49,6 +49,11 @@
    - Corregido método `pop_array` para manejar correctamente `ArrayEnd`
    - Eliminados cambios innecesarios en `parse_dash_array` y `parse_text_array`
    - Agregados tests para verificar el comportamiento correcto
+
+6. **oxidize-pdf-core/tests/batch_processing_tests.rs**:
+   - Aumentado timeout de test_batch_parallelism de 400ms a 800ms
+   - Resuelve fallos intermitentes en macOS CI
+   - Test sigue validando paralelismo correctamente
 
 ## Sesión de Trabajo Anterior - 2025-07-24 23:22:00
 
