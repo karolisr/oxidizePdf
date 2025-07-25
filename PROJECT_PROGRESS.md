@@ -2,8 +2,8 @@
 
 ## Estado Actual
 - Rama: development
-- Último commit: 359e3e8 fix: handle non-numeric elements in dash and text arrays (issue #20)
-- Tests: ✅ Pasando (1211 tests, todos exitosos)
+- Último commit: 29a8c34 fix: correct array parsing to handle ArrayEnd tokens properly (issue #20)
+- Tests: ✅ Pasando (1212 tests, todos exitosos)
 - Pipelines: ✅ CI configurado (beta no bloquea), ✅ Todos pasando
 
 ## Sesión de Trabajo Actual
@@ -15,13 +15,14 @@
 4. **CI Beta Failures Blocking** - Configurado CI para no fallar por errores en Rust beta
 
 ### Issue #20 Resuelto - "Invalid element in dash array"
-1. **Problema**: Error al extraer texto de PDFs con elementos no numéricos en arrays
-2. **Solución**: Actualizado parser para ser más tolerante:
-   - `parse_dash_array` ahora omite elementos no numéricos en lugar de fallar
-   - `parse_text_array` ahora omite tokens inesperados
-   - Parser emite warnings y continúa procesando
-3. **Tests**: Agregados 2 tests de tolerancia para cubrir los casos edge
-4. **Resultado**: PDFs problemáticos ahora se procesan correctamente
+1. **Problema**: Error al extraer texto de PDFs con texto cirílico/ruso
+2. **Causa raíz**: El método `pop_array` incluía incorrectamente tokens `ArrayEnd` como contenido
+3. **Solución**: Corregido `pop_array` para:
+   - Eliminar `ArrayEnd` antes de procesar elementos del array
+   - Manejar arrays con y sin `ArrayEnd` para compatibilidad
+   - Evitar incluir delimitadores como contenido
+4. **Tests**: Agregados 3 tests para verificar el manejo correcto de arrays
+5. **Resultado**: PDFs con texto cirílico ahora se procesan sin errores ni warnings
 
 ### Cambios Implementados
 1. **oxidize-pdf-core/src/parser/filters.rs**:
@@ -43,6 +44,11 @@
    - Agregado `fail-fast: false` para evitar cancelaciones en cascada
    - Agregado `continue-on-error` para jobs con Rust beta
    - Permite que CI pase aunque beta tenga problemas
+
+5. **oxidize-pdf-core/src/parser/content.rs**:
+   - Corregido método `pop_array` para manejar correctamente `ArrayEnd`
+   - Eliminados cambios innecesarios en `parse_dash_array` y `parse_text_array`
+   - Agregados tests para verificar el comportamiento correcto
 
 ## Sesión de Trabajo Anterior - 2025-07-24 23:22:00
 
