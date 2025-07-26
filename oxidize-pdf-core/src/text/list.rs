@@ -153,14 +153,14 @@ impl OrderedList {
     fn generate_marker(&self, index: usize) -> String {
         let number = self.start_number + index as u32;
         match self.style {
-            OrderedListStyle::Decimal => format!("{}.", number),
+            OrderedListStyle::Decimal => format!("{number}."),
             OrderedListStyle::LowerAlpha => {
                 let letter = char::from_u32('a' as u32 + (number - 1) % 26).unwrap_or('?');
-                format!("{}.", letter)
+                format!("{letter}.")
             }
             OrderedListStyle::UpperAlpha => {
                 let letter = char::from_u32('A' as u32 + (number - 1) % 26).unwrap_or('?');
-                format!("{}.", letter)
+                format!("{letter}.")
             }
             OrderedListStyle::LowerRoman => format!("{}.", to_roman(number).to_lowercase()),
             OrderedListStyle::UpperRoman => format!("{}.", to_roman(number)),

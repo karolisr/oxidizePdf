@@ -173,7 +173,7 @@ impl HeaderFooter {
         // Replace custom values if provided
         if let Some(custom) = custom_values {
             for (key, value) in custom {
-                result = result.replace(&format!("{{{{{}}}}}", key), value);
+                result = result.replace(&format!("{{{{{key}}}}}"), value);
             }
         }
 

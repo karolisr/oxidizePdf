@@ -446,7 +446,7 @@ impl GraphicsContext {
     /// Apply an ExtGState dictionary
     pub fn apply_extgstate(&mut self, state: ExtGState) -> Result<&mut Self> {
         let state_name = self.extgstate_manager.add_state(state)?;
-        writeln!(&mut self.operations, "/{} gs", state_name).unwrap();
+        writeln!(&mut self.operations, "/{state_name} gs").unwrap();
         Ok(self)
     }
 

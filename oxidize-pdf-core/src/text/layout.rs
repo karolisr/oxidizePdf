@@ -236,7 +236,7 @@ impl ColumnLayout {
             let test_line = if current_line.is_empty() {
                 word.clone()
             } else {
-                format!("{} {}", current_line, word)
+                format!("{current_line} {word}")
             };
 
             let line_width = self.estimate_text_width(&test_line);

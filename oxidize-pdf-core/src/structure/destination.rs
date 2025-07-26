@@ -310,8 +310,7 @@ impl Destination {
             }
             _ => {
                 return Err(PdfError::InvalidStructure(format!(
-                    "Unknown destination type: {}",
-                    type_name
+                    "Unknown destination type: {type_name}"
                 )))
             }
         };

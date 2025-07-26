@@ -39,12 +39,12 @@ impl FreeTextAnnotation {
     /// Set font and size
     pub fn with_font(mut self, font: Font, size: f64, color: Color) -> Self {
         let color_str = match color {
-            Color::Gray(g) => format!("{} g", g),
-            Color::Rgb(r, g, b) => format!("{} {} {} rg", r, g, b),
-            Color::Cmyk(c, m, y, k) => format!("{} {} {} {} k", c, m, y, k),
+            Color::Gray(g) => format!("{g} g"),
+            Color::Rgb(r, g, b) => format!("{r} {g} {b} rg"),
+            Color::Cmyk(c, m, y, k) => format!("{c} {m} {y} {k} k"),
         };
 
-        self.default_appearance = format!("/{} {} Tf {}", font.pdf_name(), size, color_str);
+        self.default_appearance = format!("/{} {size} Tf {color_str}", font.pdf_name());
         self
     }
 

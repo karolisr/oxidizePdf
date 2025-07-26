@@ -29,10 +29,10 @@ pub enum TemplateValue {
 impl fmt::Display for TemplateValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TemplateValue::String(s) => write!(f, "{}", s),
-            TemplateValue::Integer(i) => write!(f, "{}", i),
-            TemplateValue::Float(fl) => write!(f, "{:.2}", fl),
-            TemplateValue::Boolean(b) => write!(f, "{}", b),
+            TemplateValue::String(s) => write!(f, "{s}"),
+            TemplateValue::Integer(i) => write!(f, "{i}"),
+            TemplateValue::Float(fl) => write!(f, "{fl:.2}"),
+            TemplateValue::Boolean(b) => write!(f, "{b}"),
             TemplateValue::Array(arr) => {
                 let items: Vec<String> = arr.iter().map(|v| v.to_string()).collect();
                 write!(f, "[{}]", items.join(", "))
@@ -441,8 +441,7 @@ impl AdvancedTemplateEngine {
         }
 
         Err(PdfError::InvalidStructure(format!(
-            "Unclosed {} block",
-            block_type
+            "Unclosed {block_type} block"
         )))
     }
 }

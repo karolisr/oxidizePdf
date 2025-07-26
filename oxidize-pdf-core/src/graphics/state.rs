@@ -142,10 +142,10 @@ impl LineDashPattern {
             let array_str = self
                 .array
                 .iter()
-                .map(|&x| format!("{:.2}", x))
+                .map(|&x| format!("{x:.2}"))
                 .collect::<Vec<_>>()
                 .join(" ");
-            format!("[{}] {:.2}", array_str, self.phase)
+            format!("[{array_str}] {:.2}", self.phase)
         }
     }
 }
@@ -453,7 +453,7 @@ impl ExtGState {
 
         // Line parameters
         if let Some(width) = self.line_width {
-            write!(&mut dict, " /LW {:.3}", width).map_err(|_| {
+            write!(&mut dict, " /LW {width:.3}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write line width".to_string())
             })?;
         }
@@ -469,7 +469,7 @@ impl ExtGState {
         }
 
         if let Some(limit) = self.miter_limit {
-            write!(&mut dict, " /ML {:.3}", limit).map_err(|_| {
+            write!(&mut dict, " /ML {limit:.3}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write miter limit".to_string())
             })?;
         }
@@ -489,19 +489,19 @@ impl ExtGState {
 
         // Overprint control
         if let Some(op) = self.overprint_stroke {
-            write!(&mut dict, " /OP {}", op).map_err(|_| {
+            write!(&mut dict, " /OP {op}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write overprint stroke".to_string())
             })?;
         }
 
         if let Some(op) = self.overprint_fill {
-            write!(&mut dict, " /op {}", op).map_err(|_| {
+            write!(&mut dict, " /op {op}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write overprint fill".to_string())
             })?;
         }
 
         if let Some(mode) = self.overprint_mode {
-            write!(&mut dict, " /OPM {}", mode).map_err(|_| {
+            write!(&mut dict, " /OPM {mode}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write overprint mode".to_string())
             })?;
         }
@@ -519,19 +519,19 @@ impl ExtGState {
 
         // Flatness and smoothness
         if let Some(flatness) = self.flatness {
-            write!(&mut dict, " /FL {:.3}", flatness)
+            write!(&mut dict, " /FL {flatness:.3}")
                 .map_err(|_| PdfError::InvalidStructure("Failed to write flatness".to_string()))?;
         }
 
         if let Some(smoothness) = self.smoothness {
-            write!(&mut dict, " /SM {:.3}", smoothness).map_err(|_| {
+            write!(&mut dict, " /SM {smoothness:.3}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write smoothness".to_string())
             })?;
         }
 
         // Stroke adjustment
         if let Some(sa) = self.stroke_adjustment {
-            write!(&mut dict, " /SA {}", sa).map_err(|_| {
+            write!(&mut dict, " /SA {sa}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write stroke adjustment".to_string())
             })?;
         }
@@ -544,32 +544,32 @@ impl ExtGState {
         }
 
         if let Some(alpha) = self.alpha_stroke {
-            write!(&mut dict, " /CA {:.3}", alpha).map_err(|_| {
+            write!(&mut dict, " /CA {alpha:.3}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write stroke alpha".to_string())
             })?;
         }
 
         if let Some(alpha) = self.alpha_fill {
-            write!(&mut dict, " /ca {:.3}", alpha).map_err(|_| {
+            write!(&mut dict, " /ca {alpha:.3}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write fill alpha".to_string())
             })?;
         }
 
         if let Some(ais) = self.alpha_is_shape {
-            write!(&mut dict, " /AIS {}", ais).map_err(|_| {
+            write!(&mut dict, " /AIS {ais}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write alpha is shape".to_string())
             })?;
         }
 
         if let Some(tk) = self.text_knockout {
-            write!(&mut dict, " /TK {}", tk).map_err(|_| {
+            write!(&mut dict, " /TK {tk}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write text knockout".to_string())
             })?;
         }
 
         // PDF 2.0 parameters
         if let Some(use_comp) = self.use_black_point_compensation {
-            write!(&mut dict, " /UseBlackPtComp {}", use_comp).map_err(|_| {
+            write!(&mut dict, " /UseBlackPtComp {use_comp}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write black point compensation".to_string())
             })?;
         }
@@ -659,7 +659,7 @@ impl ExtGStateManager {
 
         for (name, state) in &self.states {
             let state_dict = state.to_pdf_dictionary()?;
-            write!(&mut dict, " /{} {}", name, state_dict).map_err(|_| {
+            write!(&mut dict, " /{name} {state_dict}").map_err(|_| {
                 PdfError::InvalidStructure("Failed to write ExtGState resource".to_string())
             })?;
         }
