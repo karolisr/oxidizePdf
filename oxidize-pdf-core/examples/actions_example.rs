@@ -4,7 +4,7 @@ use oxidize_pdf::{
     actions::Action,
     annotations::{AnnotationManager, LinkAction, LinkAnnotation, LinkDestination},
     geometry::{Point, Rectangle},
-    graphics::{Color, GraphicsContext},
+    graphics::Color,
     objects::ObjectId,
     structure::{Destination, PageDestination},
     text::Font,
@@ -111,7 +111,7 @@ fn create_navigation_document() -> Result<()> {
         ("Conclusion", "Thank you for exploring PDF actions!"),
     ];
 
-    for (idx, (title, content)) in chapters.iter().enumerate() {
+    for (title, content) in chapters.iter() {
         let mut page = Page::a4();
         {
             let graphics = page.graphics();
