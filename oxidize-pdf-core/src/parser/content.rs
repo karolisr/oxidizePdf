@@ -1296,12 +1296,15 @@ mod tests {
 
     #[test]
     fn test_tokenize_numbers() {
-        let input = b"123 -45 3.14 -0.5 .5";
+        let input = b"123 -45 3.14159 -0.5 .5";
         let mut tokenizer = ContentTokenizer::new(input);
 
         assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Integer(123)));
         assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Integer(-45)));
-        assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Number(3.14)));
+        assert_eq!(
+            tokenizer.next_token().unwrap(),
+            Some(Token::Number(3.14159))
+        );
         assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Number(-0.5)));
         assert_eq!(tokenizer.next_token().unwrap(), Some(Token::Number(0.5)));
         assert_eq!(tokenizer.next_token().unwrap(), None);

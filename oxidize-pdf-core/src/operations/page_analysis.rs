@@ -1198,7 +1198,7 @@ startxref
         let result = PdfReader::new(file);
         if result.is_err() {
             // If we can't parse the PDF, just verify that empty results are handled properly
-            assert!(true); // Empty document case is handled
+            // Empty document case is handled
             return;
         }
 
@@ -2082,7 +2082,7 @@ startxref
         }
 
         // If this test completes without issues, resource cleanup is working
-        assert!(true);
+        // Test passes if no panic occurs
     }
 
     // Test 45: Complete workflow integration test

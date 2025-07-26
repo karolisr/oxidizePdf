@@ -262,8 +262,10 @@ mod tests {
 
     #[test]
     fn test_large_content_splitting() {
-        let mut options = ChunkOptions::default();
-        options.max_chunk_size = 10; // Very small chunks
+        let options = ChunkOptions {
+            max_chunk_size: 10, // Very small chunks
+            ..Default::default()
+        };
 
         let mut processor = ChunkProcessor::new(options);
         let content = b"This is a much longer content that should be split into multiple chunks";
@@ -276,8 +278,10 @@ mod tests {
 
     #[test]
     fn test_chunk_filtering() {
-        let mut options = ChunkOptions::default();
-        options.chunk_types = vec![ChunkType::Text]; // Only process text
+        let options = ChunkOptions {
+            chunk_types: vec![ChunkType::Text], // Only process text
+            ..Default::default()
+        };
 
         let mut processor = ChunkProcessor::new(options);
 
@@ -512,13 +516,13 @@ mod tests {
 
     #[test]
     fn test_process_in_chunks_with_io_error() {
-        use std::io::{Error, ErrorKind};
+        use std::io::Error;
 
         struct ErrorReader;
 
         impl Read for ErrorReader {
             fn read(&mut self, _buf: &mut [u8]) -> std::io::Result<usize> {
-                Err(Error::new(ErrorKind::Other, "Test error"))
+                Err(Error::other("Test error"))
             }
         }
 

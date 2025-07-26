@@ -593,13 +593,13 @@ mod tests {
 
     #[test]
     fn test_process_incrementally_with_io_error() {
-        use std::io::{Error, ErrorKind};
+        use std::io::Error;
 
         struct ErrorReader;
 
         impl Read for ErrorReader {
             fn read(&mut self, _buf: &mut [u8]) -> std::io::Result<usize> {
-                Err(Error::new(ErrorKind::Other, "Test error"))
+                Err(Error::other("Test error"))
             }
         }
 

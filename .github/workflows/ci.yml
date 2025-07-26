@@ -28,6 +28,20 @@ jobs:
           toolchain: ${{ matrix.rust }}
           components: rustfmt, clippy
 
+      - name: Install Tesseract OCR (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr libtesseract-dev
+
+      - name: Install Tesseract OCR (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install tesseract
+
+      - name: Install Tesseract OCR (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install tesseract
+          echo "C:\Program Files\Tesseract-OCR" >> $env:GITHUB_PATH
+
       - name: Cache cargo registry
         uses: actions/cache@v3
         with:
@@ -63,6 +77,9 @@ jobs:
       
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Tesseract OCR
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr libtesseract-dev
 
       - name: Install tarpaulin
         run: cargo install cargo-tarpaulin

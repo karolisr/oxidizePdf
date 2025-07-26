@@ -393,7 +393,7 @@ mod tests {
         assert!(debug_str.contains("italic: true"));
         assert!(debug_str.contains("bold: false"));
 
-        let cloned = flags.clone();
+        let cloned = flags;
         assert_eq!(cloned.italic, flags.italic);
         assert_eq!(cloned.bold, flags.bold);
 

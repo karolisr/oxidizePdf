@@ -587,7 +587,7 @@ impl<R: Read + Seek> PdfDocument<R> {
             }
 
             let rect = [
-                array.get(0).unwrap().as_real().unwrap_or(0.0),
+                array.0.first().unwrap().as_real().unwrap_or(0.0),
                 array.get(1).unwrap().as_real().unwrap_or(0.0),
                 array.get(2).unwrap().as_real().unwrap_or(0.0),
                 array.get(3).unwrap().as_real().unwrap_or(0.0),

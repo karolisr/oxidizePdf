@@ -33,10 +33,12 @@ fn main() -> Result<()> {
         list.set_position(50.0, 650.0);
 
         // Configure options
-        let mut options = ListOptions::default();
-        options.font = Font::Helvetica;
-        options.font_size = 12.0;
-        options.text_color = Color::rgb(0.2, 0.2, 0.8);
+        let options = ListOptions {
+            font: Font::Helvetica,
+            font_size: 12.0,
+            text_color: Color::rgb(0.2, 0.2, 0.8),
+            ..Default::default()
+        };
         list.set_options(options);
 
         list.add_item("Features of oxidize-pdf".to_string())
@@ -87,10 +89,12 @@ fn main() -> Result<()> {
         let mut list = OrderedList::new(OrderedListStyle::UpperRoman);
         list.set_position(50.0, 300.0).set_start_number(1);
 
-        let mut options = ListOptions::default();
-        options.font = Font::TimesRoman;
-        options.font_size = 14.0;
-        options.line_spacing = 1.5;
+        let options = ListOptions {
+            font: Font::TimesRoman,
+            font_size: 14.0,
+            line_spacing: 1.5,
+            ..Default::default()
+        };
         list.set_options(options);
 
         list.add_item("Chapter One: Introduction".to_string())
@@ -107,10 +111,12 @@ fn main() -> Result<()> {
         let mut list = UnorderedList::new(BulletStyle::Custom('★'));
         list.set_position(50.0, 150.0);
 
-        let mut options = ListOptions::default();
-        options.font = Font::Helvetica;
-        options.font_size = 11.0;
-        options.text_color = Color::rgb(0.8, 0.2, 0.2);
+        let options = ListOptions {
+            font: Font::Helvetica,
+            font_size: 11.0,
+            text_color: Color::rgb(0.8, 0.2, 0.2),
+            ..Default::default()
+        };
         list.set_options(options);
 
         list.add_item("Premium feature 1".to_string())

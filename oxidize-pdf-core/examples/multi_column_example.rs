@@ -17,14 +17,16 @@ fn main() -> Result<()> {
     {
         let mut layout = ColumnLayout::new(2, 500.0, 20.0);
 
-        let mut options = ColumnOptions::default();
-        options.font = Font::TimesRoman;
-        options.font_size = 11.0;
-        options.line_height = 1.4;
-        options.text_align = TextAlign::Justified;
-        options.balance_columns = true;
-        options.show_separators = true;
-        options.separator_color = Color::gray(0.5);
+        let options = ColumnOptions {
+            font: Font::TimesRoman,
+            font_size: 11.0,
+            line_height: 1.4,
+            text_align: TextAlign::Justified,
+            balance_columns: true,
+            show_separators: true,
+            separator_color: Color::gray(0.5),
+            ..Default::default()
+        };
 
         layout.set_options(options);
 
@@ -40,11 +42,13 @@ fn main() -> Result<()> {
     {
         let mut layout = ColumnLayout::with_custom_widths(vec![150.0, 200.0, 150.0], 15.0);
 
-        let mut options = ColumnOptions::default();
-        options.font = Font::Helvetica;
-        options.font_size = 10.0;
-        options.text_color = Color::rgb(0.2, 0.2, 0.6);
-        options.balance_columns = false; // Don't balance for this example
+        let options = ColumnOptions {
+            font: Font::Helvetica,
+            font_size: 10.0,
+            text_color: Color::rgb(0.2, 0.2, 0.6),
+            balance_columns: false, // Don't balance for this example
+            ..Default::default()
+        };
 
         layout.set_options(options);
 
@@ -60,11 +64,13 @@ fn main() -> Result<()> {
     {
         let mut layout = ColumnLayout::new(1, 450.0, 0.0);
 
-        let mut options = ColumnOptions::default();
-        options.font = Font::HelveticaBold;
-        options.font_size = 14.0;
-        options.text_align = TextAlign::Center;
-        options.text_color = Color::rgb(0.8, 0.2, 0.2);
+        let options = ColumnOptions {
+            font: Font::HelveticaBold,
+            font_size: 14.0,
+            text_align: TextAlign::Center,
+            text_color: Color::rgb(0.8, 0.2, 0.2),
+            ..Default::default()
+        };
 
         layout.set_options(options);
 
@@ -80,15 +86,17 @@ fn main() -> Result<()> {
     {
         let mut layout = ColumnLayout::new(4, 480.0, 10.0);
 
-        let mut options = ColumnOptions::default();
-        options.font = Font::Courier;
-        options.font_size = 8.0;
-        options.line_height = 1.3;
-        options.text_align = TextAlign::Left;
-        options.balance_columns = true;
-        options.show_separators = true;
-        options.separator_color = Color::gray(0.3);
-        options.separator_width = 0.5;
+        let options = ColumnOptions {
+            font: Font::Courier,
+            font_size: 8.0,
+            line_height: 1.3,
+            text_align: TextAlign::Left,
+            balance_columns: true,
+            show_separators: true,
+            separator_color: Color::gray(0.3),
+            separator_width: 0.5,
+            ..Default::default()
+        };
 
         layout.set_options(options);
 
@@ -104,12 +112,14 @@ fn main() -> Result<()> {
     {
         let mut layout = ColumnLayout::new(2, 450.0, 25.0);
 
-        let mut options = ColumnOptions::default();
-        options.font = Font::TimesRoman;
-        options.font_size = 12.0;
-        options.line_height = 1.5;
-        options.text_align = TextAlign::Left;
-        options.balance_columns = true;
+        let options = ColumnOptions {
+            font: Font::TimesRoman,
+            font_size: 12.0,
+            line_height: 1.5,
+            text_align: TextAlign::Left,
+            balance_columns: true,
+            ..Default::default()
+        };
 
         layout.set_options(options);
 

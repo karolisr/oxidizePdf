@@ -467,7 +467,7 @@ mod tests {
             Object::String("Bool".to_string()),
             Object::Boolean(true),
             Object::String("Real".to_string()),
-            Object::Real(3.14),
+            Object::Real(std::f64::consts::PI),
             Object::String("Ref".to_string()),
             Object::Reference(ObjectId::new(5, 0)),
         ]);
@@ -475,7 +475,7 @@ mod tests {
 
         let tree = NameTree::from_dict(&dict).unwrap();
         assert_eq!(tree.get("Bool"), Some(&Object::Boolean(true)));
-        assert_eq!(tree.get("Real"), Some(&Object::Real(3.14)));
+        assert_eq!(tree.get("Real"), Some(&Object::Real(std::f64::consts::PI)));
         assert_eq!(
             tree.get("Ref"),
             Some(&Object::Reference(ObjectId::new(5, 0)))

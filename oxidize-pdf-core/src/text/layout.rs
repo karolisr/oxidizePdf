@@ -552,10 +552,12 @@ mod tests {
     #[test]
     fn test_column_layout_with_options() {
         let mut layout = ColumnLayout::new(2, 400.0, 20.0);
-        let mut options = ColumnOptions::default();
-        options.font = Font::TimesBold;
-        options.font_size = 12.0;
-        options.show_separators = true;
+        let options = ColumnOptions {
+            font: Font::TimesBold,
+            font_size: 12.0,
+            show_separators: true,
+            ..Default::default()
+        };
 
         layout.set_options(options);
         assert_eq!(layout.options.font, Font::TimesBold);

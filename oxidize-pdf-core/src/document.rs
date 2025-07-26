@@ -637,7 +637,7 @@ mod tests {
             // Add objects and verify they're managed properly
             let obj1 = Object::Boolean(true);
             let obj2 = Object::Integer(42);
-            let obj3 = Object::Real(3.14);
+            let obj3 = Object::Real(std::f64::consts::PI);
 
             let id1 = doc.add_object(obj1.clone());
             let id2 = doc.add_object(obj2.clone());

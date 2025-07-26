@@ -785,8 +785,10 @@ mod tests {
                 .unwrap();
         }
 
-        let mut options = RecoveryOptions::default();
-        options.partial_content = false;
+        let options = RecoveryOptions {
+            partial_content: false,
+            ..Default::default()
+        };
         let result = extract_content(&temp_path, &options).unwrap();
 
         // Should stop at 10 pages due to limit

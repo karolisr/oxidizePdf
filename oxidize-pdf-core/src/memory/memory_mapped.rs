@@ -329,17 +329,17 @@ mod tests {
         // Seek to position 5
         assert_eq!(reader.seek(SeekFrom::Start(5)).unwrap(), 5);
         let mut buf = [0u8; 2];
-        reader.read(&mut buf).unwrap();
+        let _bytes_read = reader.read(&mut buf).unwrap();
         assert_eq!(&buf, b"56");
 
         // Seek relative
         assert_eq!(reader.seek(SeekFrom::Current(-3)).unwrap(), 4);
-        reader.read(&mut buf).unwrap();
+        let _bytes_read = reader.read(&mut buf).unwrap();
         assert_eq!(&buf, b"45");
 
         // Seek from end
         assert_eq!(reader.seek(SeekFrom::End(-2)).unwrap(), 8);
-        reader.read(&mut buf).unwrap();
+        let _bytes_read = reader.read(&mut buf).unwrap();
         assert_eq!(&buf, b"89");
     }
 
@@ -675,18 +675,18 @@ mod tests {
         // Seek and read from middle
         reader.seek(SeekFrom::Start(3)).unwrap();
         let mut buf = [0u8; 3];
-        reader.read(&mut buf).unwrap();
+        let _bytes_read = reader.read(&mut buf).unwrap();
         assert_eq!(&buf, b"345");
 
         // Seek back and read
         reader.seek(SeekFrom::Start(1)).unwrap();
-        reader.read(&mut buf).unwrap();
+        let _bytes_read = reader.read(&mut buf).unwrap();
         assert_eq!(&buf, b"123");
 
         // Seek from current position
         reader.seek(SeekFrom::Current(2)).unwrap(); // Now at position 6
         let mut buf = [0u8; 2];
-        reader.read(&mut buf).unwrap();
+        let _bytes_read = reader.read(&mut buf).unwrap();
         assert_eq!(&buf, b"67");
     }
 
@@ -858,7 +858,7 @@ mod tests {
 
         // Read some data
         let mut buf = [0u8; 8];
-        reader.read(&mut buf).unwrap();
+        let _bytes_read = reader.read(&mut buf).unwrap();
         assert_eq!(reader.position, 8);
 
         // Seek and verify position
@@ -866,7 +866,7 @@ mod tests {
         assert_eq!(reader.position, 5);
 
         // Read more and verify position updates
-        reader.read(&mut buf).unwrap();
+        let _bytes_read = reader.read(&mut buf).unwrap();
         assert_eq!(reader.position, 13);
 
         // Seek relative and verify

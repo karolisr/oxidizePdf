@@ -52,16 +52,18 @@ fn main() -> Result<()> {
         table.set_position(50.0, 500.0);
 
         // Configure table options with header styling
-        let mut options = TableOptions::default();
-        options.font_size = 12.0;
-        options.cell_padding = 8.0;
-        options.border_color = Color::gray(0.3);
-        options.header_style = Some(HeaderStyle {
-            background_color: Color::rgb(0.2, 0.4, 0.8),
-            text_color: Color::white(),
-            font: Font::HelveticaBold,
-            bold: true,
-        });
+        let options = TableOptions {
+            font_size: 12.0,
+            cell_padding: 8.0,
+            border_color: Color::gray(0.3),
+            header_style: Some(HeaderStyle {
+                background_color: Color::rgb(0.2, 0.4, 0.8),
+                text_color: Color::white(),
+                font: Font::HelveticaBold,
+                bold: true,
+            }),
+            ..Default::default()
+        };
         table.set_options(options);
 
         // Add header row
