@@ -98,6 +98,23 @@ impl Default for ChunkOptions {
     }
 }
 
+impl ChunkOptions {
+    /// Validate the chunk options
+    pub fn validate(&self) -> Result<()> {
+        if self.max_chunk_size == 0 {
+            return Err(crate::error::PdfError::InvalidStructure(
+                "max_chunk_size cannot be 0".to_string(),
+            ));
+        }
+        if self.buffer_size == 0 {
+            return Err(crate::error::PdfError::InvalidStructure(
+                "buffer_size cannot be 0".to_string(),
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// Processes PDF content in chunks
 pub struct ChunkProcessor {
     options: ChunkOptions,
@@ -117,6 +134,11 @@ impl ChunkProcessor {
 
     /// Process content and yield chunks
     pub fn process_content(&mut self, content: &[u8]) -> Result<Vec<ContentChunk>> {
+        // Handle edge case where max_chunk_size is 0
+        if self.options.max_chunk_size == 0 {
+            return Ok(vec![]);
+        }
+
         let mut chunks = Vec::new();
         let mut offset = 0;
 
