@@ -23,6 +23,7 @@
 - **API Documentation**: oxidize-pdf-api/API_DOCUMENTATION.md  
 - **Roadmap y Features**: ROADMAP.md
 - **Issues Pendientes**: PROJECT_PROGRESS.md (sección próximos pasos)
+- **GitFlow y Contribución**: CONTRIBUTING.md (sección GitFlow Workflow)
 
 ## CI/CD Pipeline Guidelines
 

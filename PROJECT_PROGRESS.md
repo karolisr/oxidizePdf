@@ -1,105 +1,51 @@
-# Progreso del Proyecto - 2025-07-27 16:30:00
+# Progreso del Proyecto - 2025-07-27 17:30:00
 
 ## Estado Actual
 - Rama: development
-- Último commit: 55fb398 fix: resolve all failing tests in CI/CD pipeline
+- Último commit: 7d4cd8a fix: update release workflow to use PR instead of direct push
 - Tests: ✅ Pasando (2008+ tests unitarios + 83 doctests)
-- Pipelines: ✅ CI completamente funcional, Release v1.1.4 lanzado
+- Pipelines: ❌ Release pipeline necesita merge de development a main
 - Coverage: ~50% real (mejorado desde 43.42%)
 
 ## Sesión de Trabajo Actual - 2025-07-27
 
-### Pipeline CI/CD Completamente Reparado ✅
-1. **Todos los tests arreglados (2008+ tests pasando)**:
-   - Fixed infinite loop in chunk processor when max_chunk_size = 0
-   - Fixed LRU cache handling of zero capacity
-   - Fixed pattern matching issues in recovery module tests
-   - Fixed outline item count calculation for closed items
-   - Fixed page tree double counting issue
-   - Fixed validator warnings generation in strict mode
-   - Applied cargo fmt to ensure consistent formatting
+### Resolución de Conflictos GitFlow ❌
+1. **Problema identificado**:
+   - PR #21 (feat/xref-recovery-v1.1.2) se mergeó directamente a main sin pasar por development
+   - Esto violó GitFlow causando que main tenga commits que development no tiene
+   - Los PRs automáticos de development a main fallan por conflictos
 
-2. **Release v1.1.4 exitoso**:
-   - Tag creado y pusheado
-   - Pipeline de release activado
-   - Todos los tests pasando en CI/CD
-   - 0 warnings de clippy
+2. **Intentos de resolución**:
+   - PR #22: Cerrado por conflictos
+   - PR #23: Creado nuevo pero persisten los conflictos
+   - Causa: main está adelantado con commits del PR #21
 
-3. **Commits realizados hoy**:
-   - 1e8f371: fix: update dependencies and resolve lib.rs issues
-   - 03b976a: chore: bump version to 1.1.4
-   - d0e8e2a: fix: resolve infinite loop in chunk processor with zero max_size
-   - 30a570e: fix: handle edge case in chunk type detection for single byte 'T'
-   - 55fb398: fix: resolve all failing tests in CI/CD pipeline
+3. **Documentación añadida**:
+   - ✅ Sección completa de GitFlow añadida a CONTRIBUTING.md
+   - ✅ Reglas estrictas documentadas para evitar futuros errores
+   - ✅ Referencia añadida en CLAUDE.md para recordar consultar GitFlow
 
-### Issues de lib.rs Resueltos (sesión anterior) ✅
-1. **Dependencias actualizadas en oxidize-pdf-api y oxidize-pdf-cli**
-2. **Feature implícita de leptonica-plumbing corregida**
-3. **READMEs y Cargo.lock confirmados presentes**
-4. **Build y tests verificados**
+### GitFlow Documentado en CONTRIBUTING.md
+- **Features**: development → development (NUNCA a main)
+- **Releases**: development → main Y development
+- **Hotfixes**: main → main Y development (ÚNICO caso permitido)
+- **Regla crítica**: development SIEMPRE debe contener todo lo de main
 
-## Sesión de Trabajo Anterior - 2025-07-26
-
-### Pipeline CI/CD Completamente Arreglado ✅
-1. **Errores de Clippy Resueltos**:
-   - Instalado Tesseract OCR en todos los sistemas CI (Ubuntu, macOS, Windows)
-   - Corregidos 100+ errores de clippy:
-     - field_reassign_with_default (24 ocurrencias)
-     - Valores aproximados PI/E → constantes (26 ocurrencias)
-     - assert!(true/false) eliminados (14 ocurrencias)
-     - .clone() en tipos Copy (10 ocurrencias)
-     - Bytes leídos no manejados (8 ocurrencias)
-     - .get(0) → .first() (8 ocurrencias)
-     - Error::other() en lugar de Error::new (3 ocurrencias)
-     - Format strings actualizados para Rust beta (30 ocurrencias)
-
-2. **Commits realizados**:
-   - cf81b37: fix: resolve clippy warnings and unused imports
-   - 2bdcbef: fix: resolve clippy warnings and CI/CD pipeline issues
-   - c327892: fix: update format strings for Rust beta clippy lint
-
-### Estado del Pipeline
-- Benchmarks: ✅ Pasando exitosamente
-- CI: 🔄 En progreso (9+ minutos, esperando resultados finales)
-
-## Issues de lib.rs - TODOS RESUELTOS ✅
-1. ✅ README.md existentes en oxidize-pdf-cli y oxidize-pdf-api (solo falta publicar)
-2. ✅ Dependencias actualizadas a las versiones del workspace
-3. ✅ Feature implícita de leptonica-plumbing corregida
-4. ✅ Cargo.lock presente y rastreado en git
-
-## Archivos Modificados en Sesión 2025-07-27
-- oxidize-pdf-api/Cargo.toml - Actualizada versión de oxidize-pdf a 1.1.3
-- oxidize-pdf-cli/Cargo.toml - Actualizada versión de oxidize-pdf a 1.1.3
-- oxidize-pdf-core/Cargo.toml - Corregida feature implícita de leptonica-plumbing y bumped a v1.1.4
-- oxidize-pdf-api/src/api_tests.rs - Formateado y timeout debugging
-- oxidize-pdf-core/src/memory/cache.rs - Fixed zero capacity handling
-- oxidize-pdf-core/src/recovery/corruption.rs - Fixed pattern matching in tests
-- oxidize-pdf-core/src/recovery/scanner.rs - Fixed test data patterns
-- oxidize-pdf-core/src/recovery/validator.rs - Added warnings in strict mode
-- oxidize-pdf-core/src/streaming/chunk_processor.rs - Fixed infinite loop with zero chunk size
-- oxidize-pdf-core/src/structure/outline.rs - Fixed count calculation for closed items
-- oxidize-pdf-core/src/structure/page_tree.rs - Fixed double counting issue
-- PROJECT_PROGRESS.md - Actualizado con el progreso actual
-
-## Archivos Modificados en Sesión 2025-07-26
-- .github/workflows/ci.yml - Instalación de Tesseract OCR
-- 24 archivos core con fixes de clippy
-- 8 archivos con format strings actualizados para Rust beta
-
-## Métricas de Calidad
-- Tests totales: 2006 unitarios + 67 doctests ✅
-- Warnings: 0 ✅
-- Clippy: Sin errores (compatible con stable y beta) ✅
-- Build: Exitoso ✅
+## Archivos Modificados en esta Sesión
+- CONTRIBUTING.md - Añadida sección completa de GitFlow Workflow
+- CLAUDE.md - Añadida referencia a CONTRIBUTING.md para GitFlow
+- PROJECT_PROGRESS.md - Actualizado con estado actual
 
 ## Próximos Pasos
-1. Monitorear el pipeline de release v1.1.4 en GitHub Actions
-2. Verificar publicación automática en crates.io
-3. Continuar mejorando el coverage de tests (objetivo: 95%, actual: 50%)
-4. Implementar features Q4 2025:
-   - Advanced Forms
-   - Digital Signatures
-   - Memory Optimization (ya parcialmente implementado)
-   - Performance Benchmarks
-5. Preparar release v1.2.0 con features Community Edition completas
+1. **URGENTE**: Sincronizar development con main
+   - Hacer merge de main en development para traer commits del PR #21
+   - Crear nuevo PR limpio de development a main
+2. Establecer branch protection rules más estrictas en GitHub
+3. Configurar CI/CD para validar que PRs sigan GitFlow
+4. Continuar con features Q4 2025 una vez resuelto el conflicto
+
+## Lecciones Aprendidas
+- NUNCA crear features desde tags o main
+- NUNCA mergear features directamente a main
+- SIEMPRE seguir GitFlow estrictamente
+- Los hotfixes son la ÚNICA excepción que puede tocar main
