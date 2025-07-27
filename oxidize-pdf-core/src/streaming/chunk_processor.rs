@@ -183,7 +183,8 @@ impl ChunkProcessor {
 
     fn detect_chunk_type(&self, data: &[u8]) -> ChunkType {
         // Simple heuristic for chunk type detection
-        if data.starts_with(b"BT") || data.contains(&b'T') && data.contains(&b'j') {
+        if data.starts_with(b"BT") || (data.contains(&b'T') && data.contains(&b'j')) || 
+           (data.len() == 1 && data[0] == b'T') {
             ChunkType::Text
         } else if data.starts_with(b"\xFF\xD8") || data.starts_with(b"\x89PNG") {
             ChunkType::Image
