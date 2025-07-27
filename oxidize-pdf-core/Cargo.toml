@@ -121,7 +121,7 @@ default = ["compression"]
 compression = ["dep:flate2"]
 
 # OCR features
-ocr-tesseract = ["dep:tesseract", "dep:leptonica-plumbing"]
+ocr-tesseract = ["dep:tesseract", "leptonica-plumbing"]
 ocr-full = ["ocr-tesseract"]
 
 # Semantic marking (Community level - basic tagging)

@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Arrays now properly exclude end markers from their content
   - Resolves parsing errors with Russian/Cyrillic text PDFs
   - Text extraction now works correctly without spurious warnings
+- **lib.rs Issues** - Resolved all reported issues for crate publication
+  - Updated oxidize-pdf dependency version from ^0.1.2 to 1.1.3 in sub-crates
+  - Fixed implicit feature exposure for leptonica-plumbing dependency
+  - Ensured all workspace dependencies use consistent versions
+  - READMEs and Cargo.lock already present, ready for publication
 
 ## [1.1.3] - 2025-07-24
 

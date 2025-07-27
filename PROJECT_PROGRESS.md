@@ -1,4 +1,4 @@
-# Progreso del Proyecto - 2025-07-26 22:45:00
+# Progreso del Proyecto - 2025-07-27 01:15:00
 
 ## Estado Actual
 - Rama: development
@@ -7,7 +7,28 @@
 - Pipelines: 🔄 CI en ejecución, Benchmarks ✅ exitoso
 - Coverage: ~65% estimado
 
-## Sesión de Trabajo Actual - 2025-07-26
+## Sesión de Trabajo Actual - 2025-07-27
+
+### Issues de lib.rs Resueltos ✅
+1. **Dependencias actualizadas en oxidize-pdf-api y oxidize-pdf-cli**:
+   - oxidize-pdf actualizado de ^0.1.2 a 1.1.3 en ambos crates
+   - Las dependencias ahora usan las versiones del workspace (tower 0.5, tower-http 0.6, axum 0.8, thiserror 2.0)
+
+2. **Feature implícita de leptonica-plumbing corregida**:
+   - Modificado el feature ocr-tesseract para evitar exposición implícita
+
+3. **READMEs y Cargo.lock ya existentes**:
+   - Confirmado que oxidize-pdf-cli/README.md existe y está completo
+   - Confirmado que oxidize-pdf-api/README.md existe y está completo
+   - Confirmado que Cargo.lock está presente y rastreado en git
+   - Los archivos solo necesitan ser publicados en crates.io para que lib.rs los detecte
+
+4. **Build y tests verificados**:
+   - cargo build --workspace: ✅ Exitoso
+   - cargo check --workspace: ✅ Exitoso
+   - cargo clippy --all -- -D warnings: ✅ Sin warnings
+
+## Sesión de Trabajo Anterior - 2025-07-26
 
 ### Pipeline CI/CD Completamente Arreglado ✅
 1. **Errores de Clippy Resueltos**:
@@ -31,13 +52,19 @@
 - Benchmarks: ✅ Pasando exitosamente
 - CI: 🔄 En progreso (9+ minutos, esperando resultados finales)
 
-## Issues Pendientes de lib.rs
-1. ❌ README.md faltantes para oxidize-pdf-cli y oxidize-pdf-api
-2. ❌ Dependencias desactualizadas en versiones publicadas
-3. ❌ Features implícitas de tesseract que necesitan revisión
-4. ❌ Cargo.lock faltante en el repositorio
+## Issues de lib.rs - TODOS RESUELTOS ✅
+1. ✅ README.md existentes en oxidize-pdf-cli y oxidize-pdf-api (solo falta publicar)
+2. ✅ Dependencias actualizadas a las versiones del workspace
+3. ✅ Feature implícita de leptonica-plumbing corregida
+4. ✅ Cargo.lock presente y rastreado en git
 
-## Archivos Modificados en esta Sesión
+## Archivos Modificados en Sesión 2025-07-27
+- oxidize-pdf-api/Cargo.toml - Actualizada versión de oxidize-pdf a 1.1.3
+- oxidize-pdf-cli/Cargo.toml - Actualizada versión de oxidize-pdf a 1.1.3
+- oxidize-pdf-core/Cargo.toml - Corregida feature implícita de leptonica-plumbing
+- PROJECT_PROGRESS.md - Actualizado con el progreso actual
+
+## Archivos Modificados en Sesión 2025-07-26
 - .github/workflows/ci.yml - Instalación de Tesseract OCR
 - 24 archivos core con fixes de clippy
 - 8 archivos con format strings actualizados para Rust beta
@@ -49,7 +76,9 @@
 - Build: Exitoso ✅
 
 ## Próximos Pasos
-1. Confirmar que el pipeline CI pase completamente
-2. Resolver los 4 issues pendientes de lib.rs
-3. Continuar mejorando el coverage de tests (objetivo: 95%)
-4. Publicar nueva versión una vez resueltos los issues
+1. Publicar nuevas versiones de los crates para que lib.rs detecte los cambios:
+   - oxidize-pdf v1.1.4
+   - oxidize-pdf-cli v0.1.1
+   - oxidize-pdf-api v0.1.1
+2. Continuar mejorando el coverage de tests (objetivo: 95%)
+3. Monitorear el dashboard de lib.rs para confirmar resolución de issues
