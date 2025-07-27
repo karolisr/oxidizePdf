@@ -268,6 +268,9 @@ fn determine_corruption_type(report: &mut CorruptionReport) {
 }
 
 fn find_pattern(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    if needle.is_empty() {
+        return Some(0);
+    }
     haystack
         .windows(needle.len())
         .position(|window| window == needle)
@@ -633,7 +636,7 @@ mod tests {
     fn test_scan_xref_not_found() {
         use std::io::Cursor;
 
-        let data = b"%PDF-1.7\nNo xref table here";
+        let data = b"%PDF-1.7\nNo cross reference table here";
         let mut cursor = Cursor::new(data);
         let mut report = CorruptionReport {
             corruption_type: CorruptionType::Unknown,
@@ -645,7 +648,7 @@ mod tests {
 
         scan_xref(&mut cursor, &mut report).unwrap();
         assert!(!report.errors.is_empty());
-        assert!(report.errors[0].contains("No cross-reference"));
+        assert!(report.errors[0].contains("No cross-reference tables found"));
         assert_eq!(report.severity, 8);
     }
 
@@ -673,7 +676,7 @@ mod tests {
     fn test_analyze_objects_no_objects() {
         use std::io::Cursor;
 
-        let data = b"No objects here";
+        let data = b"No PDF items here";
         let mut cursor = Cursor::new(data);
         let mut report = CorruptionReport {
             corruption_type: CorruptionType::Unknown,

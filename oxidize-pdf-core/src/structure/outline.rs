@@ -243,7 +243,11 @@ pub fn outline_item_to_dict(
         }
 
         // Count (negative if closed)
-        let count = item.count_visible() - 1; // Exclude self
+        let count = if item.open {
+            item.count_visible() - 1 // Exclude self
+        } else {
+            item.count_all() - 1 // For closed items, count all children
+        };
         dict.set(
             "Count",
             Object::Integer(if item.open { count } else { -count }),

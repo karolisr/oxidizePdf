@@ -101,6 +101,12 @@ impl PageTree {
         // Update parent
         self.add_kid_to_parent(parent_id, page_id)?;
 
+        // Increment count for immediate parent and all ancestors
+        if let Some(PageTreeNode::Pages { count, .. }) = self.nodes.get_mut(&parent_id) {
+            *count += 1;
+        }
+        self.update_ancestor_counts(parent_id)?;
+
         // Update page map
         let page_index = self.page_count() - 1;
         self.page_map.insert(page_index, page_id);
@@ -131,10 +137,9 @@ impl PageTree {
     /// Add kid to parent node
     fn add_kid_to_parent(&mut self, parent_id: ObjectId, kid_id: ObjectId) -> Result<()> {
         match self.nodes.get_mut(&parent_id) {
-            Some(PageTreeNode::Pages { kids, count, .. }) => {
+            Some(PageTreeNode::Pages { kids, .. }) => {
                 kids.push(kid_id);
-                *count += 1;
-                self.update_ancestor_counts(parent_id)?;
+                // Don't increment count here - let update_ancestor_counts handle it if it's a page
                 Ok(())
             }
             _ => Err(PdfError::InvalidStructure(

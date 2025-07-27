@@ -209,7 +209,7 @@ fn parse_object_header(buffer: &[u8]) -> Option<(u32, u16)> {
 
 fn detect_object_type(content: &[u8]) -> Option<ObjectType> {
     // Simple type detection based on content
-    if content.len() < 20 {
+    if content.is_empty() {
         return None;
     }
 
@@ -590,7 +590,7 @@ mod tests {
         assert_eq!(find_object_start(next_search), Some(8));
 
         // No obj pattern
-        assert_eq!(find_object_start(b"no object pattern here"), None);
+        assert_eq!(find_object_start(b"no_object_pattern_here"), None);
 
         // obj at the very end
         assert_eq!(find_object_start(b"ends with obj"), Some(10));

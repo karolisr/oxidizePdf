@@ -107,6 +107,14 @@ impl PdfValidator {
                 result
                     .errors
                     .push(ValidationError::InvalidHeader(e.to_string()));
+
+                // In strict mode, add a warning about the validation attempt
+                if self.strict_mode {
+                    result.warnings.push(
+                        "Could not perform full validation due to document opening error"
+                            .to_string(),
+                    );
+                }
             }
         }
 
@@ -670,7 +678,8 @@ mod tests {
         let temp_dir = std::env::temp_dir();
         let temp_path = temp_dir.join("valid_strict_test.pdf");
         let mut file = File::create(&temp_path).unwrap();
-        file.write_all(b"%PDF-1.7\n1 0 obj\n<< >>\nendobj\n%%EOF")
+        // Create a more complete PDF structure that PdfReader can parse
+        file.write_all(b"%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\nxref\n0 3\n0000000000 65535 f\n0000000009 00000 n\n0000000068 00000 n\ntrailer\n<< /Size 3 /Root 1 0 R >>\nstartxref\n116\n%%EOF")
             .unwrap();
 
         let mut validator = PdfValidator::new().strict();

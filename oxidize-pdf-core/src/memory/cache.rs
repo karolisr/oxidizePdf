@@ -39,6 +39,11 @@ impl<K: Clone + Eq + std::hash::Hash, V> LruCache<K, V> {
 
     /// Put a value into the cache
     pub fn put(&mut self, key: K, value: V) {
+        // Handle zero capacity
+        if self.capacity == 0 {
+            return;
+        }
+
         if self.map.contains_key(&key) {
             // Update existing
             self.order.retain(|k| k != &key);
@@ -373,18 +378,19 @@ mod tests {
         cache.put(1, "one");
         cache.put(2, "two");
 
-        // Update key 1
+        // Update key 1 - this should move it to the front
         cache.put(1, "one_updated");
 
         assert_eq!(cache.len(), 2);
-        assert_eq!(cache.get(&1), Some(&"one_updated"));
-        assert_eq!(cache.get(&2), Some(&"two"));
 
-        // Add new key - should evict key 2
+        // Add new key - since we updated key 1 most recently, key 2 should be evicted
         cache.put(3, "three");
 
+        // Check that key 1 (most recently updated) is still there
         assert_eq!(cache.get(&1), Some(&"one_updated"));
+        // Check that key 2 (least recently used) was evicted
         assert_eq!(cache.get(&2), None);
+        // Check that key 3 (newly added) is there
         assert_eq!(cache.get(&3), Some(&"three"));
     }
 

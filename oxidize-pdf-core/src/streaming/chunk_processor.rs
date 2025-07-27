@@ -183,8 +183,10 @@ impl ChunkProcessor {
 
     fn detect_chunk_type(&self, data: &[u8]) -> ChunkType {
         // Simple heuristic for chunk type detection
-        if data.starts_with(b"BT") || (data.contains(&b'T') && data.contains(&b'j')) || 
-           (data.len() == 1 && data[0] == b'T') {
+        if data.starts_with(b"BT")
+            || (data.contains(&b'T') && data.contains(&b'j'))
+            || (data.len() == 1 && data[0] == b'T')
+        {
             ChunkType::Text
         } else if data.starts_with(b"\xFF\xD8") || data.starts_with(b"\x89PNG") {
             ChunkType::Image
@@ -202,6 +204,9 @@ where
     R: Read,
     F: FnMut(ContentChunk) -> Result<()>,
 {
+    // Validate options first
+    options.validate()?;
+
     let mut processor = ChunkProcessor::new(options.clone());
     let mut buffer = vec![0u8; options.buffer_size];
     let mut _position = 0u64;
@@ -716,5 +721,45 @@ mod tests {
         assert!(!chunks_received.is_empty());
         // Should process all data in one go
         assert_eq!(chunks_received[0].data, data);
+    }
+
+    #[test]
+    fn test_chunk_options_validation() {
+        let mut options = ChunkOptions::default();
+
+        // Valid options should pass
+        assert!(options.validate().is_ok());
+
+        // Zero max_chunk_size should fail
+        options.max_chunk_size = 0;
+        assert!(options.validate().is_err());
+
+        // Reset and test zero buffer_size
+        options = ChunkOptions::default();
+        options.buffer_size = 0;
+        assert!(options.validate().is_err());
+    }
+
+    #[test]
+    fn test_process_in_chunks_with_invalid_options() {
+        use std::io::Cursor;
+
+        let data = b"test data";
+        let cursor = Cursor::new(data);
+
+        // Test with zero buffer_size
+        let mut options = ChunkOptions::default();
+        options.buffer_size = 0;
+
+        let result = process_in_chunks(cursor, options, |_| Ok(()));
+        assert!(result.is_err());
+
+        // Test with zero max_chunk_size
+        let cursor = Cursor::new(data);
+        let mut options = ChunkOptions::default();
+        options.max_chunk_size = 0;
+
+        let result = process_in_chunks(cursor, options, |_| Ok(()));
+        assert!(result.is_err());
     }
 }
