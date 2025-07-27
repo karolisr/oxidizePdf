@@ -5,6 +5,12 @@
 - Before pushing changes to origin, ensure all tests pass successfully
 - Aim for 95% coverage of documentation, unit tests, and integration tests, with a minimum acceptable threshold of 80%
 
+## Release Process - IMPORTANTE
+- **NUNCA usar cargo-release localmente** - Las releases SIEMPRE se hacen a través del pipeline de GitHub Actions
+- El proceso es: crear un tag git (ej: v1.1.4) y hacer push, esto activa automáticamente el pipeline de release
+- El pipeline se encarga de: tests, build, publicación en crates.io, crear GitHub Release, merge a main
+- Si el pipeline tarda, esperamos - no intentar hacerlo manualmente
+
 ## Project Status - Session 19/07/2025 - CI/CD Pipeline Critical Fixes
 
 ### Completed Today ✅
