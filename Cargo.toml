@@ -24,7 +24,7 @@ categories = ["graphics", "text-processing", "encoding"]
 thiserror = "2.0.12"
 anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
-lazy_static = "1.4"
+lazy_static = "1.5"
 
 # CLI dependencies
 clap = { version = "4.5", features = ["derive"] }
@@ -35,7 +35,7 @@ tower = "0.5.2"
 tower-http = { version = "0.6.6", features = ["cors", "trace"] }
 
 # Async runtime
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.47", features = ["full"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -46,14 +46,14 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Compression (optional)
-flate2 = "1.0"
+flate2 = "1.1"
 
 # Testing
-tempfile = "3.0"
-pretty_assertions = "1.0"
-proptest = "1.5"
+tempfile = "3.20"
+pretty_assertions = "1.4"
+proptest = "1.7"
 criterion = { version = "0.5", features = ["html_reports"] }
-insta = "1.38"
+insta = "1.43"
 
 # Utilities
 rand = "0.8"
