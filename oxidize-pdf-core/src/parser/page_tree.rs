@@ -37,7 +37,7 @@
 //! ```
 
 use super::document::PdfDocument;
-use super::objects::{PdfDictionary, PdfObject, PdfStream};
+use super::objects::{PdfArray, PdfDictionary, PdfObject, PdfStream};
 use super::reader::PdfReader;
 use super::{ParseError, ParseResult};
 use std::collections::HashMap;
@@ -108,6 +108,10 @@ pub struct ParsedPage {
     /// Page rotation in degrees. Valid values are 0, 90, 180, or 270.
     /// The rotation is applied clockwise.
     pub rotation: i32,
+
+    /// Annotations array containing references to annotation objects.
+    /// This is parsed from the page's /Annots entry.
+    pub annotations: Option<PdfArray>,
 }
 
 /// Page tree navigator
@@ -316,6 +320,7 @@ impl PageTree {
                             media_box: [0.0, 0.0, 612.0, 792.0],
                             crop_box: None,
                             rotation: 0,
+                            annotations: None,
                         });
                     }
 
@@ -365,6 +370,9 @@ impl PageTree {
                     None
                 };
 
+                // Get annotations if present
+                let annotations = node.get("Annots").and_then(|obj| obj.as_array()).cloned();
+
                 Ok(ParsedPage {
                     obj_ref,
                     dict: node.clone(),
@@ -372,6 +380,7 @@ impl PageTree {
                     media_box,
                     crop_box,
                     rotation,
+                    annotations,
                 })
             }
             _ => Err(ParseError::SyntaxError {
@@ -399,7 +408,7 @@ impl PageTree {
             }
 
             let rect = [
-                array.get(0).unwrap().as_real().unwrap_or(0.0),
+                array.0.first().unwrap().as_real().unwrap_or(0.0),
                 array.get(1).unwrap().as_real().unwrap_or(0.0),
                 array.get(2).unwrap().as_real().unwrap_or(0.0),
                 array.get(3).unwrap().as_real().unwrap_or(0.0),
@@ -543,11 +552,12 @@ impl ParsedPage {
                 _ => "other",
             };
 
+            let options = reader.options().clone();
             match contents_type {
                 "stream" => {
                     let resolved = reader.resolve(contents)?;
                     if let PdfObject::Stream(stream) = resolved {
-                        streams.push(stream.decode()?);
+                        streams.push(stream.decode(&options)?);
                     }
                 }
                 "array" => {
@@ -575,7 +585,7 @@ impl ParsedPage {
                     for (obj_num, gen_num) in refs {
                         let obj = reader.get_object(obj_num, gen_num)?;
                         if let PdfObject::Stream(stream) = obj {
-                            streams.push(stream.decode()?);
+                            streams.push(stream.decode(&options)?);
                         }
                     }
                 }
@@ -722,6 +732,57 @@ impl ParsedPage {
         }
 
         cloned
+    }
+
+    /// Get the annotations array for this page.
+    ///
+    /// Returns a reference to the annotations array if present.
+    /// Each element in the array is typically a reference to an annotation dictionary.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let reader = PdfReader::open("document.pdf")?;
+    /// # let document = PdfDocument::new(reader);
+    /// # let page = document.get_page(0)?;
+    /// if let Some(annots) = page.get_annotations() {
+    ///     println!("Page has {} annotations", annots.len());
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_annotations(&self) -> Option<&PdfArray> {
+        self.annotations.as_ref()
+    }
+
+    /// Check if the page has annotations.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the page has an annotations array with at least one annotation,
+    /// `false` otherwise.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let reader = PdfReader::open("document.pdf")?;
+    /// # let document = PdfDocument::new(reader);
+    /// # let page = document.get_page(0)?;
+    /// if page.has_annotations() {
+    ///     println!("This page contains annotations");
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn has_annotations(&self) -> bool {
+        self.annotations
+            .as_ref()
+            .map(|arr| !arr.is_empty())
+            .unwrap_or(false)
     }
 
     /// Get all objects referenced by this page (for extraction or analysis).

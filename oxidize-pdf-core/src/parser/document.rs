@@ -52,7 +52,7 @@
 use super::objects::{PdfDictionary, PdfObject};
 use super::page_tree::{PageTree, ParsedPage};
 use super::reader::PdfReader;
-use super::{ParseError, ParseResult};
+use super::{ParseError, ParseOptions, ParseResult};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::{Read, Seek};
@@ -245,6 +245,11 @@ impl<R: Read + Seek> PdfDocument<R> {
     /// ```
     pub fn version(&self) -> ParseResult<String> {
         Ok(self.reader.borrow().version().to_string())
+    }
+
+    /// Get the parse options
+    pub fn options(&self) -> ParseOptions {
+        self.reader.borrow().options().clone()
     }
 
     /// Get the total number of pages in the document.
@@ -647,6 +652,12 @@ impl<R: Read + Seek> PdfDocument<R> {
             None
         };
 
+        // Get annotations if present
+        let annotations = page_dict
+            .get("Annots")
+            .and_then(|obj| obj.as_array())
+            .cloned();
+
         Ok(ParsedPage {
             obj_ref,
             dict: page_dict.clone(),
@@ -654,6 +665,7 @@ impl<R: Read + Seek> PdfDocument<R> {
             media_box,
             crop_box,
             rotation,
+            annotations,
         })
     }
 
@@ -675,7 +687,7 @@ impl<R: Read + Seek> PdfDocument<R> {
             }
 
             let rect = [
-                array.get(0).unwrap().as_real().unwrap_or(0.0),
+                array.0.first().unwrap().as_real().unwrap_or(0.0),
                 array.get(1).unwrap().as_real().unwrap_or(0.0),
                 array.get(2).unwrap().as_real().unwrap_or(0.0),
                 array.get(3).unwrap().as_real().unwrap_or(0.0),
@@ -876,19 +888,20 @@ impl<R: Read + Seek> PdfDocument<R> {
 
     pub fn get_page_content_streams(&self, page: &ParsedPage) -> ParseResult<Vec<Vec<u8>>> {
         let mut streams = Vec::new();
+        let options = self.options();
 
         if let Some(contents) = page.dict.get("Contents") {
             let resolved_contents = self.resolve(contents)?;
 
             match &resolved_contents {
                 PdfObject::Stream(stream) => {
-                    streams.push(stream.decode()?);
+                    streams.push(stream.decode(&options)?);
                 }
                 PdfObject::Array(array) => {
                     for item in &array.0 {
                         let resolved = self.resolve(item)?;
                         if let PdfObject::Stream(stream) = resolved {
-                            streams.push(stream.decode()?);
+                            streams.push(stream.decode(&options)?);
                         }
                     }
                 }
@@ -1017,6 +1030,103 @@ impl<R: Read + Seek> PdfDocument<R> {
     ) -> ParseResult<Vec<crate::text::ExtractedText>> {
         let extractor = crate::text::TextExtractor::with_options(options);
         extractor.extract_from_document(self)
+    }
+
+    /// Get annotations from a specific page.
+    ///
+    /// Returns a vector of annotation dictionaries for the specified page.
+    /// Each annotation dictionary contains properties like Type, Rect, Contents, etc.
+    ///
+    /// # Arguments
+    ///
+    /// * `page_index` - Zero-based page index
+    ///
+    /// # Returns
+    ///
+    /// A vector of PdfDictionary objects representing annotations, or an empty vector
+    /// if the page has no annotations.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let reader = PdfReader::open("document.pdf")?;
+    /// # let document = PdfDocument::new(reader);
+    /// let annotations = document.get_page_annotations(0)?;
+    /// for annot in &annotations {
+    ///     if let Some(contents) = annot.get("Contents").and_then(|c| c.as_string()) {
+    ///         println!("Annotation: {}", contents);
+    ///     }
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_page_annotations(&self, page_index: u32) -> ParseResult<Vec<PdfDictionary>> {
+        let page = self.get_page(page_index)?;
+
+        if let Some(annots_array) = page.get_annotations() {
+            let mut annotations = Vec::new();
+            let mut reader = self.reader.borrow_mut();
+
+            for annot_ref in &annots_array.0 {
+                if let Some(ref_nums) = annot_ref.as_reference() {
+                    match reader.get_object(ref_nums.0, ref_nums.1) {
+                        Ok(obj) => {
+                            if let Some(dict) = obj.as_dict() {
+                                annotations.push(dict.clone());
+                            }
+                        }
+                        Err(_) => {
+                            // Skip annotations that can't be loaded
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            Ok(annotations)
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
+    /// Get all annotations from all pages in the document.
+    ///
+    /// Returns a vector of tuples containing (page_index, annotations) for each page
+    /// that has annotations.
+    ///
+    /// # Returns
+    ///
+    /// A vector of tuples where the first element is the page index and the second
+    /// is a vector of annotation dictionaries for that page.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use oxidize_pdf::parser::{PdfDocument, PdfReader};
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let reader = PdfReader::open("document.pdf")?;
+    /// # let document = PdfDocument::new(reader);
+    /// let all_annotations = document.get_all_annotations()?;
+    /// for (page_idx, annotations) in all_annotations {
+    ///     println!("Page {} has {} annotations", page_idx, annotations.len());
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_all_annotations(&self) -> ParseResult<Vec<(u32, Vec<PdfDictionary>)>> {
+        let page_count = self.page_count()?;
+        let mut all_annotations = Vec::new();
+
+        for i in 0..page_count {
+            let annotations = self.get_page_annotations(i)?;
+            if !annotations.is_empty() {
+                all_annotations.push((i, annotations));
+            }
+        }
+
+        Ok(all_annotations)
     }
 }
 
